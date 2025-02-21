@@ -9,7 +9,6 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
-  expanded?: boolean;
   onExpandedChange: (expanded: boolean) => void;
 }
 
@@ -24,7 +23,7 @@ const itemVariants = {
   collapsed: { width: 0, opacity: 0 },
 };
 
-export function Sidebar({ expanded = true, onExpandedChange }: SidebarProps) {
+export function Sidebar({ onExpandedChange }: SidebarProps) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -37,10 +36,6 @@ export function Sidebar({ expanded = true, onExpandedChange }: SidebarProps) {
   useEffect(() => {
     onExpandedChange(isExpanded);
   }, [isExpanded, onExpandedChange]);
-
-  if (!mounted) {
-    return null;
-  }
 
   const navItems = [
     { icon: LayoutGrid, label: "Verification buttons", href: "/validation-buttons" },
@@ -70,9 +65,15 @@ export function Sidebar({ expanded = true, onExpandedChange }: SidebarProps) {
 
   return (
     <motion.aside
-      className="fixed left-0 top-0 z-40 h-screen bg-sidebar-background text-sidebar-foreground transition-colors duration-300 border-r border-border/40 shadow-[2px_0_12px_-2px_rgba(0,0,0,0.05)]"
+      className={cn(
+        "fixed left-0 top-0 z-40 h-screen",
+        "bg-background dark:bg-background",
+        "text-sidebar-foreground transition-colors duration-300",
+        "border-r border-border/40",
+        "shadow-[2px_0_12px_-2px_rgba(0,0,0,0.05)]"
+      )}
       initial={false}
-      animate={{ width: isExpanded ? "240px" : "64px" }}
+      animate={{ width: isExpanded ? "256px" : "80px" }}
       transition={sidebarTransition}
     >
       <div className="flex h-full flex-col" onMouseEnter={() => setIsExpanded(true)} onMouseLeave={() => setIsExpanded(false)}>
