@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import { Sidebar } from "@/app/components/ui/sidebar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
 
 interface MainLayoutProps {
@@ -11,26 +11,20 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, showSidebar = true }: MainLayoutProps) {
   const [mounted, setMounted] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Prevent flash of unstyled content
   if (!mounted) {
-    return (
-      <div className="flex h-screen">
-        {showSidebar && <Sidebar onExpandedChange={setSidebarExpanded} />}
-        <div className="flex-1">{children}</div>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <div className="flex h-screen">
-        {showSidebar && <Sidebar onExpandedChange={setSidebarExpanded} />}
+        {showSidebar && <Sidebar onExpandedChange={(expanded) => {}} />}
         <div className="flex-1">{children}</div>
       </div>
     </ThemeProvider>

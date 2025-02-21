@@ -78,22 +78,6 @@
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
   }
-
-  body {
-    @apply antialiased;
-  }
-
-  h1 {
-    @apply text-4xl font-semibold tracking-tight;
-  }
-
-  h2 {
-    @apply text-2xl font-semibold tracking-tight;
-  }
-
-  h3 {
-    @apply text-base font-semibold;
-  }
 }
 
 @layer base {

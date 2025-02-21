@@ -1,22 +1,24 @@
-import type React from "react";
-import { MainLayout } from "./components/MainLayout";
-import "./globals.css"; // Add this if it's not already imported
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { inter } from "./fonts";
+import { ThemeProvider } from "./components/providers/ThemeProvider";
+import "./globals.css";
+import { Sidebar } from "@/components/ui/sidebar";
 
-const interFont = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Your App Name",
+  description: "Your app description",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.className}>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body className={`${interFont.variable} font-sans`}>
-        <MainLayout>{children}</MainLayout>
+    <html lang="en" suppressHydrationWarning>
+      <body className="flex">
+        <Sidebar />
+        <main className="flex-1">
+          <ThemeProvider>{children}</ThemeProvider>
+        </main>
       </body>
     </html>
   );

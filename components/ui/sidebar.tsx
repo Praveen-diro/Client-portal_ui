@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
-  onExpandedChange: (expanded: boolean) => void;
+  // Remove onExpandedChange prop
 }
 
 const sidebarTransition = {
@@ -23,7 +23,8 @@ const itemVariants = {
   collapsed: { width: 0, opacity: 0 },
 };
 
-export function Sidebar({ onExpandedChange }: SidebarProps) {
+export function Sidebar() {
+  // Remove the prop from here too
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -32,10 +33,6 @@ export function Sidebar({ onExpandedChange }: SidebarProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    onExpandedChange(isExpanded);
-  }, [isExpanded, onExpandedChange]);
 
   const navItems = [
     { icon: LayoutGrid, label: "Verification buttons", href: "/validation-buttons" },
