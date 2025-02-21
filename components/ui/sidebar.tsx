@@ -37,6 +37,10 @@ export function Sidebar({ onExpandedChange }: SidebarProps) {
     onExpandedChange(isExpanded);
   }, [isExpanded, onExpandedChange]);
 
+  if (!mounted) {
+    return null;
+  }
+
   const navItems = [
     { icon: LayoutGrid, label: "Verification buttons", href: "/validation-buttons" },
     { icon: FileText, label: "Requests sent", href: "/requests-sent" },

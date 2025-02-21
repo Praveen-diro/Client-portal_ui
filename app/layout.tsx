@@ -1,8 +1,7 @@
 import type React from "react";
-import { MainLayout } from "./components/MainLayout";
-import "./globals.css"; // Add this if it's not already imported
+import "./globals.css";
 import { Inter } from "next/font/google";
-import { inter } from "./fonts";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const interFont = Inter({
   subsets: ["latin"],
@@ -11,12 +10,14 @@ const interFont = Inter({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.className}>
+    <html lang="en" suppressHydrationWarning className={interFont.className}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${interFont.variable} font-sans`}>
-        <MainLayout>{children}</MainLayout>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
