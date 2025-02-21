@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
+import { Sidebar } from "@/components/ui/sidebar";
 
 const requests = [
   {
@@ -155,6 +156,7 @@ const getStatusBadgeColor = (color: string) => {
 export default function RequestsSent() {
   const pathname = usePathname();
   const [shouldAnimate, setShouldAnimate] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -184,175 +186,186 @@ export default function RequestsSent() {
   };
 
   return (
-    <div className="flex-1">
-      <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
-      <div className="container mx-auto px-6 py-8">
-        {/* <motion.p
-          className="text-muted-foreground mb-6"
-          initial={initialAnimation}
-          animate={{ opacity: 1, x: 0 }}
-          transition={headerTransitionConfig}
-        >
-          Manage and track your document verification requests
-        </motion.p> */}
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex-none">
+        <Sidebar expanded={sidebarExpanded} onExpandedChange={setSidebarExpanded} />
+      </div>
+      <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
+        <TooltipProvider>
+          <div className="flex-1 relative">
+            <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
+            <div className="container mx-auto px-6 py-8">
+              {/* <motion.p
+                className="text-muted-foreground mb-6"
+                initial={initialAnimation}
+                animate={{ opacity: 1, x: 0 }}
+                transition={headerTransitionConfig}
+              >
+                Manage and track your document verification requests
+              </motion.p> */}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {statsCards.map((card, index) => (
-            <motion.div
-              key={card.title}
-              initial={initialAnimation}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{
-                ...transitionConfig,
-                delay: index * 0.1,
-              }}
-            >
-              <Card className={`relative overflow-hidden`}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                  <card.icon className={`h-4 w-4 text-${card.color}-500`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{card.value}</div>
-                  <p className="text-xs text-muted-foreground">{card.description}</p>
-                  <div className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}>
-                    {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    {card.trend}
-                  </div>
-                  <div className={`absolute bottom-0 left-0 h-1 w-full bg-${card.color}-500/20`} />
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          initial={initialAnimation}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{
-            ...transitionConfig,
-            delay: 0.4,
-          }}
-          className="rounded-lg border bg-card mt-6"
-        >
-          <div className="rounded-md">
-            <Table>
-              <TableHeader>
-                <motion.tr
-                  initial={initialAnimation}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    ...transitionConfig,
-                    delay: 0.45,
-                  }}
-                >
-                  <TableHead>Session Id</TableHead>
-                  <TableHead>Button</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Initiated on</TableHead>
-                  <TableHead>Final status</TableHead>
-                  <TableHead>Exit reason</TableHead>
-                  <TableHead>Track Id</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </motion.tr>
-              </TableHeader>
-              <TableBody>
-                {requests.map((request, index) => (
-                  <motion.tr
-                    key={request.sessionId}
+              <div className="grid gap-4 md:grid-cols-3">
+                {statsCards.map((card, index) => (
+                  <motion.div
+                    key={card.title}
                     initial={initialAnimation}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{
                       ...transitionConfig,
-                      delay: 0.5 + index * 0.05,
+                      delay: index * 0.1,
                     }}
-                    className="group"
                   >
-                    <TableCell className="font-medium">
-                      <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Download className="h-4 w-4 text-blue-500" />
-                        {request.button}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <ExternalLink className="h-4 w-4 text-gray-500" />
-                        {request.site}
-                      </div>
-                    </TableCell>
-                    <TableCell>{request.initiatedOn}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusBadgeColor(request.statusColor)}>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(request.finalStatus)}
-                            <span>{request.finalStatus}</span>
-                          </div>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>{request.exitReason}</TableCell>
-                    <TableCell>
-                      {request.trackId && <code className="rounded bg-muted px-2 py-1 text-sm">{request.trackId}</code>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Download Report</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </motion.tr>
+                    <Card className={`relative overflow-hidden`}>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                        <card.icon className={`h-4 w-4 text-${card.color}-500`} />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{card.value}</div>
+                        <p className="text-xs text-muted-foreground">{card.description}</p>
+                        <div
+                          className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}
+                        >
+                          {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          {card.trend}
+                        </div>
+                        <div className={`absolute bottom-0 left-0 h-1 w-full bg-${card.color}-500/20`} />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+              </div>
 
-          <motion.div
-            initial={initialAnimation}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              ...transitionConfig,
-              delay: 0.6,
-            }}
-            className="flex items-center justify-center py-4"
-          >
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#">2</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </motion.div>
-        </motion.div>
-      </div>
+              <motion.div
+                initial={initialAnimation}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  ...transitionConfig,
+                  delay: 0.4,
+                }}
+                className="rounded-lg border bg-card mt-6"
+              >
+                <div className="rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <motion.tr
+                        initial={initialAnimation}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                          ...transitionConfig,
+                          delay: 0.45,
+                        }}
+                      >
+                        <TableHead>Session Id</TableHead>
+                        <TableHead>Button</TableHead>
+                        <TableHead>Site</TableHead>
+                        <TableHead>Initiated on</TableHead>
+                        <TableHead>Final status</TableHead>
+                        <TableHead>Exit reason</TableHead>
+                        <TableHead>Track Id</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </motion.tr>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.map((request, index) => (
+                        <motion.tr
+                          key={request.sessionId}
+                          initial={initialAnimation}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            ...transitionConfig,
+                            delay: 0.5 + index * 0.05,
+                          }}
+                          className="group"
+                        >
+                          <TableCell className="font-medium">
+                            <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Download className="h-4 w-4 text-blue-500" />
+                              {request.button}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <ExternalLink className="h-4 w-4 text-gray-500" />
+                              {request.site}
+                            </div>
+                          </TableCell>
+                          <TableCell>{request.initiatedOn}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusBadgeColor(request.statusColor)}>
+                                <div className="flex items-center gap-1">
+                                  {getStatusIcon(request.finalStatus)}
+                                  <span>{request.finalStatus}</span>
+                                </div>
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>{request.exitReason}</TableCell>
+                          <TableCell>
+                            {request.trackId && <code className="rounded bg-muted px-2 py-1 text-sm">{request.trackId}</code>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>View Details</DropdownMenuItem>
+                                  <DropdownMenuItem>Download Report</DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <motion.div
+                  initial={initialAnimation}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    ...transitionConfig,
+                    delay: 0.6,
+                  }}
+                  className="flex items-center justify-center py-4"
+                >
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious href="#" />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationLink href="#" isActive>
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationLink href="#">2</PaginationLink>
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationNext href="#" />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </motion.div>
+              </motion.div>
+            </div>
+          </div>
+        </TooltipProvider>
+      </main>
     </div>
   );
 }

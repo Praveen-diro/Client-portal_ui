@@ -82,15 +82,16 @@ export default function LoginPage() {
 
         {/* Content container */}
         <div className="relative flex min-h-screen z-10">
-          {/* Left Section */}
-          <div className="relative hidden w-1/2 lg:block p-12">
+          {/* Left Section - Updated padding and positioning */}
+          <div className="relative hidden w-1/2 lg:block pl-0">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative h-full flex flex-col"
             >
-              <div className="flex items-center gap-2 mb-8">
+              {/* Logo section - Add specific padding */}
+              <div className="flex items-center gap-2 mb-8 px-12 pt-12">
                 <motion.a href="https://diro.io/" whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
                   <img
                     src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo_dirosvg-SlKV6MwAd8fixuyjmkq61ZTjUPmRnk.png"
@@ -101,8 +102,9 @@ export default function LoginPage() {
                 <span className="text-slate-800 dark:text-white/90 text-lg font-medium">Beta</span>
               </div>
 
+              {/* Text content section - Add specific padding */}
               <motion.div
-                className="max-w-lg mb-8"
+                className="mb-16 px-12"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
@@ -116,17 +118,21 @@ export default function LoginPage() {
                 </p>
               </motion.div>
 
-              <div className="relative flex-grow mt-2 overflow-hidden">
-                <motion.div className="absolute bottom-0 left-0 w-full h-full">
+              {/* Certificate container - Adjusted spacing */}
+              <div className="relative flex-grow mt-24 pt-12">
+                <motion.div className="absolute left-0 w-full h-full">
                   <motion.img
                     src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background-login-HdowIu9Kyhep2y9j1G27A0Ueq0Z6Qk.png"
                     alt="Certificate preview 1"
-                    className="absolute bottom-0 left-[5%] w-[75%] h-auto"
+                    className="absolute bottom-0 left-0 w-[85%] h-auto"
                     style={{
                       filter: "drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))",
-                      transformOrigin: "bottom left",
+                      top: "-11rem",
+                      width: "600px",
+                      left: "-4rem",
+                      // transformOrigin: "bottom left",
                     }}
-                    initial={{ rotate: -6, zIndex: 2 }}
+                    initial={{ rotate: -5, zIndex: 2 }}
                     animate={{ rotate: -6, zIndex: 2 }}
                     transition={{
                       type: "spring",
@@ -137,12 +143,15 @@ export default function LoginPage() {
                   <motion.img
                     src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background-login-HdowIu9Kyhep2y9j1G27A0Ueq0Z6Qk.png"
                     alt="Certificate preview 2"
-                    className="absolute bottom-0 left-[25%] w-[75%] h-auto"
+                    className="absolute bottom-0 left-[15%] w-[85%] h-auto"
                     style={{
                       filter: "drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))",
-                      transformOrigin: "bottom right",
+                      width: "600px",
+                      left: "4rem",
+                      top: "-13rem",
+                      // transformOrigin: "bottom right",
                     }}
-                    initial={{ rotate: 6, scale: 1, zIndex: 1 }}
+                    initial={{ rotate: -5, scale: 1, zIndex: 1 }}
                     whileHover={{
                       rotate: 0,
                       scale: 1.05,

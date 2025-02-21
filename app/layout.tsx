@@ -10,13 +10,13 @@ const interFont = Inter({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={interFont.className}>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className={`${interFont.variable} font-sans`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
+      <body className={`${interFont.variable} font-sans min-h-screen`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="diro-theme">
+          <div className="min-h-screen bg-gray-50 dark:bg-[#182848]">{children}</div>
         </ThemeProvider>
       </body>
     </html>

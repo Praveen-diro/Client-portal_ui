@@ -1,66 +1,69 @@
+"use client";
+
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Image from "next/image";
 
 export function TwoFactorAuth() {
-  const [method, setMethod] = useState<string>("authenticator");
-  const [verificationCode, setVerificationCode] = useState<string>("");
+  const [code, setCode] = useState("");
 
   return (
-    <Card className="w-full max-w-md mx-auto p-6 space-y-8">
-      <div className="space-y-2 text-center">
-        <h2 className="text-3xl font-bold tracking-tight">Two-Factor Authentication</h2>
-        <p className="text-muted-foreground">Enhance your account security with 2FA</p>
-      </div>
-
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            Authentication Method
-          </label>
-          <Select value={method} onValueChange={(value) => setMethod(value)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select authentication method" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="authenticator">Authenticator App</SelectItem>
-              <SelectItem value="sms">SMS</SelectItem>
-              <SelectItem value="email">Email</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative w-64 h-64 border-2 border-dashed rounded-lg p-2 flex items-center justify-center">
-              {/* Replace with actual QR code */}
-              <div className="w-48 h-48 bg-black rounded-lg" />
+    <motion.div
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="w-full max-w-2xl"
+    >
+      {/* Main container with nested glass effect */}
+      <div className="relative rounded-3xl overflow-hidden bg-white/80 dark:bg-white/5 backdrop-blur-xl p-10">
+        {/* Inner container with deeper glass effect */}
+        <div
+          className="relative rounded-2xl bg-white/50 dark:bg-white/5 backdrop-blur-md p-8 
+          shadow-[0_8px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_rgba(255,255,255,0.1)]"
+        >
+          <div className="space-y-6">
+            <div className="space-y-2 text-center">
+              <h1 className="text-2xl font-semibold text-slate-800 dark:text-white">Two-Factor Authentication</h1>
+              <p className="text-gray-300 text-sm">Please enter the verification code sent to your email</p>
             </div>
-            <p className="text-sm text-muted-foreground text-center">Scan this QR code with your authentication app</p>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Verification Code
-            </label>
-            <Input
-              type="text"
-              placeholder="Enter 6-digit code"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              maxLength={6}
-              className="text-center text-lg tracking-wider"
-            />
-          </div>
+            <form className="space-y-6">
+              <div className="space-y-4">
+                <Input
+                  type="text"
+                  placeholder="Enter verification code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="h-12 pl-4 
+                    bg-white/60 dark:bg-white/5 
+                    border-0 dark:border dark:border-white/10 
+                    text-slate-800 dark:text-white 
+                    placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                    rounded-xl 
+                    focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
+                    focus:border-transparent 
+                    transition-all duration-300
+                    shadow-sm"
+                />
+              </div>
 
-          <Button className="w-full" size="lg">
-            Enable 2FA
-          </Button>
+              <Button
+                type="submit"
+                className="w-full h-14 bg-gradient-to-r from-[#4b6cb7] to-[#182848] hover:opacity-90 text-white rounded-xl transition-all duration-300 hover:scale-[1.02]"
+              >
+                Verify
+              </Button>
+
+              <div className="text-center">
+                <Button variant="link" className="text-sm text-gray-300 hover:text-white">
+                  Resend Code
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </Card>
+    </motion.div>
   );
 }

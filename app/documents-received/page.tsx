@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { Sidebar } from "@/components/ui/sidebar";
 
 // Sample data
 const documents = [
@@ -71,6 +72,7 @@ const stats = {
 export default function DocumentsReceived() {
   const pathname = usePathname();
   const [shouldAnimate, setShouldAnimate] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -113,170 +115,177 @@ export default function DocumentsReceived() {
   };
 
   return (
-    <div className="flex-1">
-      <PageHeader title="Documents Received" description="View and manage received documents for verification" />
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          <motion.div
-            initial={initialAnimation}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              ...transitionConfig,
-              delay: 0.1,
-            }}
-          >
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-                <Clock className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
-                <p className="text-xs text-muted-foreground mt-1">Awaiting verification</p>
-                <div className="absolute bottom-0 left-0 h-1 w-full bg-yellow-500/20" />
-              </CardContent>
-            </Card>
-          </motion.div>
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex-none">
+        <Sidebar expanded={sidebarExpanded} onExpandedChange={setSidebarExpanded} />
+      </div>
+      <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
+        <div className="flex-1">
+          <PageHeader title="Documents Received" description="View and manage received documents for verification" />
+          <div className="container mx-auto px-6 py-8">
+            <div className="grid gap-4 md:grid-cols-3">
+              <motion.div
+                initial={initialAnimation}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  ...transitionConfig,
+                  delay: 0.1,
+                }}
+              >
+                <Card className="relative overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                    <Clock className="h-4 w-4 text-yellow-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Awaiting verification</p>
+                    <div className="absolute bottom-0 left-0 h-1 w-full bg-yellow-500/20" />
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-          <motion.div
-            initial={initialAnimation}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              ...transitionConfig,
-              delay: 0.2,
-            }}
-          >
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Approved</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-500">{stats.approved}</div>
-                <p className="text-xs text-muted-foreground mt-1">Verified documents</p>
-                <div className="absolute bottom-0 left-0 h-1 w-full bg-green-500/20" />
-              </CardContent>
-            </Card>
-          </motion.div>
+              <motion.div
+                initial={initialAnimation}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  ...transitionConfig,
+                  delay: 0.2,
+                }}
+              >
+                <Card className="relative overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle className="text-sm font-medium">Approved</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-500">{stats.approved}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Verified documents</p>
+                    <div className="absolute bottom-0 left-0 h-1 w-full bg-green-500/20" />
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-          <motion.div
-            initial={initialAnimation}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              ...transitionConfig,
-              delay: 0.3,
-            }}
-          >
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-                <XCircle className="h-4 w-4 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-500">{stats.rejected}</div>
-                <p className="text-xs text-muted-foreground mt-1">Failed verification</p>
-                <div className="absolute bottom-0 left-0 h-1 w-full bg-red-500/20" />
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={initialAnimation}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{
-            ...transitionConfig,
-            delay: 0.4,
-          }}
-          className="bg-card rounded-lg border shadow-sm mt-6"
-        >
-          <Tabs defaultValue="all" className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList>
-                <TabsTrigger value="all">All Documents</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="rejected">Rejected</TabsTrigger>
-              </TabsList>
+              <motion.div
+                initial={initialAnimation}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  ...transitionConfig,
+                  delay: 0.3,
+                }}
+              >
+                <Card className="relative overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-red-500">{stats.rejected}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Failed verification</p>
+                    <div className="absolute bottom-0 left-0 h-1 w-full bg-red-500/20" />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
-            <TabsContent value="all" className="space-y-4">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Document</TableHead>
-                      <TableHead>Button</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Session ID</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date Received</TableHead>
-                      <TableHead>Track ID</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {documents.map((doc, index) => (
-                      <motion.tr
-                        key={doc.id}
-                        initial={initialAnimation}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{
-                          ...transitionConfig,
-                          delay: 0.5 + index * 0.05,
-                        }}
-                        className="group"
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-blue-500" />
-                            <span className="font-medium">{doc.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{doc.button}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{doc.type}</Badge>
-                        </TableCell>
-                        <TableCell>{doc.source}</TableCell>
-                        <TableCell>
-                          <code className="rounded bg-muted px-2 py-1 text-sm">{doc.sessionId}</code>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(doc.status)}>
-                            {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{doc.dateReceived}</TableCell>
-                        <TableCell>{doc.trackId}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+            <motion.div
+              initial={initialAnimation}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                ...transitionConfig,
+                delay: 0.4,
+              }}
+              className="bg-card rounded-lg border shadow-sm mt-6"
+            >
+              <Tabs defaultValue="all" className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <TabsList>
+                    <TabsTrigger value="all">All Documents</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="approved">Approved</TabsTrigger>
+                    <TabsTrigger value="rejected">Rejected</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="all" className="space-y-4">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Document</TableHead>
+                          <TableHead>Button</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Source</TableHead>
+                          <TableHead>Session ID</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Date Received</TableHead>
+                          <TableHead>Track ID</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {documents.map((doc, index) => (
+                          <motion.tr
+                            key={doc.id}
+                            initial={initialAnimation}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{
+                              ...transitionConfig,
+                              delay: 0.5 + index * 0.05,
+                            }}
+                            className="group"
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-500" />
+                                <span className="font-medium">{doc.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{doc.button}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{doc.type}</Badge>
+                            </TableCell>
+                            <TableCell>{doc.source}</TableCell>
+                            <TableCell>
+                              <code className="rounded bg-muted px-2 py-1 text-sm">{doc.sessionId}</code>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(doc.status)}>
+                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{doc.dateReceived}</TableCell>
+                            <TableCell>{doc.trackId}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
                                 <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                  <MoreVertical className="h-4 w-4" />
+                                  <Eye className="h-4 w-4" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Download</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
-      </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                                    <DropdownMenuItem>Download</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

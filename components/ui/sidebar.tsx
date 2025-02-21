@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
+  expanded?: boolean;
   onExpandedChange: (expanded: boolean) => void;
 }
 
@@ -23,7 +24,7 @@ const itemVariants = {
   collapsed: { width: 0, opacity: 0 },
 };
 
-export function Sidebar({ onExpandedChange }: SidebarProps) {
+export function Sidebar({ expanded = true, onExpandedChange }: SidebarProps) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const { theme, setTheme } = useTheme();
