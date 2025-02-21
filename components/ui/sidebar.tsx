@@ -42,7 +42,7 @@ export function Sidebar({ onExpandedChange }: SidebarProps) {
     { icon: FileText, label: "Requests sent", href: "/requests-sent" },
     { icon: FileText, label: "Documents received", href: "/documents-received" },
     { icon: Globe, label: "See coverage", href: "/coverage" },
-    { icon: Settings, label: "Integration", href: "/integration" },
+    { icon: Settings, label: "Integrations", href: "/integrations" },
     { icon: User2, label: "Manage account", href: "/account" },
     { icon: HelpCircle, label: "Report issue", href: "/report-issue" },
   ];
