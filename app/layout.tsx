@@ -3,6 +3,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import { Providers } from "./providers";
 
 const interFont = Inter({
   subsets: ["latin"],
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={cn(interFont.variable, "font-sans min-h-screen")}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="diro-theme">
-          <div className="min-h-screen">{children}</div>
+          <Providers>
+            <div className="min-h-screen">{children}</div>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

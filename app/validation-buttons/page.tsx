@@ -121,7 +121,7 @@ export default function ValidationButtons() {
   };
 
   const handleEditButton = (buttonId: number) => {
-    router.push(`/validation-buttons/${buttonId}`);
+    router.push(`/validation-buttons/button-settings/${buttonId}`);
   };
 
   return (
