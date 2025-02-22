@@ -52,6 +52,9 @@ export default function AccountPage() {
     mass: 0.5,
   };
 
+  const initialAnimation = { opacity: 0, x: 200 };
+  const animateIn = { opacity: 1, x: 0 };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
@@ -59,14 +62,17 @@ export default function AccountPage() {
       </div>
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex flex-col h-full mb-4">
-          <PageHeader title="Manage Account" description="Manage your account settings and preferences" />
+          <motion.div initial={initialAnimation} animate={animateIn} transition={{ ...transitionConfig, delay: 0.2 }}>
+            <PageHeader title="Manage Account" description="Manage your account settings and preferences" />
+          </motion.div>
+
           <div className="flex-1 overflow-y-auto">
             <div className="container mx-auto px-6 py-8">
               <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                 <motion.div
-                  initial={{ opacity: 0, x: 200 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ ...transitionConfig, delay: 0.4 }}
+                  initial={initialAnimation}
+                  animate={animateIn}
+                  transition={{ ...transitionConfig, delay: 0.3 }}
                   className="relative"
                 >
                   <TabsList className="relative z-10">
@@ -85,7 +91,13 @@ export default function AccountPage() {
                   </TabsList>
                 </motion.div>
 
-                <div className="relative" style={{ minHeight: "400px" }}>
+                <motion.div
+                  initial={initialAnimation}
+                  animate={animateIn}
+                  transition={{ ...transitionConfig, delay: 0.4 }}
+                  className="relative"
+                  style={{ minHeight: "400px" }}
+                >
                   <AnimatePresence initial={false} custom={direction} mode="wait">
                     <motion.div
                       key={activeTab}
@@ -109,7 +121,7 @@ export default function AccountPage() {
                       {React.createElement(tabContent[activeTab as keyof typeof tabContent])}
                     </motion.div>
                   </AnimatePresence>
-                </div>
+                </motion.div>
               </Tabs>
             </div>
           </div>

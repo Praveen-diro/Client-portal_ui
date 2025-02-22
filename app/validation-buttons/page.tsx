@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Download, FileText, Globe, Info, LayoutGrid, Link2, Search, Plus, MoreHorizontal } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,7 @@ const statsCards = [
 
 export default function ValidationButtons() {
   const pathname = usePathname();
+  const router = useRouter();
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
@@ -117,6 +118,10 @@ export default function ValidationButtons() {
 
   const handleSidebarExpand = (expanded: boolean) => {
     setSidebarExpanded(expanded);
+  };
+
+  const handleEditButton = (buttonId: number) => {
+    router.push(`/validation-buttons/${buttonId}`);
   };
 
   return (
@@ -303,7 +308,7 @@ export default function ValidationButtons() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>Edit Button</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditButton(button.id)}>Edit Button</DropdownMenuItem>
                                 <DropdownMenuItem>View Analytics</DropdownMenuItem>
                                 <DropdownMenuItem className="text-red-600">Delete Button</DropdownMenuItem>
                               </DropdownMenuContent>

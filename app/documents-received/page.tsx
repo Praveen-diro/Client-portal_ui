@@ -114,6 +114,28 @@ export default function DocumentsReceived() {
     }
   };
 
+  // Add this function to filter documents based on status
+  const getFilteredDocuments = (status: string) => {
+    if (status === "all") return documents;
+    return documents.filter((doc) => doc.status === status);
+  };
+
+  // Update the tableAnimation config
+  const tableAnimation = {
+    hidden: { opacity: 0, x: 200 },
+    visible: (index: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: 0.5 + index * 0.05,
+        type: "spring",
+        stiffness: 70,
+        damping: 25,
+        mass: 0.5,
+      },
+    }),
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
@@ -207,80 +229,92 @@ export default function DocumentsReceived() {
                   </TabsList>
                 </div>
 
-                <TabsContent value="all" className="space-y-4">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Document</TableHead>
-                          <TableHead>Button</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Source</TableHead>
-                          <TableHead>Session ID</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Date Received</TableHead>
-                          <TableHead>Track ID</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {documents.map((doc, index) => (
-                          <motion.tr
-                            key={doc.id}
-                            initial={initialAnimation}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                              ...transitionConfig,
-                              delay: 0.5 + index * 0.05,
-                            }}
-                            className="group"
-                          >
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-blue-500" />
-                                <span className="font-medium">{doc.name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{doc.button}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{doc.type}</Badge>
-                            </TableCell>
-                            <TableCell>{doc.source}</TableCell>
-                            <TableCell>
-                              <code className="rounded bg-muted px-2 py-1 text-sm">{doc.sessionId}</code>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(doc.status)}>
-                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{doc.dateReceived}</TableCell>
-                            <TableCell>{doc.trackId}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                                    <DropdownMenuItem>Download</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
-                          </motion.tr>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
+                {/* Replace the single TabsContent with multiple TabsContent components */}
+                {["all", "pending", "approved", "rejected"].map((tab) => (
+                  <TabsContent key={tab} value={tab} className="space-y-4">
+                    <motion.div
+                      className="rounded-md border"
+                      initial={{ opacity: 0, x: 200 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 70,
+                        damping: 25,
+                        mass: 0.5,
+                        delay: 0.3,
+                      }}
+                    >
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Document</TableHead>
+                            <TableHead>Button</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Source</TableHead>
+                            <TableHead>Session ID</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date Received</TableHead>
+                            <TableHead>Track ID</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getFilteredDocuments(tab).map((doc, index) => (
+                            <motion.tr
+                              key={doc.id}
+                              custom={index}
+                              initial="hidden"
+                              animate="visible"
+                              variants={tableAnimation}
+                              className="group"
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-blue-500" />
+                                  <span className="font-medium">{doc.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{doc.button}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{doc.type}</Badge>
+                              </TableCell>
+                              <TableCell>{doc.source}</TableCell>
+                              <TableCell>
+                                <code className="rounded bg-muted px-2 py-1 text-sm">{doc.sessionId}</code>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getStatusColor(doc.status)}>
+                                  {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{doc.dateReceived}</TableCell>
+                              <TableCell>{doc.trackId}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant="ghost" size="icon">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem>View Details</DropdownMenuItem>
+                                      <DropdownMenuItem>Download</DropdownMenuItem>
+                                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </motion.tr>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </motion.div>
+                  </TabsContent>
+                ))}
               </Tabs>
             </motion.div>
           </div>
