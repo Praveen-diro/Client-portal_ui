@@ -32,6 +32,31 @@ import {
   X,
   ChevronDown,
   Plus,
+  Hash,
+  Calendar,
+  Trash2,
+  FileJson,
+  Settings2,
+  Eye,
+  BellOff,
+  BarChart2,
+  HelpCircle,
+  Play,
+  ClipboardList,
+  Shield,
+  ChartBar,
+  Check,
+  FileCheck,
+  Fingerprint,
+  Zap,
+  Download,
+  History,
+  Files,
+  Receipt,
+  BookOpen,
+  MessageSquare,
+  RefreshCw,
+  CreditCard,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -477,31 +502,33 @@ export default function EditButton() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50/30 dark:bg-gray-900/30">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50/30 via-gray-100/30 to-gray-50/30 dark:from-gray-900/30 dark:via-gray-800/30 dark:to-gray-900/30">
       <div className="flex-none">
         <Sidebar onExpandedChange={setSidebarExpanded} />
       </div>
       <PageContainer sidebarExpanded={sidebarExpanded}>
         <div className="min-h-screen">
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+          <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
             <div className="container mx-auto px-6">
               <div className="h-16 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     onClick={() => router.back()}
                   >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <div>
-                    <h1 className="text-lg font-semibold">Button Configuration</h1>
+                    <h1 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+                      Button Configuration
+                    </h1>
                     <p className="text-sm text-muted-foreground">Configure verification settings and permissions</p>
                   </div>
                 </div>
-                <Button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white">
+                <Button className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all">
                   <Save className="h-4 w-4" /> Save Changes
                 </Button>
               </div>
@@ -510,18 +537,22 @@ export default function EditButton() {
 
           {/* Content */}
           <div className="container mx-auto px-6 py-8">
-            <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="space-y-6">
+            <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="space-y-8">
               <div className="relative">
-                <TabsList className="relative z-10">
+                <TabsList className="relative z-10 bg-white dark:bg-gray-900 p-1 rounded-xl shadow-lg">
                   {TABS.map((tab, index) => (
-                    <TabsTrigger key={index} value={index.toString()} className="relative data-[state=active]:text-primary">
-                      <div className="flex items-center gap-2">
+                    <TabsTrigger
+                      key={index}
+                      value={index.toString()}
+                      className="relative data-[state=active]:text-primary data-[state=active]:bg-primary/10 transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-2 px-1">
                         {renderTabIcon(tab)}
                         <span>{tab.name}</span>
                       </div>
                       {activeTab === index && (
                         <motion.div
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
                           layoutId="activeTab"
                           transition={{ type: "spring", stiffness: 380, damping: 30 }}
                         />
@@ -965,201 +996,236 @@ export default function EditButton() {
                       <>
                         {/* Privacy tab content */}
                         <div className="lg:col-span-3">
-                          <div className="space-y-6">
-                            {/* Privacy Settings Card */}
-                            <Card className="shadow-sm">
-                              <CardContent className="p-6">
-                                <div className="flex items-center gap-2 mb-6">
-                                  <Lock className="h-5 w-5 text-primary" />
-                                  <h2 className="text-xl font-semibold">Privacy Settings</h2>
+                          {/* Header Banner */}
+                          <div className="bg-background/95 border border-border rounded-2xl p-8 mb-8">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-6">
+                                <div className="bg-muted p-4 rounded-xl">
+                                  <Lock className="h-8 w-8 text-foreground" />
                                 </div>
-                                <div className="space-y-6">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Enable auto deletion</Label>
-                                      <p className="text-sm text-muted-foreground">Automatically delete data after 7 days</p>
-                                    </div>
-                                    <Switch
-                                      checked={autoDeletionEnabled}
-                                      onCheckedChange={(checked) => dispatch(setAutoDeletion({ enabled: checked }))}
-                                    />
-                                  </div>
-                                  <Separator />
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Share only JSON</Label>
-                                      <p className="text-sm text-muted-foreground">Do not generate PDF files</p>
-                                    </div>
-                                    <Switch
-                                      checked={shareOnlyJson}
-                                      onCheckedChange={(checked) => dispatch(setShareOnlyJson(checked))}
-                                    />
-                                  </div>
+                                <div>
+                                  <h2 className="text-2xl font-semibold text-foreground">Privacy & Data Protection</h2>
+                                  <p className="text-muted-foreground mt-1">Configure data handling and security settings</p>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                              <div className="flex gap-3">
+                                <Button variant="outline">
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  View Policy
+                                </Button>
+                                <Button>
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Security Settings
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
 
-                            {/* Verification Fields Card */}
-                            <Card className="shadow-sm">
-                              <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    <h2 className="text-xl font-semibold">Verification Fields</h2>
+                          <div className="grid grid-cols-12 gap-6">
+                            {/* Main Content */}
+                            <div className="col-span-12 lg:col-span-8 space-y-6">
+                              {/* Data Protection Card */}
+                              <Card className="border-border shadow-sm">
+                                <div className="bg-muted px-6 py-4 border-b border-border">
+                                  <div className="flex items-center gap-4">
+                                    <Shield className="h-5 w-5" />
+                                    <h3 className="text-lg font-medium">Data Protection Controls</h3>
                                   </div>
-                                  <Button
-                                    onClick={() =>
-                                      dispatch(
-                                        addVerificationField({
-                                          fieldLabel: "",
-                                          type: "text",
-                                          sampleText: "",
-                                          tag: "",
-                                        })
-                                      )
-                                    }
-                                    className="bg-primary hover:bg-primary/90 text-white"
-                                  >
-                                    + Add field
-                                  </Button>
                                 </div>
-
-                                <div className="space-y-4">
-                                  {verificationFields.map((field, index) => (
-                                    <div key={index} className="grid grid-cols-4 gap-4 items-start">
-                                      <div>
-                                        <Label className="text-sm text-gray-500">(What to find)</Label>
-                                        <Input
-                                          value={field.fieldLabel}
-                                          onChange={(e) =>
-                                            dispatch(
-                                              updateVerificationField({
-                                                index,
-                                                field: { fieldLabel: e.target.value },
-                                              })
-                                            )
-                                          }
-                                          placeholder="Field label"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label className="text-sm text-gray-500">Type</Label>
-                                        <Select
-                                          value={field.type}
-                                          onValueChange={(value) =>
-                                            dispatch(
-                                              updateVerificationField({
-                                                index,
-                                                field: { type: value },
-                                              })
-                                            )
-                                          }
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="text">Text</SelectItem>
-                                            <SelectItem value="number">Number</SelectItem>
-                                            <SelectItem value="date">Date</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div>
-                                        <Label className="text-sm text-gray-500">(Hint for data entry in form)</Label>
-                                        <Input
-                                          value={field.sampleText}
-                                          onChange={(e) =>
-                                            dispatch(
-                                              updateVerificationField({
-                                                index,
-                                                field: { sampleText: e.target.value },
-                                              })
-                                            )
-                                          }
-                                          placeholder="Sample text"
-                                        />
-                                      </div>
-                                      <div className="flex items-end gap-2">
-                                        <div className="flex-1">
-                                          <Label className="text-sm text-gray-500">(For mapping field in json)</Label>
-                                          <Select
-                                            value={field.tag || ""}
-                                            onValueChange={(value) =>
-                                              dispatch(
-                                                updateVerificationField({
-                                                  index,
-                                                  field: { tag: value },
-                                                })
-                                              )
-                                            }
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select tag" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="name">Name</SelectItem>
-                                              <SelectItem value="address">Address</SelectItem>
-                                              <SelectItem value="date">Date</SelectItem>
-                                            </SelectContent>
-                                          </Select>
+                                <CardContent className="p-6">
+                                  <div className="space-y-6">
+                                    <div className="bg-background rounded-xl p-4 border border-border">
+                                      <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                          <Label className="text-base font-medium">Auto Data Deletion</Label>
+                                          <p className="text-muted-foreground text-sm">Automatically purge data after 7 days</p>
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => dispatch(removeVerificationField(index))}
-                                          className="mb-[6px]"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-3">
+                                          <Badge
+                                            variant="outline"
+                                            className={autoDeletionEnabled ? "border-border bg-muted" : ""}
+                                          >
+                                            {autoDeletionEnabled ? "Active" : "Inactive"}
+                                          </Badge>
+                                          <Switch
+                                            checked={autoDeletionEnabled}
+                                            onCheckedChange={(checked) => dispatch(setAutoDeletion({ enabled: checked }))}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
 
-                                <div className="space-y-4 mt-6">
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Show field labels on find info screen</Label>
+                                    <div className="bg-background rounded-xl p-4 border border-border">
+                                      <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                          <Label className="text-base font-medium">JSON-Only Mode</Label>
+                                          <p className="text-muted-foreground text-sm">Share data in JSON format without PDFs</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <Badge variant="outline" className={shareOnlyJson ? "border-border bg-muted" : ""}>
+                                            {shareOnlyJson ? "JSON Only" : "JSON + PDF"}
+                                          </Badge>
+                                          <Switch
+                                            checked={shareOnlyJson}
+                                            onCheckedChange={(checked) => dispatch(setShareOnlyJson(checked))}
+                                          />
+                                        </div>
+                                      </div>
                                     </div>
-                                    <Switch
-                                      checked={showFieldLabels}
-                                      onCheckedChange={(checked) => dispatch(setShowFieldLabels(checked))}
-                                    />
                                   </div>
-                                  <Separator />
+                                </CardContent>
+                              </Card>
+
+                              {/* Field Settings Card */}
+                              <Card className="border-border shadow-sm">
+                                <div className="bg-muted px-6 py-4 border-b border-border">
                                   <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Do not prompt user for capture when a keyword is found on webpage</Label>
+                                    <div className="flex items-center gap-4">
+                                      <ClipboardList className="h-5 w-5" />
+                                      <h3 className="text-lg font-medium">Field Settings</h3>
                                     </div>
-                                    <Switch
-                                      checked={disableWebpagePrompts}
-                                      onCheckedChange={(checked) => dispatch(setDisableWebpagePrompts(checked))}
-                                    />
-                                  </div>
-                                  <Separator />
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Show account in detail in the final JSON</Label>
-                                    </div>
-                                    <Switch
-                                      checked={showDetailedJson}
-                                      onCheckedChange={(checked) => dispatch(setShowDetailedJson(checked))}
-                                    />
-                                  </div>
-                                  <Separator />
-                                  <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                      <Label>Transactions extraction</Label>
-                                    </div>
-                                    <Switch
-                                      checked={transactionsExtraction}
-                                      onCheckedChange={(checked) => dispatch(setTransactionsExtraction(checked))}
-                                    />
+                                    <Button
+                                      onClick={() =>
+                                        dispatch(addVerificationField({ fieldLabel: "", type: "text", sampleText: "", tag: "" }))
+                                      }
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add Field
+                                    </Button>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
+                                <CardContent className="p-6">
+                                  <div className="space-y-6">
+                                    {/* Field Visibility Section */}
+                                    <div className="bg-muted rounded-xl p-6">
+                                      <div className="flex items-center gap-4 mb-6">
+                                        <div className="bg-background p-3 rounded-lg">
+                                          <Eye className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                          <h4 className="text-base font-medium">Field Visibility</h4>
+                                          <p className="text-muted-foreground text-sm">
+                                            Control how fields appear during verification
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid sm:grid-cols-2 gap-4">
+                                        <div className="bg-background rounded-xl p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium">Show Field Labels</Label>
+                                              <p className="text-muted-foreground text-xs mt-1">
+                                                Display field names during scanning
+                                              </p>
+                                            </div>
+                                            <Switch
+                                              checked={showFieldLabels}
+                                              onCheckedChange={(checked) => dispatch(setShowFieldLabels(checked))}
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="bg-background rounded-xl p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium">Smart Prompts</Label>
+                                              <p className="text-muted-foreground text-xs mt-1">
+                                                Auto-hide prompts when detected
+                                              </p>
+                                            </div>
+                                            <Switch
+                                              checked={disableWebpagePrompts}
+                                              onCheckedChange={(checked) => dispatch(setDisableWebpagePrompts(checked))}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Data Extraction Section */}
+                                    <div className="bg-muted rounded-xl p-6">
+                                      <div className="flex items-center gap-4 mb-6">
+                                        <div className="bg-background p-3 rounded-lg">
+                                          <FileJson className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                          <h4 className="text-base font-medium">Data Extraction</h4>
+                                          <p className="text-muted-foreground text-sm">Configure data processing settings</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid sm:grid-cols-2 gap-4">
+                                        <div className="bg-background rounded-xl p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium">Detailed JSON Output</Label>
+                                              <p className="text-muted-foreground text-xs mt-1">Include comprehensive metadata</p>
+                                            </div>
+                                            <Switch
+                                              checked={showDetailedJson}
+                                              onCheckedChange={(checked) => dispatch(setShowDetailedJson(checked))}
+                                            />
+                                          </div>
+                                        </div>
+
+                                        <div className="bg-background rounded-xl p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium">Transaction Analysis</Label>
+                                              <p className="text-muted-foreground text-xs mt-1">Process transaction data</p>
+                                            </div>
+                                            <Switch
+                                              checked={transactionsExtraction}
+                                              onCheckedChange={(checked) => dispatch(setTransactionsExtraction(checked))}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {/* Side Panel */}
+                            <div className="col-span-12 lg:col-span-4 space-y-6">
+                              <Card className="border-border shadow-sm">
+                                <div className="bg-muted px-6 py-4 border-b border-border">
+                                  <div className="flex items-center gap-3">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <h3 className="text-base font-medium">Privacy Status</h3>
+                                  </div>
+                                </div>
+                                <CardContent className="p-6">
+                                  <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-muted-foreground text-sm">Data Protection</span>
+                                      <Badge variant="outline" className="bg-muted">
+                                        Active
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-muted-foreground text-sm">Encryption</span>
+                                      <Badge variant="outline" className="bg-muted">
+                                        Enabled
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-muted-foreground text-sm">Auto-Delete</span>
+                                      <Badge variant="outline" className="bg-muted">
+                                        7 Days
+                                      </Badge>
+                                    </div>
+                                    <Separator className="my-4" />
+                                    <Button variant="outline" className="w-full">
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      View Security Log
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
                           </div>
                         </div>
                       </>
