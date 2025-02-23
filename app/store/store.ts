@@ -1,13 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
-import privacyReducer from "./features/privacySlice";
-import triggerReducer from "./features/triggerSlice";
+import buttonSettingsReducer from "./features/buttonSettingsSlice";
 
 export const store = configureStore({
   reducer: {
     user: userReducer,
-    privacy: privacyReducer,
-    trigger: triggerReducer,
+    buttonSettings: buttonSettingsReducer,
   },
 });
 
