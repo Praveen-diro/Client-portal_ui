@@ -88,6 +88,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatePresence } from "framer-motion";
 import React from "react";
 
+// Add import for BasicTab component
+import { BasicTab } from "../../../../components/tabs/BasicTab";
+
 interface Tab {
   name: string;
   icon: LucideIcon;
@@ -574,339 +577,28 @@ export default function EditButton() {
                   >
                     {/* Existing tab content */}
                     {activeTab === 0 && (
-                      <>
-                        {/* Basic tab content */}
-                        <div className="lg:col-span-2 space-y-6">
-                          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-                            <CardContent className="p-6">
-                              <div className="space-y-8">
-                                <div>
-                                  <div className="flex items-center gap-2 mb-6">
-                                    <Settings className="h-5 w-5 text-primary" />
-                                    <h2 className="text-xl font-semibold">Basic Settings</h2>
-                                  </div>
-                                  <div className="grid gap-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Button Name</Label>
-                                        <Input
-                                          className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                                          placeholder="Enter button name"
-                                        />
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Verification method</Label>
-                                        <Select value={verificationMethod} onValueChange={handleVerificationMethodChange}>
-                                          <SelectTrigger className="w-full transition-all focus:ring-2 focus:ring-primary/20">
-                                            <SelectValue placeholder="Select verification method" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="download">
-                                              <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4" />
-                                                Download
-                                              </div>
-                                            </SelectItem>
-                                            <SelectItem value="screenshot">
-                                              <div className="flex items-center gap-2">
-                                                <Camera className="h-4 w-4" />
-                                                Capture screenshot
-                                              </div>
-                                            </SelectItem>
-                                            <SelectItem value="smart-upload">
-                                              <div className="flex items-center gap-2">
-                                                <Upload className="h-4 w-4" />
-                                                Smart upload
-                                              </div>
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Verification Category</Label>
-                                        <Select>
-                                          <SelectTrigger className="w-full transition-all focus:ring-2 focus:ring-primary/20">
-                                            <SelectValue placeholder="Select category" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="address">
-                                              <div className="flex items-center gap-2">
-                                                <Globe className="h-4 w-4" />
-                                                <span>Address</span>
-                                              </div>
-                                            </SelectItem>
-                                            <SelectItem value="bank">
-                                              <div className="flex items-center gap-2">
-                                                <AlertCircle className="h-4 w-4" />
-                                                <span>Bank</span>
-                                              </div>
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Sub Category</Label>
-                                        <Select>
-                                          <SelectTrigger className="w-full transition-all focus:ring-2 focus:ring-primary/20">
-                                            <SelectValue placeholder="Select sub-category" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="download">Download</SelectItem>
-                                            <SelectItem value="upload">Upload</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <Separator className="my-8" />
-
-                                <div>
-                                  <div className="flex items-center gap-2 mb-6">
-                                    <Link className="h-5 w-5 text-primary" />
-                                    <h2 className="text-xl font-semibold">URL Configuration</h2>
-                                  </div>
-                                  <div className="space-y-4">
-                                    <div className="space-y-4">
-                                      <div className="flex items-center gap-2">
-                                        <Switch checked={directUrlEnabled} onCheckedChange={handleDirectUrlChange} />
-                                        <Label>Directly open a fixed URL</Label>
-                                      </div>
-
-                                      {directUrlEnabled && (
-                                        <div className="space-y-2">
-                                          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                                            <SelectTrigger className="w-full transition-all focus:ring-2 focus:ring-primary/20">
-                                              <SelectValue placeholder="Select country" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="af">
-                                                <div className="flex items-center gap-2">
-                                                  <span>🇦🇫</span>
-                                                  <span>Afghanistan</span>
-                                                </div>
-                                              </SelectItem>
-                                              {/* Add other countries similarly */}
-                                            </SelectContent>
-                                          </Select>
-
-                                          {selectedCountry && (
-                                            <Select>
-                                              <SelectTrigger className="w-full transition-all focus:ring-2 focus:ring-primary/20">
-                                                <SelectValue placeholder="Select Link" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="link1">Link 1</SelectItem>
-                                                <SelectItem value="link2">Link 2</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                      <Switch />
-                                      <Label>Show Google search</Label>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Switch
-                                          checked={limitCountryEnabled}
-                                          onCheckedChange={(checked) => {
-                                            setLimitCountryEnabled(checked);
-                                            if (!checked) {
-                                              setSelectedCountries([]); // Reset selected countries when toggle is turned off
-                                            }
-                                          }}
-                                        />
-                                        <Label>Limit country</Label>
-                                      </div>
-
-                                      {limitCountryEnabled && (
-                                        <div className="space-y-2">
-                                          <div className="flex flex-wrap gap-1 mb-2">
-                                            {selectedCountries.map((country) => (
-                                              <div
-                                                key={country}
-                                                className="flex items-center gap-1 bg-[#00A5B8]/10 text-[#00A5B8] px-2 py-0.5 rounded text-sm"
-                                              >
-                                                {country}
-                                                <button
-                                                  onClick={() =>
-                                                    setSelectedCountries(selectedCountries.filter((c) => c !== country))
-                                                  }
-                                                  className="hover:text-[#00A5B8]/80"
-                                                >
-                                                  ×
-                                                </button>
-                                              </div>
-                                            ))}
-                                          </div>
-                                          <MultiSelect
-                                            value={selectedCountries}
-                                            onValueChange={setSelectedCountries}
-                                            placeholder="Select countries"
-                                          >
-                                            <SelectItem value="albania">
-                                              <div className="flex items-center gap-2">
-                                                <span>🇦🇱</span>
-                                                <span>Albania</span>
-                                              </div>
-                                            </SelectItem>
-                                            <SelectItem value="american-samoa">
-                                              <div className="flex items-center gap-2">
-                                                <span>🇦🇸</span>
-                                                <span>American Samoa</span>
-                                              </div>
-                                            </SelectItem>
-                                            <SelectItem value="afghanistan">
-                                              <div className="flex items-center gap-2">
-                                                <span>🇦🇫</span>
-                                                <span>Afghanistan</span>
-                                              </div>
-                                            </SelectItem>
-                                          </MultiSelect>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Label>Invite link expiry</Label>
-                                        <p className="text-sm text-muted-foreground">default is 30 days</p>
-                                      </div>
-                                      <Input
-                                        type="number"
-                                        className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                                        placeholder="Enter session expiry in hours"
-                                        defaultValue="720"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h2 className="text-xl font-semibold mb-4">Multi-download & Live feedback configuration</h2>
-                                  <div className="space-y-4">
-                                    <div className="space-y-4">
-                                      <div className="flex items-center gap-2">
-                                        <Switch checked={allowSubmissionOverride} onCheckedChange={setAllowSubmissionOverride} />
-                                        <Label>Allow submission by overriding below conditions</Label>
-                                      </div>
-
-                                      <div className="flex items-center gap-2">
-                                        <Switch checked={allowMissingStatements} onCheckedChange={setAllowMissingStatements} />
-                                        <Label>Allow missing statements within the expected period</Label>
-                                      </div>
-
-                                      <div className="space-y-2 pl-8">
-                                        <Label>Expected number of days within the valid date range</Label>
-                                        <Input
-                                          type="number"
-                                          className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                                          placeholder="Enter number of days"
-                                          defaultValue="3434"
-                                        />
-                                      </div>
-
-                                      <div className="space-y-2 pl-8">
-                                        <Label>Valid date range (in days)</Label>
-                                        <p className="text-sm text-muted-foreground">
-                                          (Requested period: 26 Dec 7380 - 22 Feb 2025 i.e. approx 112604.4 months)
-                                        </p>
-                                        <Input
-                                          type="number"
-                                          className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                                          placeholder="Enter date range"
-                                          defaultValue="3434434"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* Sidebar */}
-                        <div className="space-y-6">
-                          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-                            <CardContent className="p-6">
-                              <h3 className="font-medium mb-4 flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-primary" />
-                                Button Details
-                              </h3>
-                              <div className="space-y-3 text-sm">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Status</span>
-                                  <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
-                                    Active
-                                  </Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Created</span>
-                                  <span className="font-medium">2 days ago</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Last modified</span>
-                                  <span className="font-medium">1 hour ago</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-muted-foreground">Button ID</span>
-                                  <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-                                    {params.id}
-                                  </code>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card>
-                            <CardContent className="pt-6">
-                              <h3 className="font-medium mb-4">Verification Settings</h3>
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between py-3">
-                                  <div className="space-y-0.5">
-                                    <Label>Allow Resubmission</Label>
-                                    <p className="text-sm text-muted-foreground">Enable resubmission with same track ID</p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                                <Separator />
-                                <div className="flex items-center justify-between py-3">
-                                  <div className="space-y-0.5">
-                                    <Label>Multi-Download</Label>
-                                    <p className="text-sm text-muted-foreground">Allow multiple downloads</p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                                <Separator />
-                                <div className="flex items-center justify-between py-3">
-                                  <div className="space-y-0.5">
-                                    <Label>Live Feedback</Label>
-                                    <p className="text-sm text-muted-foreground">Enable real-time verification feedback</p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                                <Separator />
-                                <div className="flex items-center justify-between py-3">
-                                  <div className="space-y-0.5">
-                                    <Label>Image Upload</Label>
-                                    <p className="text-sm text-muted-foreground">Allow image uploads during verification</p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </>
+                      <BasicTab
+                        verificationMethod={verificationMethod}
+                        directUrlEnabled={directUrlEnabled}
+                        selectedCountry={selectedCountry}
+                        limitCountryEnabled={limitCountryEnabled}
+                        selectedCountries={selectedCountries}
+                        allowSubmissionOverride={allowSubmissionOverride}
+                        allowMissingStatements={allowMissingStatements}
+                        onVerificationMethodChange={handleVerificationMethodChange}
+                        onDirectUrlChange={handleDirectUrlChange}
+                        onSelectedCountryChange={setSelectedCountry}
+                        onLimitCountryEnabledChange={(checked: boolean) => {
+                          setLimitCountryEnabled(checked);
+                          if (!checked) {
+                            setSelectedCountries([]);
+                          }
+                        }}
+                        onSelectedCountriesChange={setSelectedCountries}
+                        onAllowSubmissionOverrideChange={setAllowSubmissionOverride}
+                        onAllowMissingStatementsChange={setAllowMissingStatements}
+                        params={params}
+                      />
                     )}
 
                     {activeTab === 1 && (
