@@ -67,6 +67,7 @@ const containerVariants = {
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
   const router = useRouter();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -170,358 +171,401 @@ export default function LoginPage() {
           </div>
 
           {/* Right Section */}
-          <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-transparent">
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl">
-              {/* Main container with nested glass effect */}
-              <div className="relative rounded-3xl overflow-hidden bg-white/80 dark:bg-white/5 backdrop-blur-xl p-10">
-                {/* Inner container with deeper glass effect */}
+          <div className="flex-1 flex items-start justify-center p-6 lg:p-12 bg-transparent">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl mt-8">
+              {/* Main container with floating card design */}
+              <div className="relative">
+                {/* Decorative accent elements */}
+                <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-xl"></div>
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-xl"></div>
+
+                {/* Main card container */}
                 <div
-                  className="relative rounded-2xl bg-white/50 dark:bg-white/5 backdrop-blur-md p-8 
-                  shadow-[0_8px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_rgba(255,255,255,0.1)]"
+                  className="relative rounded-3xl bg-white dark:bg-slate-900/70 backdrop-blur-xl p-6 
+                    border border-slate-200/50 dark:border-white/10
+                    shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]"
                 >
-                  <Tabs defaultValue="login" className="w-full">
-                    <TabsList className="w-full mb-8 bg-gray-100/50 dark:bg-white/5 rounded-xl p-1.5 backdrop-blur-sm">
-                      <TabsTrigger
-                        value="login"
-                        className="w-full py-3 text-slate-800 dark:text-white 
-                          data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 
-                          rounded-lg transition-all duration-300"
-                      >
-                        LOGIN
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="register"
-                        className="w-full py-3 text-white data-[state=active]:bg-white/10 rounded-lg transition-all duration-300"
-                      >
-                        SIGN UP
-                      </TabsTrigger>
-                    </TabsList>
+                  {/* Subtle pattern overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-50/30 dark:from-transparent dark:to-blue-900/10 rounded-3xl pointer-events-none"></div>
 
-                    <AnimatePresence mode="wait">
-                      <TabsContent value="login" asChild>
-                        <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                          <p className="text-gray-300 text-sm">Enter your email and password to access your account</p>
+                  <div className="relative z-10">
+                    <h1 className="text-2xl font-semibold text-slate-800 dark:text-white text-center mb-6">
+                      {activeTab === "login" ? "Welcome Back" : "Create Account"}
+                    </h1>
+                    <Tabs defaultValue="login" className="w-full" onValueChange={setActiveTab}>
+                      <TabsList className="w-full mb-4 bg-slate-100 dark:bg-white/5 rounded-xl p-1.5 backdrop-blur-sm">
+                        <TabsTrigger
+                          value="login"
+                          className="w-full py-3 text-slate-800 dark:text-white 
+                            data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 
+                            rounded-lg transition-all duration-300"
+                        >
+                          LOGIN
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="register"
+                          className="w-full py-3 text-slate-600 dark:text-white/80 data-[state=active]:text-slate-800 dark:data-[state=active]:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 rounded-lg transition-all duration-300"
+                        >
+                          SIGN UP
+                        </TabsTrigger>
+                      </TabsList>
 
-                          <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="email" className="text-gray-300">
-                                  Email
-                                </Label>
-                                <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                  <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    required
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl 
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  />
+                      <AnimatePresence mode="wait">
+                        <TabsContent value="login" asChild>
+                          <motion.div
+                            variants={formVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            className="space-y-4"
+                          >
+                            <p className="text-slate-600 dark:text-gray-300 text-lg mb-4">
+                              Enter your email and password to access your account
+                            </p>
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                              <div className="space-y-3">
+                                <div className="space-y-1">
+                                  <Label htmlFor="email" className="text-slate-700 dark:text-gray-300">
+                                    Email
+                                  </Label>
+                                  <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Input
+                                      id="email"
+                                      type="email"
+                                      placeholder="Enter your email"
+                                      required
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label htmlFor="password" className="text-slate-700 dark:text-gray-300">
+                                    Password
+                                  </Label>
+                                  <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Input
+                                      id="password"
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="Enter your password"
+                                      required
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                    >
+                                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div className="space-y-2">
-                                <Label htmlFor="password" className="text-gray-300">
-                                  Password
-                                </Label>
-                                <div className="relative">
-                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                  <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Enter your password"
-                                    required
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl 
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="remember"
+                                    className="border-0 bg-slate-100 dark:bg-white/5 data-[state=checked]:bg-blue-600 dark:data-[state=checked]:bg-blue-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
                                   />
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                  <label htmlFor="remember" className="text-sm text-slate-600 dark:text-gray-300">
+                                    Remember me
+                                  </label>
+                                </div>
+                                <Link href="/authentication/forgotpassword">
+                                  <Button
+                                    variant="link"
+                                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0"
                                   >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                  </button>
+                                    Forgot Password
+                                  </Button>
+                                </Link>
+                              </div>
+
+                              <Button
+                                type="submit"
+                                className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
+                              >
+                                Sign In
+                              </Button>
+                            </form>
+                          </motion.div>
+                        </TabsContent>
+
+                        <TabsContent value="register" asChild>
+                          <motion.div
+                            variants={formVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            className="space-y-4"
+                          >
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                              {/* First and Last Name */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <User2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Input
+                                      id="first-name"
+                                      type="text"
+                                      placeholder="First name*"
+                                      required
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <Input
+                                      id="last-name"
+                                      type="text"
+                                      placeholder="Last name"
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
+                              {/* Email */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                  <Input
+                                    id="register-email"
+                                    type="email"
+                                    placeholder="Email Address*"
+                                    required
+                                    className="h-11 pl-10 
+                                      bg-slate-100 dark:bg-white/5 
+                                      border-0 
+                                      text-slate-800 dark:text-white 
+                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                      rounded-lg 
+                                      focus:ring-0
+                                      focus:border-0
+                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                      transition-shadow"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Password */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                  <Input
+                                    id="register-password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password*"
+                                    required
+                                    className="h-11 pl-10 
+                                      bg-slate-100 dark:bg-white/5 
+                                      border-0 
+                                      text-slate-800 dark:text-white 
+                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                      rounded-lg 
+                                      focus:ring-0
+                                      focus:border-0
+                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                      transition-shadow"
+                                  />
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Password must be at least 8 characters long</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </div>
+
+                              {/* Company Name */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                  <Input
+                                    id="company"
+                                    type="text"
+                                    placeholder="Company name"
+                                    className="h-11 pl-10 
+                                      bg-slate-100 dark:bg-white/5 
+                                      border-0 
+                                      text-slate-800 dark:text-white 
+                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                      rounded-lg 
+                                      focus:ring-0
+                                      focus:border-0
+                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                      transition-shadow"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* What are you building? */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <RefreshCw className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                  <Select>
+                                    <SelectTrigger
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    >
+                                      <SelectValue placeholder="What are you building?" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="web">Web Application</SelectItem>
+                                      <SelectItem value="mobile">Mobile Application</SelectItem>
+                                      <SelectItem value="desktop">Desktop Application</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* What role are you in? */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <PenBox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                  <Select>
+                                    <SelectTrigger
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    >
+                                      <SelectValue placeholder="What role are you in?" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="developer">Developer</SelectItem>
+                                      <SelectItem value="designer">Designer</SelectItem>
+                                      <SelectItem value="manager">Project Manager</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Country Selection */}
+                              <div className="space-y-1">
+                                <div className="relative">
+                                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                  <Select>
+                                    <SelectTrigger
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    >
+                                      <SelectValue placeholder="Select your country" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="afghanistan">Afghanistan</SelectItem>
+                                      {/* Add more countries as needed */}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Privacy Policy Checkbox */}
+                              <div className="flex items-start space-x-2">
                                 <Checkbox
-                                  id="remember"
-                                  className="border-0 dark:border-white/20 bg-white/60 dark:bg-white/5 data-[state=checked]:bg-slate-200 dark:data-[state=checked]:bg-white/20 shadow-sm"
+                                  id="privacy"
+                                  required
+                                  className="border-0 bg-slate-100 dark:bg-white/5 data-[state=checked]:bg-blue-600 dark:data-[state=checked]:bg-blue-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
                                 />
-                                <label htmlFor="remember" className="text-sm text-gray-300">
-                                  Remember me
+                                <label htmlFor="privacy" className="text-sm text-slate-600 dark:text-gray-300">
+                                  I confirm that I have read and accepted the DIRO{" "}
+                                  <Link
+                                    href="#"
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                  >
+                                    Privacy Policy
+                                  </Link>
                                 </label>
                               </div>
-                              <Button variant="link" className="text-sm text-gray-300 hover:text-white">
-                                Forgot Password
+
+                              {/* Register Button */}
+                              <Button
+                                type="submit"
+                                className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
+                              >
+                                Register
                               </Button>
-                            </div>
-
-                            <Button
-                              type="submit"
-                              className="w-full h-14 bg-gradient-to-r from-[#4b6cb7] to-[#182848] hover:opacity-90 text-white rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                            >
-                              Sign In
-                            </Button>
-                          </form>
-                        </motion.div>
-                      </TabsContent>
-
-                      <TabsContent value="register" asChild>
-                        <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                          {/* <h2 className="text-2xl font-semibold text-slate-800 dark:text-white mb-6">Sign Up to continue</h2> */}
-
-                          <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* First and Last Name */}
-                            <div className="grid grid-cols-2 gap-6">
-                              <div className="space-y-2">
-                                <div className="relative">
-                                  <User2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                  <Input
-                                    id="first-name"
-                                    type="text"
-                                    placeholder="First name*"
-                                    required
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl 
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="relative">
-                                  <Input
-                                    id="last-name"
-                                    type="text"
-                                    placeholder="Last name"
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl 
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Email */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                  id="register-email"
-                                  type="email"
-                                  placeholder="Email Address*"
-                                  required
-                                  className="h-12 pl-10 
-                                    bg-white/60 dark:bg-white/5 
-                                    border-0 dark:border dark:border-white/10 
-                                    text-slate-800 dark:text-white 
-                                    placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                    rounded-xl 
-                                    focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                    focus:border-transparent 
-                                    transition-all duration-300
-                                    shadow-sm"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Password */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                  id="register-password"
-                                  type={showPassword ? "text" : "password"}
-                                  placeholder="Password*"
-                                  required
-                                  className="h-12 pl-10 
-                                    bg-white/60 dark:bg-white/5 
-                                    border-0 dark:border dark:border-white/10 
-                                    text-slate-800 dark:text-white 
-                                    placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                    rounded-xl 
-                                    focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                    focus:border-transparent 
-                                    transition-all duration-300
-                                    shadow-sm"
-                                />
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-white" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Password must be at least 8 characters long</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </div>
-
-                            {/* Company Name */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                  id="company"
-                                  type="text"
-                                  placeholder="Company name"
-                                  className="h-12 pl-10 
-                                    bg-white/60 dark:bg-white/5 
-                                    border-0 dark:border dark:border-white/10 
-                                    text-slate-800 dark:text-white 
-                                    placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                    rounded-xl 
-                                    focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                    focus:border-transparent 
-                                    transition-all duration-300
-                                    shadow-sm"
-                                />
-                              </div>
-                            </div>
-
-                            {/* What are you building? */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <RefreshCw className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                                <Select>
-                                  <SelectTrigger
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  >
-                                    <SelectValue placeholder="What are you building?" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="web">Web Application</SelectItem>
-                                    <SelectItem value="mobile">Mobile Application</SelectItem>
-                                    <SelectItem value="desktop">Desktop Application</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            {/* What role are you in? */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <PenBox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                                <Select>
-                                  <SelectTrigger
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  >
-                                    <SelectValue placeholder="What role are you in?" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="developer">Developer</SelectItem>
-                                    <SelectItem value="designer">Designer</SelectItem>
-                                    <SelectItem value="manager">Project Manager</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            {/* Country Selection */}
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                                <Select>
-                                  <SelectTrigger
-                                    className="h-12 pl-10 
-                                      bg-white/60 dark:bg-white/5 
-                                      border-0 dark:border dark:border-white/10 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-xl
-                                      focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/20 
-                                      focus:border-transparent 
-                                      transition-all duration-300
-                                      shadow-sm"
-                                  >
-                                    <SelectValue placeholder="Select your country" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="afghanistan">Afghanistan</SelectItem>
-                                    {/* Add more countries as needed */}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            {/* Privacy Policy Checkbox */}
-                            <div className="flex items-start space-x-2">
-                              <Checkbox
-                                id="privacy"
-                                required
-                                className="border-0 dark:border-white/20 bg-white/60 dark:bg-white/5 data-[state=checked]:bg-slate-200 dark:data-[state=checked]:bg-white/20 shadow-sm"
-                              />
-                              <label htmlFor="privacy" className="text-sm text-gray-300">
-                                I confirm that I have read and accepted the DIRO{" "}
-                                <Link href="#" className="text-blue-400 hover:text-blue-300">
-                                  Privacy Policy
-                                </Link>
-                              </label>
-                            </div>
-
-                            {/* Register Button */}
-                            <Button
-                              type="submit"
-                              className="w-full h-14 bg-gradient-to-r from-[#4b6cb7] to-[#182848] hover:opacity-90 text-white rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                            >
-                              Register
-                            </Button>
-                          </form>
-                        </motion.div>
-                      </TabsContent>
-                    </AnimatePresence>
-                  </Tabs>
+                            </form>
+                          </motion.div>
+                        </TabsContent>
+                      </AnimatePresence>
+                    </Tabs>
+                  </div>
                 </div>
               </div>
             </motion.div>
