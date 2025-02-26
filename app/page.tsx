@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useDispatch, useSelector } from "react-redux";
+import { loginSuccess, loginFail, loginAuthenticated, loginSandbox } from "@/store/features/authSlice";
+import { authService } from "@/services/auth.service";
+import { env } from "@/config/environment";
+import { Alert } from "@/components/ui/alert";
 
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -68,11 +73,101 @@ const containerVariants = {
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { isAuthenticated, isTwoFactor, roles } = useSelector((state) => state.auth);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    // Load reCAPTCHA script
+    const loadScriptByURL = (id: string, url: string, callback: () => void) => {
+      const isScriptExist = document.getElementById(id);
+
+      if (!isScriptExist) {
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = url;
+        script.id = id;
+        script.onload = callback;
+        document.body.appendChild(script);
+      }
+
+      if (isScriptExist && callback) callback();
+    };
+
+    loadScriptByURL("recaptcha-key", `https://www.google.com/recaptcha/api.js?render=${env.Skey}`, () =>
+      console.log("Script loaded!")
+    );
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (roles === "Account") {
+        router.push("/client/manage-account/billing");
+      } else {
+        router.push("/client/validation-buttons");
+      }
+    } else if (isTwoFactor) {
+      router.push("/twofactor");
+    }
+  }, [isAuthenticated, isTwoFactor, roles, router]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/validation-buttons");
+    setLoading(true);
+    setError("");
+
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      // Execute reCAPTCHA
+      const token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+
+      // Validate reCAPTCHA
+      const recaptchaResponse = await authService.validateRecaptcha(token);
+
+      if (recaptchaResponse.score >= 0.3 || email.includes("diro.io")) {
+        // Attempt login
+        const response = await authService.login({ email, password });
+
+        if (response.data.error === true) {
+          dispatch(loginFail({ payload: response.data }));
+          setError(response.data.message || "Login failed");
+        } else if (response.data.statusCode === 242) {
+          if (response.data.sandbox === false || response.data.sandbox === "1") {
+            dispatch(
+              loginAuthenticated({
+                headers: response.headers,
+                payload: response.data,
+                email,
+              })
+            );
+          } else {
+            dispatch(
+              loginSandbox({
+                headers: response.headers,
+                payload: response.data,
+                email,
+              })
+            );
+          }
+        } else {
+          dispatch(loginFail({ payload: response.data }));
+          setError(response.data.message || "Login failed");
+        }
+      } else {
+        setError("reCAPTCHA verification failed");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || "An error occurred during login");
+      dispatch(loginFail({ payload: err.response?.data?.message }));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -219,9 +314,11 @@ export default function LoginPage() {
                             exit="exit"
                             className="space-y-4"
                           >
-                            <p className="text-slate-600 dark:text-gray-300 text-lg mb-4">
-                              Enter your email and password to access your account
-                            </p>
+                            {error && (
+                              <Alert variant="destructive" className="mb-4">
+                                <p>{error}</p>
+                              </Alert>
+                            )}
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                               <div className="space-y-3">
@@ -233,6 +330,7 @@ export default function LoginPage() {
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
                                     <Input
                                       id="email"
+                                      name="email"
                                       type="email"
                                       placeholder="Enter your email"
                                       required
@@ -259,6 +357,7 @@ export default function LoginPage() {
                                     <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
                                     <Input
                                       id="password"
+                                      name="password"
                                       type={showPassword ? "text" : "password"}
                                       placeholder="Enter your password"
                                       required
@@ -307,9 +406,17 @@ export default function LoginPage() {
 
                               <Button
                                 type="submit"
+                                disabled={loading}
                                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
                               >
-                                Sign In
+                                {loading ? (
+                                  <div className="flex items-center justify-center">
+                                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                    Signing in...
+                                  </div>
+                                ) : (
+                                  "Sign In"
+                                )}
                               </Button>
                             </form>
                           </motion.div>
