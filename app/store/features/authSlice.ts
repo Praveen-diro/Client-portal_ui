@@ -20,7 +20,7 @@ interface AuthState {
   loadingcountry: boolean;
   forgot: string | null;
   loginmsg: any;
-  loginError: any;
+  loginError: string | { message: string } | null;
   statusCode: any;
   registersucc: any;
   registermsg: any;
@@ -51,6 +51,8 @@ interface AuthState {
   methodId: string;
   isToken: boolean;
   forgetfail: boolean;
+  isSandbox: boolean;
+  error: string | null;
 }
 
 const initialState: AuthState = {
@@ -70,7 +72,7 @@ const initialState: AuthState = {
   loadingcountry: true,
   forgot: null,
   loginmsg: {},
-  loginError: {},
+  loginError: null,
   statusCode: {},
   registersucc: {},
   registermsg: {},
@@ -101,6 +103,8 @@ const initialState: AuthState = {
   methodId: "",
   isToken: ls.get("token") ? true : false,
   forgetfail: false,
+  isSandbox: false,
+  error: null,
 };
 
 const clearLocalStorage = () => {
@@ -359,6 +363,71 @@ const authSlice = createSlice({
     enableTwoFactorError: (state, action: PayloadAction<any>) => {
       state.loginError = action.payload;
     },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    twoFactorLogin: (
+      state,
+      action: PayloadAction<{ email: string; otp: string; twoFactorId: string; sandboxStatus: boolean }>
+    ) => {
+      state.loading = true;
+      state.loginError = null;
+    },
+    twoFactorLoginSuccess: (state, action: PayloadAction<any>) => {
+      const { doc } = action.payload;
+      const sandbox = doc.data?.sandbox;
+
+      // Set tokens
+      ls.set("token", action.payload.token);
+      ls.set("secrettoken", "Bearer " + doc.dirotoken);
+      ls.set("tempsecret", "Bearer " + doc.dirotoken);
+      ls.set("refreshToken", action.payload.token);
+
+      // Set API keys
+      ls.set("apikey", doc.apikey);
+      ls.set("liveapi", doc.apikey);
+      ls.set("sandboxapi", doc.sandbox.apikey);
+      ls.set("tokenTest", doc.sandbox.accesstoken);
+
+      // Set user data
+      ls.set("alldata", JSON.stringify(doc));
+      ls.set("alldataa", JSON.stringify(doc));
+      ls.set("stripeid", doc.stripeid);
+      ls.set("planid", doc.planid);
+      ls.set("roles", doc.roles?.[0]);
+      ls.set("country", doc.country || "USA");
+      ls.set("email", doc.email);
+      ls.set("orgid", doc.data.orgid);
+      ls.set("authMode", sandbox === true ? 2 : 1);
+
+      // Update state
+      state.isAuthenticated = true;
+      state.loading = false;
+      state.apikey = doc.apikey;
+      state.email = doc.email;
+      state.user = doc;
+      state.login_user = doc;
+      state.roles = doc.roles?.[0];
+      state.stripeid = doc.stripeid;
+      state.loginmsg = "";
+      state.authMode = sandbox === true ? 2 : 1;
+      state.isTwoFactor = false;
+    },
+    twoFactorLoginFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.loginError = action.payload;
+    },
+    sendLoginOtp: (state, action: PayloadAction<{ twoFactorId: string; methodId: string }>) => {
+      state.loading = true;
+      state.loginError = null;
+    },
+    sendLoginOtpSuccess: (state) => {
+      state.loading = false;
+    },
+    sendLoginOtpFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.loginError = action.payload;
+    },
   },
 });
 
@@ -391,6 +460,13 @@ export const {
   setResetLinkExpired,
   enableTwoFactor,
   enableTwoFactorError,
+  setLoading,
+  twoFactorLogin,
+  twoFactorLoginSuccess,
+  twoFactorLoginFailure,
+  sendLoginOtp,
+  sendLoginOtpSuccess,
+  sendLoginOtpFailure,
 } = authSlice.actions;
 
 export default authSlice.reducer;

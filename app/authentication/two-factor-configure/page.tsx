@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Send } from "lucide-react";
 
-export function TwoFactorAuth() {
+export default function TwoFactorAuth() {
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [activeTab, setActiveTab] = useState<"authenticator" | "email">("authenticator");

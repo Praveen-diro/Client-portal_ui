@@ -716,6 +716,6 @@ const prodeu: Environment = {
   uploadverification_link: "https://verify.diro.io/?buttonid=",
 };
 
-export { stage1 as env };
-export { prodeu };
+export { stage1 };
+export { prodeu as env };
 export { stage2 };
