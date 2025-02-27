@@ -1,7 +1,7 @@
 import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
-import { refreshAuthService } from "./refresh-auth.service";
+import { refreshAuthService } from "./refreshAuth.service";
 import { GlobalDebug } from "./remove-console.service";
 
 ls.config.encrypt = true;

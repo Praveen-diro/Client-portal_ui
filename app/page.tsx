@@ -124,27 +124,52 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      // Set authentication cookie
-      document.cookie = "isAuthenticated=true; path=/";
+      // Execute reCAPTCHA
+      const token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
 
-      // Simulate successful login
-      dispatch(
-        loginAuthenticated({
-          headers: {},
-          payload: {
-            statusCode: 242,
-            sandbox: false,
-            message: "Login successful",
-            roles: "User", // This will redirect to /client/validation-buttons
-          },
-          email,
-        })
-      );
+      // Validate reCAPTCHA
+      const recaptchaResponse = await authService.validateRecaptcha(token);
 
-      // Redirect will happen automatically due to the useEffect watching isAuthenticated
+      if (recaptchaResponse.score >= 0.3 || email.includes("diro.io")) {
+        // Attempt login
+        const response = await authService.login({ email, password });
+        // const response = { data: { statusCode: 242, sandbox: false, error: false } };
+
+        if (response.data?.error === true) {
+          dispatch(loginFail({ payload: response.data }));
+          setError(response.data?.message || "Login failed");
+        } else if (response.data.statusCode === 242) {
+          // Set cookie to allow access to 2FA page
+          document.cookie = "requiresTwoFactor=true; path=/";
+
+          if (response.data.sandbox === false || response.data.sandbox === "1") {
+            dispatch(
+              loginAuthenticated({
+                headers: response.headers,
+                payload: response.data,
+                email,
+              })
+            );
+          } else {
+            dispatch(
+              loginSandbox({
+                headers: response.headers,
+                payload: response.data,
+                email,
+              })
+            );
+          }
+        } else {
+          dispatch(loginFail({ payload: response.data }));
+          setError(response.data.message || "Login failed");
+        }
+      } else {
+        setError("reCAPTCHA verification failed");
+      }
     } catch (err: any) {
       console.error(err);
-      setError("An error occurred during login");
+      setError(err.response?.data?.message || "An error occurred during login");
+      dispatch(loginFail({ payload: err.response?.data?.message }));
     } finally {
       setLoading(false);
     }

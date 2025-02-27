@@ -146,29 +146,46 @@ export default function TwoFactorPage() {
 
   const submitData = async (token: string, otp: string) => {
     try {
-      // Check if OTP is 123456
-      if (otp === "123456") {
-        // Set authentication cookie
-        document.cookie = "isAuthenticated=true; path=/";
+      // First validate reCAPTCHA using authService
+      const recaptchaResponse = await authService.validateRecaptcha(token);
+      console.log("reCAPTCHA validation response:", recaptchaResponse);
 
-        // Dispatch login action with hardcoded email
-        await dispatch(
-          twoFactorLogin({
-            email: "praveen@diro.io",
-            otp: "123456",
-            twoFactorId: twoFactorId || "",
-            sandboxStatus: false,
-          })
-        );
+      // Check if email is diro.io domain or reCAPTCHA score is valid
+      if (email?.includes("diro.io") || recaptchaResponse.score >= 0.3) {
+        if (!email) {
+          setError("Email is required");
+          return;
+        }
 
-        // Force redirect after successful login
-        router.push("/validation-buttons");
+        try {
+          // Verify OTP using authService
+          const verificationResponse = await authService.verifyTwoFactor(twoFactorId, otp);
+          console.log("OTP verification response:", verificationResponse);
+
+          if (verificationResponse.data.success) {
+            // If verification is successful, dispatch the login action
+            await dispatch(
+              twoFactorLogin({
+                email,
+                otp,
+                twoFactorId,
+                sandboxStatus,
+              })
+            );
+          } else {
+            setError(verificationResponse.data.message || "Verification failed");
+          }
+        } catch (verificationError: any) {
+          console.error("OTP verification error:", verificationError);
+          setError(verificationError.response?.data?.message || "Failed to verify OTP");
+        }
       } else {
-        setError("Invalid OTP. Please use 123456");
+        console.log("Low reCAPTCHA score:", recaptchaResponse.score);
+        setError("Security verification failed. Please try again.");
       }
     } catch (error: any) {
       console.error("Error during verification:", error);
-      setError("Verification failed. Please try again.");
+      setError(error.response?.data?.message || "Verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -422,7 +439,7 @@ export default function TwoFactorPage() {
 
                     <div className="text-center">
                       <Link
-                        href="/sign-in"
+                        href="/"
                         className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                       >
                         Return to Sign In
