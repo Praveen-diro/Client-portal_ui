@@ -15,7 +15,7 @@ const protectedRoutes = [
 const loginRoute = "/";
 
 // Two factor auth route
-const twoFactorRoute = "/authentication/two-factor";
+const twoFactorRoute = "/two-factor";
 
 // Public authentication routes that don't require authentication
 const publicAuthRoutes = ["/forgotpassword"];
@@ -24,51 +24,40 @@ const publicAuthRoutes = ["/forgotpassword"];
 const blockedDirectAccess = ["/authentication"];
 
 export function middleware(request: NextRequest) {
-  // Get the pathname of the request
   const path = request.nextUrl.pathname;
 
-  // Block direct access to authentication folder routes
-  if (blockedDirectAccess.some((route) => path.startsWith(route))) {
-    return NextResponse.redirect(new URL(loginRoute, request.url));
-  }
-
-  // Get the authentication status and two-factor status from cookies
-  const isAuthenticated = request.cookies.get("isAuthenticated")?.value;
-  const requiresTwoFactor = request.cookies.get("requiresTwoFactor")?.value;
-
-  // Check if the path is in protectedRoutes
-  const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route));
-
-  // Check if current path is two-factor page
-  const isTwoFactorPage = path === twoFactorRoute;
-
-  // Check if current path is login page
-  const isLoginPage = path === loginRoute;
-
-  // Check if current path is a public auth route
-  const isPublicAuthRoute = publicAuthRoutes.some((route) => path === route);
-
-  // Allow access to public auth routes without authentication
-  if (isPublicAuthRoute) {
+  // Skip middleware for static files and API routes
+  if (path.includes("_next") || path.includes("api")) {
     return NextResponse.next();
   }
 
-  // If trying to access two-factor page without going through login
-  if (isTwoFactorPage && !requiresTwoFactor) {
-    // Redirect to login page
+  // Get auth status from cookies
+  const isAuthenticated = request.cookies.get("isAuthenticated")?.value;
+  const requiresTwoFactor = request.cookies.get("requiresTwoFactor")?.value;
+
+  // Handle authentication routes
+  if (path.startsWith("/authentication")) {
+    // Allow only two-factor when requiresTwoFactor is set
+    if (path === "/authentication/two-factor" && requiresTwoFactor) {
+      return NextResponse.next();
+    }
+    // Redirect all other /authentication/* paths to login
     return NextResponse.redirect(new URL(loginRoute, request.url));
   }
 
-  // If authenticated user tries to access login or 2FA page
-  if (isAuthenticated && (isLoginPage || isTwoFactorPage)) {
-    // Redirect to default protected route
+  // Handle public routes
+  if (path === "/forgotpassword") {
+    return NextResponse.rewrite(new URL("/authentication/forgotpassword", request.url));
+  }
+
+  // Handle protected routes
+  if (protectedRoutes.some((route) => path.startsWith(route))) {
+    return isAuthenticated ? NextResponse.next() : NextResponse.redirect(new URL(loginRoute, request.url));
+  }
+
+  // Handle login page access when authenticated
+  if (path === loginRoute && isAuthenticated) {
     return NextResponse.redirect(new URL("/validation-buttons", request.url));
-  }
-
-  // If trying to access protected routes without authentication
-  if (isProtectedRoute && !isAuthenticated) {
-    // Redirect to login page
-    return NextResponse.redirect(new URL(loginRoute, request.url));
   }
 
   return NextResponse.next();
@@ -77,14 +66,16 @@ export function middleware(request: NextRequest) {
 // Configure the paths that middleware will run on
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+    // Match specific routes instead of all routes
+    "/",
+    "/forgotpassword",
+    "/resetpassword",
+    "/two-factor",
+    "/validation-buttons/:path*",
+    "/request-sent/:path*",
+    "/document-receive/:path*",
+    "/integrations/:path*",
+    "/account/:path*",
+    "/authentication/:path*",
   ],
 };

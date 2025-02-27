@@ -310,8 +310,8 @@ export default function LoginPage() {
                         </TabsTrigger>
                       </TabsList>
 
-                      <AnimatePresence mode="wait">
-                        <TabsContent value="login" asChild>
+                      <AnimatePresence>
+                        <TabsContent key="login" value="login" asChild>
                           <motion.div
                             variants={formVariants}
                             initial="hidden"
@@ -427,7 +427,7 @@ export default function LoginPage() {
                           </motion.div>
                         </TabsContent>
 
-                        <TabsContent value="register" asChild>
+                        <TabsContent key="register" value="register" asChild>
                           <motion.div
                             variants={formVariants}
                             initial="hidden"
