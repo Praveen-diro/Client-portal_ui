@@ -81,6 +81,14 @@ export default function LoginPage() {
   const { isAuthenticated, loading: authLoading, loginError, isTwoFactor, roles } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
+    // Redirect already authenticated users to dashboard
+    if (isAuthenticated) {
+      console.log("User already authenticated, redirecting to dashboard");
+      router.push("/client/validation-buttons");
+    }
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
     // Load reCAPTCHA script
     const loadScriptByURL = (id: string, url: string, callback: () => void) => {
       const isScriptExist = document.getElementById(id);
@@ -104,12 +112,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      console.log("User is authenticated in main page, redirecting to dashboard");
+      console.log("Roles:", roles);
+
       if (roles === "Account") {
-        router.push("/client/manage-account/billing");
+        console.log("Account role detected, redirecting to /client/account");
+        router.push("/client/account");
       } else {
+        console.log("Non-Account role, redirecting to /client/validation-buttons");
         router.push("/client/validation-buttons");
       }
     } else if (isTwoFactor) {
+      console.log("User needs two-factor authentication, redirecting to two-factor page");
       router.push("authentication/two-factor");
     }
   }, [isAuthenticated, isTwoFactor, roles, router]);

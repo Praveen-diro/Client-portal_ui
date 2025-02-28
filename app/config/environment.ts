@@ -717,5 +717,5 @@ const prodeu: Environment = {
 };
 
 export { stage1 };
-export { prodeu as env };
-export { stage2 };
+export { prodeu };
+export { stage2 as env };

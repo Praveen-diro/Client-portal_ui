@@ -1,7 +1,39 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import ls from "localstorage-slim";
+import Cookies from "js-cookie";
 
-ls.config.encrypt = true;
+// Cookie options for security
+const cookieOptions = {
+  expires: 7, // 7 days
+  secure: true, // HTTPS only
+  sameSite: "strict" as const, // Protect against CSRF
+  path: "/",
+};
+
+// Cookie helper functions
+const CookieService = {
+  set(key: string, value: any) {
+    Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
+  },
+  get(key: string) {
+    const value = Cookies.get(key);
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  },
+  remove(key: string) {
+    Cookies.remove(key, { path: "/" });
+  },
+  clear() {
+    // Get all cookies and remove them one by one
+    const cookies = Cookies.get();
+    for (const cookie in cookies) {
+      Cookies.remove(cookie, { path: "/" });
+    }
+  },
+};
 
 interface AuthState {
   user: any;
@@ -56,16 +88,16 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: ls.get("alldata") ? JSON.parse(ls.get("alldata") as string) : "",
-  login_user: ls.get("alldataa") ? JSON.parse(ls.get("alldataa") as string) : "",
-  token: ls.get("token") as string,
-  apikey: ls.get("apikey") as string,
-  email: ls.get("email") as string,
-  orgid: ls.get("orgid") as string,
-  secrettoken: ls.get("secrettoken") as string,
-  tempsecret: ls.get("tempsecret") as string,
-  isAuthenticated: ls.get("apikey") ? true : false,
-  sandboxStatus: JSON.parse(ls.get("authMode") as string) === 2,
+  user: CookieService.get("alldata") ? JSON.parse(CookieService.get("alldata") as string) : "",
+  login_user: CookieService.get("alldataa") ? JSON.parse(CookieService.get("alldataa") as string) : "",
+  token: CookieService.get("token") as string,
+  apikey: CookieService.get("apikey") as string,
+  email: CookieService.get("email") as string,
+  orgid: CookieService.get("orgid") as string,
+  secrettoken: CookieService.get("secrettoken") as string,
+  tempsecret: CookieService.get("tempsecret") as string,
+  isAuthenticated: CookieService.get("apikey") ? true : false,
+  sandboxStatus: CookieService.get("authMode") ? JSON.parse(CookieService.get("authMode") as string) === 2 : false,
   loading: true,
   regloading: false,
   orgloader: false,
@@ -84,9 +116,9 @@ const initialState: AuthState = {
   callerr: {},
   callerrbool: false,
   loginloaders: true,
-  roles: ls.get("roles") as string,
-  stripeid: ls.get("stripeid") as string,
-  authMode: JSON.parse(ls.get("authMode") as string),
+  roles: CookieService.get("roles") as string,
+  stripeid: CookieService.get("stripeid") as string,
+  authMode: CookieService.get("authMode") ? JSON.parse(CookieService.get("authMode") as string) : null,
   onremove: {},
   onremoveerror: [],
   samePasswordError: false,
@@ -95,43 +127,40 @@ const initialState: AuthState = {
   twoFactorId: "",
   secret: null,
   secretBase32Encoded: null,
-  multiFactorEnabled: ls.get("multifactor") ? true : false,
+  multiFactorEnabled: CookieService.get("multifactor") ? true : false,
   method: "",
   qrLoading: true,
   recoverCodes: [],
   loginOtp: "",
   methodId: "",
-  isToken: ls.get("token") ? true : false,
+  isToken: CookieService.get("token") ? true : false,
   forgetfail: false,
   isSandbox: false,
   error: null,
 };
 
-const clearLocalStorage = () => {
-  ls.remove("token");
-  ls.remove("tokenTest");
-  ls.remove("sandboxapi");
-  ls.remove("liveapi");
-  ls.remove("fileurl");
-  ls.remove("alldata");
-  ls.remove("alldataa");
-  ls.remove("orgstripe_id");
-  ls.remove("apikey");
-  ls.remove("email");
-  ls.remove("orgid");
-  ls.remove("roles");
-  ls.remove("stripeid");
-  ls.remove("planid");
-  ls.remove("nickname");
-  ls.remove("flat_amount");
-  ls.remove("refreshToken");
-  ls.remove("firstbtnid");
-  ls.remove("secrettoken");
-  ls.remove("tempsecret");
-  ls.clear();
-
-  // Also clear regular localStorage
-  localStorage.clear();
+const clearCookies = () => {
+  CookieService.remove("token");
+  CookieService.remove("tokenTest");
+  CookieService.remove("sandboxapi");
+  CookieService.remove("liveapi");
+  CookieService.remove("fileurl");
+  CookieService.remove("alldata");
+  CookieService.remove("alldataa");
+  CookieService.remove("orgstripe_id");
+  CookieService.remove("apikey");
+  CookieService.remove("email");
+  CookieService.remove("orgid");
+  CookieService.remove("roles");
+  CookieService.remove("stripeid");
+  CookieService.remove("planid");
+  CookieService.remove("nickname");
+  CookieService.remove("flat_amount");
+  CookieService.remove("refreshToken");
+  CookieService.remove("firstbtnid");
+  CookieService.remove("secrettoken");
+  CookieService.remove("tempsecret");
+  CookieService.clear();
 };
 
 const authSlice = createSlice({
@@ -139,21 +168,22 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     refreshToken: (state, action: PayloadAction<any>) => {
-      ls.set("token", action.payload.headers.authorization);
+      CookieService.set("token", action.payload.headers.authorization);
       return { ...state, ...action.payload };
     },
     setAuthMode: (state, action: PayloadAction<number>) => {
-      ls.set("authMode", action.payload);
+      CookieService.set("authMode", action.payload);
       state.authMode = action.payload;
       state.sandboxStatus = action.payload === 2;
     },
     getCountries: (state, action: PayloadAction<any>) => {
       state.countries = action.payload.data;
-      state.user = ls.get("alldata") ? JSON.parse(ls.get("alldata") as string) : "";
+      state.user = CookieService.get("alldata") ? JSON.parse(CookieService.get("alldata") as string) : "";
       state.loadingcountry = false;
     },
     loginSandbox: (state, action: PayloadAction<any>) => {
-      ls.set("authMode", 2);
+      CookieService.set("authMode", 2);
+      CookieService.set("email", action.payload.email);
       state.email = action.payload.email;
       state.isTwoFactor = true;
       state.isAuthenticated = false;
@@ -167,7 +197,7 @@ const authSlice = createSlice({
     },
     loginAuthenticated: (state, action: PayloadAction<any>) => {
       const sandbox = action.payload.payload.sandbox;
-      ls.set("authMode", sandbox === true ? 2 : 1);
+      CookieService.set("authMode", sandbox === true ? 2 : 1);
 
       state.email = action.payload.email;
       state.isTwoFactor = true;
@@ -184,28 +214,32 @@ const authSlice = createSlice({
       const { doc } = action.payload.payload;
 
       // Set tokens
-      ls.set("token", doc.token || doc);
-      ls.set("secrettoken", doc.sandbox.accesstoken);
-      ls.set("tempsecret", "Bearer " + doc.dirotoken);
-      ls.set("refreshToken", doc.refreshToken);
+      CookieService.set("token", doc.token || doc);
+      CookieService.set("secrettoken", doc.sandbox.accesstoken);
+      CookieService.set("tempsecret", "Bearer " + doc.dirotoken);
+      CookieService.set("refreshToken", doc.refreshToken);
 
       // Set API keys
-      ls.set("apikey", doc.sandbox.apikey);
-      ls.set("liveapi", doc.apikey);
-      ls.set("sandboxapi", doc.sandbox.apikey);
-      ls.set("tokenTest", doc.sandbox.accesstoken);
+      CookieService.set("apikey", doc.sandbox.apikey);
+      CookieService.set("liveapi", doc.apikey);
+      CookieService.set("sandboxapi", doc.sandbox.apikey);
+      CookieService.set("tokenTest", doc.sandbox.accesstoken);
 
       // Set user data
-      ls.set("alldata", JSON.stringify(doc));
-      ls.set("alldataa", JSON.stringify(doc));
-      ls.set("stripeid", doc.stripeid);
-      ls.set("planid", doc.planid);
-      ls.set("roles", doc.roles?.[0]);
-      ls.set("country", doc.country || "USA");
-      ls.set("email", doc.email);
-      ls.set("orgid", doc.data.orgid);
-      ls.set("multifactor", "true");
-      ls.set("authMode", 2);
+      CookieService.set("alldata", JSON.stringify(doc));
+      CookieService.set("alldataa", JSON.stringify(doc));
+      CookieService.set("stripeid", doc.stripeid);
+      CookieService.set("planid", doc.planid);
+
+      if (doc.roles) {
+        CookieService.set("roles", doc.roles[0]);
+      }
+
+      CookieService.set("country", doc.country || "USA");
+      CookieService.set("email", doc.email);
+      CookieService.set("orgid", doc.data.orgid);
+      CookieService.set("multifactor", "true");
+      CookieService.set("authMode", 2);
 
       // Update state
       state.isAuthenticated = true;
@@ -214,7 +248,7 @@ const authSlice = createSlice({
       state.email = doc.email;
       state.user = doc;
       state.login_user = doc;
-      state.roles = doc.roles?.[0];
+      state.roles = doc.roles ? doc.roles[0] : null;
       state.stripeid = doc.stripeid;
       state.loginmsg = "";
       state.authMode = 2;
@@ -225,27 +259,27 @@ const authSlice = createSlice({
       const sandbox = doc.data?.sandbox;
 
       // Set tokens
-      ls.set("token", action.payload.token);
-      ls.set("secrettoken", "Bearer " + doc.dirotoken);
-      ls.set("tempsecret", "Bearer " + doc.dirotoken);
-      ls.set("refreshToken", action.payload.token);
+      CookieService.set("token", action.payload.token);
+      CookieService.set("secrettoken", "Bearer " + doc.dirotoken);
+      CookieService.set("tempsecret", "Bearer " + doc.dirotoken);
+      CookieService.set("refreshToken", action.payload.token);
 
       // Set API keys
-      ls.set("apikey", doc.apikey);
-      ls.set("liveapi", doc.apikey);
-      ls.set("sandboxapi", doc.sandbox.apikey);
-      ls.set("tokenTest", doc.sandbox.accesstoken);
+      CookieService.set("apikey", doc.apikey);
+      CookieService.set("liveapi", doc.apikey);
+      CookieService.set("sandboxapi", doc.sandbox.apikey);
+      CookieService.set("tokenTest", doc.sandbox.accesstoken);
 
       // Set user data
-      ls.set("alldata", JSON.stringify(doc));
-      ls.set("alldataa", JSON.stringify(doc));
-      ls.set("stripeid", doc.stripeid);
-      ls.set("planid", doc.planid);
-      ls.set("roles", doc.roles?.[0]);
-      ls.set("country", doc.country || "USA");
-      ls.set("email", doc.email);
-      ls.set("orgid", doc.data.orgid);
-      ls.set("authMode", sandbox === true ? 2 : 1);
+      CookieService.set("alldata", JSON.stringify(doc));
+      CookieService.set("alldataa", JSON.stringify(doc));
+      CookieService.set("stripeid", doc.stripeid);
+      CookieService.set("planid", doc.planid);
+      CookieService.set("roles", doc.roles?.[0]);
+      CookieService.set("country", doc.country || "USA");
+      CookieService.set("email", doc.email);
+      CookieService.set("orgid", doc.data.orgid);
+      CookieService.set("authMode", sandbox === true ? 2 : 1);
 
       // Update state
       state.isAuthenticated = true;
@@ -260,7 +294,7 @@ const authSlice = createSlice({
       state.authMode = sandbox === true ? 2 : 1;
     },
     updateOrg: (state, action: PayloadAction<any>) => {
-      ls.set("alldata", JSON.stringify(action.payload));
+      CookieService.set("alldata", JSON.stringify(action.payload));
       state.isAuthenticated = true;
       state.loading = false;
       state.user = action.payload;
@@ -275,7 +309,7 @@ const authSlice = createSlice({
       state.orgsuccess = false;
     },
     updateCallback: (state, action: PayloadAction<any>) => {
-      ls.set("alldata", JSON.stringify(action.payload));
+      CookieService.set("alldata", JSON.stringify(action.payload));
       state.isAuthenticated = true;
       state.loading = false;
       state.user = action.payload;
@@ -326,7 +360,7 @@ const authSlice = createSlice({
       state.forgetfail = action.payload;
     },
     logout: (state) => {
-      clearLocalStorage();
+      clearCookies();
       return {
         ...initialState,
         token: null,
@@ -374,44 +408,73 @@ const authSlice = createSlice({
       state.loginError = null;
     },
     twoFactorLoginSuccess: (state, action: PayloadAction<any>) => {
-      const { doc } = action.payload;
-      const sandbox = doc.data?.sandbox;
+      try {
+        // Extract payload data safely
+        const payload = action.payload.payload || {};
+        const headers = action.payload.headers || {};
 
-      // Set tokens
-      ls.set("token", action.payload.token);
-      ls.set("secrettoken", "Bearer " + doc.dirotoken);
-      ls.set("tempsecret", "Bearer " + doc.dirotoken);
-      ls.set("refreshToken", action.payload.token);
+        // Set token from headers if available
+        if (headers.authorization) {
+          console.log("Setting token from headers:", headers.authorization);
+          CookieService.set("token", headers.authorization);
+          state.token = headers.authorization;
 
-      // Set API keys
-      ls.set("apikey", doc.apikey);
-      ls.set("liveapi", doc.apikey);
-      ls.set("sandboxapi", doc.sandbox.apikey);
-      ls.set("tokenTest", doc.sandbox.accesstoken);
+          // Also set apikey for isAuthenticated check consistency
+          CookieService.set("apikey", headers.authorization);
+          state.apikey = headers.authorization;
+        }
 
-      // Set user data
-      ls.set("alldata", JSON.stringify(doc));
-      ls.set("alldataa", JSON.stringify(doc));
-      ls.set("stripeid", doc.stripeid);
-      ls.set("planid", doc.planid);
-      ls.set("roles", doc.roles?.[0]);
-      ls.set("country", doc.country || "USA");
-      ls.set("email", doc.email);
-      ls.set("orgid", doc.data.orgid);
-      ls.set("authMode", sandbox === true ? 2 : 1);
+        // Handle email
+        if (payload.email) {
+          console.log("Setting email:", payload.email);
+          CookieService.set("email", payload.email);
+          state.email = payload.email;
+        }
 
-      // Update state
-      state.isAuthenticated = true;
-      state.loading = false;
-      state.apikey = doc.apikey;
-      state.email = doc.email;
-      state.user = doc;
-      state.login_user = doc;
-      state.roles = doc.roles?.[0];
-      state.stripeid = doc.stripeid;
-      state.loginmsg = "";
-      state.authMode = sandbox === true ? 2 : 1;
-      state.isTwoFactor = false;
+        // Handle roles - can be array or string
+        if (payload.roles) {
+          const role = Array.isArray(payload.roles) ? payload.roles[0] : payload.roles;
+          console.log("Setting role:", role);
+          CookieService.set("roles", role);
+          state.roles = role;
+        }
+
+        // Additional user data if available
+        if (payload.data && payload.data.orgid) {
+          console.log("Setting orgid:", payload.data.orgid);
+          CookieService.set("orgid", payload.data.orgid);
+          state.orgid = payload.data.orgid;
+        }
+
+        // Explicitly clear two-factor flags in cookies
+        CookieService.remove("isTwoFactor");
+        CookieService.remove("twoFactorId");
+        CookieService.set("isAuthenticated", "true");
+
+        // Update authentication state
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.loginError = null;
+        state.isTwoFactor = false;
+        state.twoFactorId = "";
+
+        // Log the updated state
+        console.log("Auth state after twoFactorLoginSuccess:", {
+          isAuthenticated: state.isAuthenticated,
+          email: state.email,
+          roles: state.roles,
+          token: state.token ? "exists" : "missing",
+          apikey: state.apikey ? "exists" : "missing",
+        });
+      } catch (error) {
+        console.error("Error in twoFactorLoginSuccess reducer:", error);
+        // Even if there's an error, ensure user is authenticated if we have token
+        if (action.payload.headers?.authorization) {
+          state.isAuthenticated = true;
+          state.token = action.payload.headers.authorization;
+          state.apikey = action.payload.headers.authorization;
+        }
+      }
     },
     twoFactorLoginFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

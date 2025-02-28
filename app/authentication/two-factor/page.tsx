@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Alert } from "@/components/ui/alert";
 import { env } from "@/app/config/environment";
 import axios from "axios";
+import Cookies from "js-cookie";
 import { twoFactorLogin, sendLoginOtp } from "@/app/store/features/authSlice";
 import type { RootState } from "@/app/store/store";
 import { authService } from "@/app/services/auth.service";
@@ -127,9 +128,14 @@ export default function TwoFactorPage() {
   useEffect(() => {
     // Redirect if authenticated
     if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to dashboard");
+      console.log("Roles:", roles);
+
       if (roles === "Account") {
-        router.push("/client/manage-account/billing");
+        console.log("Account role detected, redirecting to /client/account");
+        router.push("/client/account");
       } else {
+        console.log("Non-Account role, redirecting to /client/validation-buttons");
         router.push("/client/validation-buttons");
       }
     }
@@ -154,39 +160,35 @@ export default function TwoFactorPage() {
       if (email?.includes("diro.io") || recaptchaResponse.score >= 0.3) {
         if (!email) {
           setError("Email is required");
+          setLoading(false);
           return;
         }
 
         try {
-          // Verify OTP using authService
-          const verificationResponse = await authService.verifyTwoFactor(twoFactorId, otp);
-          console.log("OTP verification response:", verificationResponse);
+          // Verify OTP using authService directly
+          const verificationResponse = await authService.twoFactorLogin(email, otp, twoFactorId, Cookies.get("authMode") === "2");
 
-          if (verificationResponse.data.success) {
-            // If verification is successful, dispatch the login action
-            await dispatch(
-              twoFactorLogin({
-                email,
-                otp,
-                twoFactorId,
-                sandboxStatus,
-              })
-            );
-          } else {
+          console.log("two factor response", verificationResponse);
+
+          // The authService will handle redirects, but we should handle error cases
+          if (!verificationResponse.success) {
             setError(verificationResponse.data.message || "Verification failed");
+            setLoading(false);
           }
+          // No need for further actions on success as redirect is handled in the service
         } catch (verificationError: any) {
           console.error("OTP verification error:", verificationError);
           setError(verificationError.response?.data?.message || "Failed to verify OTP");
+          setLoading(false);
         }
       } else {
         console.log("Low reCAPTCHA score:", recaptchaResponse.score);
         setError("Security verification failed. Please try again.");
+        setLoading(false);
       }
     } catch (error: any) {
       console.error("Error during verification:", error);
       setError(error.response?.data?.message || "Verification failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -206,21 +208,21 @@ export default function TwoFactorPage() {
         throw new Error("reCAPTCHA not loaded. Please refresh the page.");
       }
 
-      await new Promise((resolve) => {
-        window.grecaptcha.ready(() => {
-          window.grecaptcha
-            .execute(env.Skey, { action: "submit" })
-            .then((token: string) => {
-              submitData(token, code);
-              resolve(token);
-            })
-            .catch((error: any) => {
-              console.error("reCAPTCHA execution error:", error);
-              setError("reCAPTCHA verification failed. Please try again.");
-              setLoading(false);
-            });
+      // Get the token first and then process it separately
+      const token = await new Promise<string>((resolve, reject) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const recaptchaToken = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+            resolve(recaptchaToken);
+          } catch (error) {
+            console.error("reCAPTCHA execution error:", error);
+            reject(new Error("reCAPTCHA verification failed"));
+          }
         });
       });
+
+      // Now process the token in a separate step
+      await submitData(token, code);
     } catch (error: any) {
       console.error("Submit error:", error);
       setError(error.message || "An error occurred. Please try again.");

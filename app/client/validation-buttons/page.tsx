@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Download, FileText, Globe, Info, LayoutGrid, Link2, Search, Plus, MoreHorizontal } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import Cookies from "js-cookie";
 
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PageContainer } from "@/components/ui/page-container";
+import { RootState } from "@/store/store";
 
 const buttons = [
   {
@@ -82,10 +85,35 @@ const statsCards = [
 ];
 
 export default function ValidationButtons() {
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedButton, setSelectedButton] = useState<any>(null);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [activeTab, setActiveTab] = useState("activeButtons");
   const pathname = usePathname();
   const router = useRouter();
   const [shouldAnimate, setShouldAnimate] = useState(true);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+
+  // Add this to access Redux auth state for debugging
+  const auth = useSelector((state: RootState) => state.auth);
+
+  // Add a debug effect to check Redux state on mount
+  useEffect(() => {
+    console.log("ValidationButtons page - Redux auth state:", {
+      isAuthenticated: auth.isAuthenticated,
+      email: auth.email,
+      roles: auth.roles,
+      token: auth.token ? "exists" : "missing",
+      apikey: auth.apikey ? "exists" : "missing",
+    });
+
+    // Check cookies directly as well
+    console.log("ValidationButtons page - Cookies:", {
+      token: Cookies.get("token") ? "exists" : "missing",
+      apikey: Cookies.get("apikey") ? "exists" : "missing",
+      email: Cookies.get("email"),
+      roles: Cookies.get("roles"),
+    });
+  }, [auth]);
 
   useEffect(() => {
     setShouldAnimate(true);

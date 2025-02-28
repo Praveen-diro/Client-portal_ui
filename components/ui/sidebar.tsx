@@ -9,7 +9,8 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
-  onExpandedChange: (expanded: boolean) => void;
+  onExpandedChange?: (expanded: boolean) => void;
+  className?: string;
 }
 
 const sidebarTransition = {
@@ -23,7 +24,7 @@ const itemVariants = {
   collapsed: { width: 0, opacity: 0 },
 };
 
-export function Sidebar({ onExpandedChange }: SidebarProps) {
+export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -34,17 +35,19 @@ export function Sidebar({ onExpandedChange }: SidebarProps) {
   }, []);
 
   useEffect(() => {
-    onExpandedChange(isExpanded);
+    if (onExpandedChange) {
+      onExpandedChange(isExpanded);
+    }
   }, [isExpanded, onExpandedChange]);
 
   const navItems = [
-    { icon: LayoutGrid, label: "Verification buttons", href: "/validation-buttons" },
-    { icon: FileText, label: "Requests sent", href: "/requests-sent" },
-    { icon: FileText, label: "Documents received", href: "/documents-received" },
+    { icon: LayoutGrid, label: "Verification buttons", href: "/client/validation-buttons" },
+    { icon: FileText, label: "Requests sent", href: "/client/requests-sent" },
+    { icon: FileText, label: "Documents received", href: "/client/documents-received" },
     { icon: Globe, label: "See coverage", href: "/coverage" },
-    { icon: Settings, label: "Integrations", href: "/integrations" },
-    { icon: User2, label: "Manage account", href: "/account" },
-    { icon: HelpCircle, label: "Report issue", href: "/report-issue" },
+    { icon: Settings, label: "Integrations", href: "/client/integrations" },
+    { icon: User2, label: "Manage account", href: "/client/account" },
+    { icon: HelpCircle, label: "Report issue", href: "/client/report-issue" },
   ];
 
   const footerItems = [
@@ -70,7 +73,8 @@ export function Sidebar({ onExpandedChange }: SidebarProps) {
         "bg-background dark:bg-background",
         "text-sidebar-foreground transition-colors duration-300",
         "border-r border-border/40",
-        "shadow-[2px_0_12px_-2px_rgba(0,0,0,0.05)]"
+        "shadow-[2px_0_12px_-2px_rgba(0,0,0,0.05)]",
+        className
       )}
       initial={false}
       animate={{ width: isExpanded ? "256px" : "80px" }}
