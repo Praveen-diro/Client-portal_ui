@@ -582,7 +582,7 @@ export default function LoginPage() {
 
           {/* Right Section */}
           <div className="flex-1 flex items-start justify-center p-6 lg:p-12 bg-transparent">
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl mt-8">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl mt-4">
               {/* Main container with floating card design */}
               <div className="relative">
                 {/* Decorative accent elements */}
@@ -701,13 +701,13 @@ export default function LoginPage() {
 
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                  <Checkbox
+                                  {/* <Checkbox
                                     id="remember"
                                     className="border-0 bg-slate-100 dark:bg-white/5 data-[state=checked]:bg-blue-600 dark:data-[state=checked]:bg-blue-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
                                   />
                                   <label htmlFor="remember" className="text-sm text-slate-600 dark:text-gray-300">
                                     Remember me
-                                  </label>
+                                  </label> */}
                                 </div>
                                 <Link href="/authentication/forgotpassword">
                                   <Button
