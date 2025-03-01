@@ -85,6 +85,7 @@ interface FormData {
   email: string;
   country: string;
   password: string;
+  confirmPassword: string;
   companyname: string;
   building: string;
   roleincompany: string;
@@ -104,29 +105,123 @@ declare global {
 }
 
 // Add success message component
-const SuccessMessage = ({ message }: { message: string }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="rounded-lg bg-green-50 dark:bg-green-900/20 p-6 shadow-sm border border-green-100 dark:border-green-900/30"
-  >
-    <div className="flex flex-col items-center text-center space-y-4">
-      <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-3">
-        <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-        </svg>
+const SuccessMessage = ({ message, onRedirect }: { message: string; onRedirect: () => void }) => {
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      onRedirect();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown, onRedirect]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 dark:from-[#182848]/90 dark:via-[#2a3f65]/80 dark:to-[#4b6cb7]/70 p-0 shadow-xl border border-gray-100/80 dark:border-[#4b6cb7]/30 backdrop-blur-sm"
+    >
+      <div className="relative">
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-blue-500 dark:from-green-500 dark:to-[#4b6cb7]"></div>
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-green-500/10 dark:bg-green-500/20 rounded-full blur-xl"></div>
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/10 dark:bg-[#4b6cb7]/20 rounded-full blur-xl"></div>
+
+        <div className="p-8 relative">
+          <div className="flex flex-col items-center text-center space-y-8">
+            {/* Icon */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 260,
+                damping: 20,
+                delay: 0.1,
+              }}
+              className="rounded-full bg-gradient-to-br from-green-500 to-blue-600 dark:from-green-500 dark:to-[#4b6cb7] p-5 shadow-lg shadow-green-500/20 dark:shadow-[#4b6cb7]/30"
+            >
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <motion.path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  d="M5 13l4 4L19 7"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                />
+              </svg>
+            </motion.div>
+
+            {/* Content */}
+            <div className="space-y-4 max-w-md">
+              <motion.h3
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-[#4b6cb7] bg-clip-text text-transparent"
+              >
+                Registration Successful!
+              </motion.h3>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg text-slate-700 dark:text-slate-200 leading-relaxed"
+              >
+                <p className="mb-2">{message}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 italic">
+                  Please check your inbox and spam folder if you don't see our email.
+                </p>
+              </motion.div>
+            </div>
+
+            {/* Animated line separator */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="w-full h-px bg-gradient-to-r from-transparent via-blue-200 dark:via-[#4b6cb7]/50 to-transparent"
+            />
+
+            {/* Footer with countdown and button */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="w-full flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0"
+            >
+              <div className="flex items-center justify-center space-x-2 text-slate-600 dark:text-slate-300">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <p className="text-sm">
+                  Redirecting to login in{" "}
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{countdown}</span> seconds
+                </p>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onRedirect}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 dark:from-[#4b6cb7] dark:to-[#182848] dark:hover:from-[#3b5a9e] dark:hover:to-[#182848] text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                Go to Login Now
+              </motion.button>
+            </motion.div>
+          </div>
+        </div>
       </div>
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">Registration Successful</h3>
-        <p className="text-green-600 dark:text-green-300">{message}</p>
-      </div>
-      <p className="text-sm text-green-500 dark:text-green-400">
-        You can close this tab or wait to be redirected to the login page.
-      </p>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -140,6 +235,7 @@ export default function LoginPage() {
     email: "",
     country: "",
     password: "",
+    confirmPassword: "",
     companyname: "",
     building: "",
     roleincompany: "",
@@ -223,6 +319,14 @@ export default function LoginPage() {
       errors.password = "Password is required";
     }
 
+    if (!formData.confirmPassword) {
+      formIsValid = false;
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      formIsValid = false;
+      errors.confirmPassword = "Passwords do not match";
+    }
+
     if (!formData.email) {
       formIsValid = false;
       errors.email = "Email is required";
@@ -281,12 +385,24 @@ export default function LoginPage() {
         if (response.data?.error) {
           setError(response.data.message || "Registration failed");
         } else if (response.data?.message === "plz check you email") {
-          setSuccessMessage("Please check your email for verification instructions.");
-          // Redirect to login tab after 5 seconds
+          setSuccessMessage("Please check your email for verification instructions. We've sent you an email with next steps.");
+          // Clear form data
+          setFormData({
+            firstname: "",
+            lastname: "",
+            email: "",
+            country: "",
+            password: "",
+            confirmPassword: "",
+            companyname: "",
+            building: "",
+            roleincompany: "",
+          });
+          // Redirect to login tab after 6 seconds
           setTimeout(() => {
             setActiveTab("login");
             setSuccessMessage("");
-          }, 5000);
+          }, 10000);
         } else {
           // Handle other successful responses
           setActiveTab("login");
@@ -486,7 +602,7 @@ export default function LoginPage() {
                     <h1 className="text-2xl font-semibold text-slate-800 dark:text-white text-center mb-6">
                       {activeTab === "login" ? "Welcome Back" : "Create Account"}
                     </h1>
-                    <Tabs defaultValue="login" className="w-full" onValueChange={setActiveTab}>
+                    <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
                       <TabsList className="w-full mb-4 bg-slate-100 dark:bg-white/5 rounded-xl p-1.5 backdrop-blur-sm">
                         <TabsTrigger
                           value="login"
@@ -630,7 +746,13 @@ export default function LoginPage() {
                             className="space-y-4"
                           >
                             {successMessage ? (
-                              <SuccessMessage message={successMessage} />
+                              <SuccessMessage
+                                message={successMessage}
+                                onRedirect={() => {
+                                  setActiveTab("login");
+                                  setSuccessMessage("");
+                                }}
+                              />
                             ) : (
                               <form onSubmit={handleRegister} className="space-y-4">
                                 {error && (
@@ -742,14 +864,48 @@ export default function LoginPage() {
                                         focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
                                         transition-shadow"
                                     />
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                    >
+                                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Info className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
+                                        <Info className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <p>Password must be at least 8 characters long</p>
                                       </TooltipContent>
                                     </Tooltip>
+                                  </div>
+                                </div>
+
+                                {/* Confirm Password */}
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Input
+                                      id="register-confirm-password"
+                                      name="confirmPassword"
+                                      type="text"
+                                      placeholder="Confirm Password*"
+                                      required
+                                      value={formData.confirmPassword}
+                                      onChange={onChange}
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
                                   </div>
                                 </div>
 
