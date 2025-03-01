@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { default as DOMPurify } from "dompurify";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
-import { loginSuccess, loginFail, loginAuthenticated, loginSandbox } from "./store/features/authSlice";
+import {
+  loginSuccess,
+  loginFail,
+  loginAuthenticated,
+  loginSandbox,
+  registerSuccess,
+  registerFail,
+} from "./store/features/authSlice";
 import { authService } from "./services/auth.service";
 import { env } from "./config/environment";
 import { Alert } from "@/components/ui/alert";
@@ -71,14 +79,83 @@ const containerVariants = {
   },
 };
 
+interface FormData {
+  firstname: string;
+  lastname: string;
+  email: string;
+  country: string;
+  password: string;
+  companyname: string;
+  building: string;
+  roleincompany: string;
+}
+
+interface RecaptchaResponse {
+  score: number;
+}
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
+
+// Add success message component
+const SuccessMessage = ({ message }: { message: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    className="rounded-lg bg-green-50 dark:bg-green-900/20 p-6 shadow-sm border border-green-100 dark:border-green-900/30"
+  >
+    <div className="flex flex-col items-center text-center space-y-4">
+      <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-3">
+        <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">Registration Successful</h3>
+        <p className="text-green-600 dark:text-green-300">{message}</p>
+      </div>
+      <p className="text-sm text-green-500 dark:text-green-400">
+        You can close this tab or wait to be redirected to the login page.
+      </p>
+    </div>
+  </motion.div>
+);
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [formData, setFormData] = useState<FormData>({
+    firstname: "",
+    lastname: "",
+    email: "",
+    country: "",
+    password: "",
+    companyname: "",
+    building: "",
+    roleincompany: "",
+  });
+
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated, loading: authLoading, loginError, isTwoFactor, roles } = useSelector((state: RootState) => state.auth);
+  const {
+    isAuthenticated,
+    loading: authLoading,
+    loginError,
+    isTwoFactor,
+    roles,
+    registermsg,
+    registersucc,
+  } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Redirect already authenticated users to dashboard
@@ -127,6 +204,101 @@ export default function LoginPage() {
       router.push("authentication/two-factor");
     }
   }, [isAuthenticated, isTwoFactor, roles, router]);
+
+  const sanitizeInput = (input: string) => {
+    return DOMPurify.sanitize(input).replace(/[<>]/g, "");
+  };
+
+  const handleValidation = (captchaScore: number) => {
+    let errors: Record<string, string> = {};
+    let formIsValid = true;
+
+    if (!formData.firstname) {
+      formIsValid = false;
+      errors.firstname = "First name is required";
+    }
+
+    if (!formData.password) {
+      formIsValid = false;
+      errors.password = "Password is required";
+    }
+
+    if (!formData.email) {
+      formIsValid = false;
+      errors.email = "Email is required";
+    } else {
+      const lastAtPos = formData.email.lastIndexOf("@");
+      const lastDotPos = formData.email.lastIndexOf(".");
+      const corporateEmail =
+        formData.email.includes("@hotmail.co") ||
+        formData.email.includes("@outlook.co") ||
+        formData.email.includes("@live.co") ||
+        formData.email.includes("@gmail.com") ||
+        formData.email.includes("@yahoo.co");
+
+      if (
+        !(
+          lastAtPos < lastDotPos &&
+          lastAtPos > 0 &&
+          formData.email.indexOf("@@") === -1 &&
+          lastDotPos > 2 &&
+          formData.email.length - lastDotPos > 2
+        )
+      ) {
+        formIsValid = false;
+        errors.email = "Email is not valid";
+      } else if (corporateEmail) {
+        formIsValid = false;
+        errors.email = "Please provide your corporate email";
+      }
+    }
+
+    if (captchaScore < 0.6) {
+      formIsValid = false;
+      errors.recaptcha = "Only humans allowed";
+    }
+
+    setError(Object.values(errors)[0] || "");
+    return formIsValid;
+  };
+
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      // Execute reCAPTCHA
+      const token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+
+      // Validate reCAPTCHA
+      const recaptchaResponse = await authService.validateRecaptcha(token);
+
+      if (handleValidation(recaptchaResponse.score)) {
+        const response = await authService.register(formData);
+
+        if (response.data?.error) {
+          setError(response.data.message || "Registration failed");
+        } else if (response.data?.message === "plz check you email") {
+          setSuccessMessage("Please check your email for verification instructions.");
+          // Redirect to login tab after 5 seconds
+          setTimeout(() => {
+            setActiveTab("login");
+            setSuccessMessage("");
+          }, 5000);
+        } else {
+          // Handle other successful responses
+          setActiveTab("login");
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || "An error occurred during registration");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -187,6 +359,14 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: name === "password" ? value : sanitizeInput(value),
+    });
   };
 
   return (
@@ -449,17 +629,80 @@ export default function LoginPage() {
                             exit="exit"
                             className="space-y-4"
                           >
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                              {/* First and Last Name */}
-                              <div className="grid grid-cols-2 gap-4">
+                            {successMessage ? (
+                              <SuccessMessage message={successMessage} />
+                            ) : (
+                              <form onSubmit={handleRegister} className="space-y-4">
+                                {error && (
+                                  <Alert variant="destructive" className="mb-4">
+                                    <p>{error}</p>
+                                  </Alert>
+                                )}
+
+                                {/* First and Last Name */}
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                    <div className="relative">
+                                      <User2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                      <Input
+                                        id="first-name"
+                                        name="firstname"
+                                        type="text"
+                                        placeholder="First name*"
+                                        required
+                                        value={formData.firstname}
+                                        onChange={onChange}
+                                        className="h-11 pl-10 
+                                          bg-slate-100 dark:bg-white/5 
+                                          border-0 
+                                          text-slate-800 dark:text-white 
+                                          placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                          rounded-lg 
+                                          focus:ring-0
+                                          focus:border-0
+                                          shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                          focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                          transition-shadow"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="relative">
+                                      <Input
+                                        id="last-name"
+                                        name="lastname"
+                                        type="text"
+                                        placeholder="Last name"
+                                        value={formData.lastname}
+                                        onChange={onChange}
+                                        className="h-11 pl-10 
+                                          bg-slate-100 dark:bg-white/5 
+                                          border-0 
+                                          text-slate-800 dark:text-white 
+                                          placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                          rounded-lg 
+                                          focus:ring-0
+                                          focus:border-0
+                                          shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                          focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                          transition-shadow"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Email */}
                                 <div className="space-y-1">
                                   <div className="relative">
-                                    <User2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
                                     <Input
-                                      id="first-name"
-                                      type="text"
-                                      placeholder="First name*"
+                                      id="register-email"
+                                      name="email"
+                                      type="email"
+                                      placeholder="Email Address*"
                                       required
+                                      value={formData.email}
+                                      onChange={onChange}
                                       className="h-11 pl-10 
                                         bg-slate-100 dark:bg-white/5 
                                         border-0 
@@ -474,12 +717,53 @@ export default function LoginPage() {
                                     />
                                   </div>
                                 </div>
+
+                                {/* Password */}
                                 <div className="space-y-1">
                                   <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
                                     <Input
-                                      id="last-name"
+                                      id="register-password"
+                                      name="password"
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="Password*"
+                                      required
+                                      value={formData.password}
+                                      onChange={onChange}
+                                      className="h-11 pl-10 
+                                        bg-slate-100 dark:bg-white/5 
+                                        border-0 
+                                        text-slate-800 dark:text-white 
+                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                        rounded-lg 
+                                        focus:ring-0
+                                        focus:border-0
+                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                        transition-shadow"
+                                    />
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Password must be at least 8 characters long</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+
+                                {/* Company Name */}
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                    <Input
+                                      id="company"
+                                      name="companyname"
                                       type="text"
-                                      placeholder="Last name"
+                                      placeholder="Company name"
+                                      value={formData.companyname}
+                                      onChange={onChange}
                                       className="h-11 pl-10 
                                         bg-slate-100 dark:bg-white/5 
                                         border-0 
@@ -494,199 +778,137 @@ export default function LoginPage() {
                                     />
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Email */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
-                                  <Input
-                                    id="register-email"
-                                    type="email"
-                                    placeholder="Email Address*"
+                                {/* What are you building? */}
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <RefreshCw className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                    <Select
+                                      name="building"
+                                      onValueChange={(value) => setFormData({ ...formData, building: value })}
+                                    >
+                                      <SelectTrigger
+                                        className="h-11 pl-10 
+                                          bg-slate-100 dark:bg-white/5 
+                                          border-0 
+                                          text-slate-800 dark:text-white 
+                                          placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                          rounded-lg
+                                          focus:ring-0
+                                          focus:border-0
+                                          shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                          focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                          transition-shadow"
+                                      >
+                                        <SelectValue placeholder="What are you building?" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="web">Web Application</SelectItem>
+                                        <SelectItem value="mobile">Mobile Application</SelectItem>
+                                        <SelectItem value="desktop">Desktop Application</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* What role are you in? */}
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <PenBox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                    <Select
+                                      name="roleincompany"
+                                      onValueChange={(value) => setFormData({ ...formData, roleincompany: value })}
+                                    >
+                                      <SelectTrigger
+                                        className="h-11 pl-10 
+                                          bg-slate-100 dark:bg-white/5 
+                                          border-0 
+                                          text-slate-800 dark:text-white 
+                                          placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                          rounded-lg
+                                          focus:ring-0
+                                          focus:border-0
+                                          shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                          focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                          transition-shadow"
+                                      >
+                                        <SelectValue placeholder="What role are you in?" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="developer">Developer</SelectItem>
+                                        <SelectItem value="designer">Designer</SelectItem>
+                                        <SelectItem value="manager">Project Manager</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* Country Selection */}
+                                <div className="space-y-1">
+                                  <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
+                                    <Select
+                                      name="country"
+                                      onValueChange={(value) => setFormData({ ...formData, country: value })}
+                                    >
+                                      <SelectTrigger
+                                        className="h-11 pl-10 
+                                          bg-slate-100 dark:bg-white/5 
+                                          border-0 
+                                          text-slate-800 dark:text-white 
+                                          placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                          rounded-lg
+                                          focus:ring-0
+                                          focus:border-0
+                                          shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                          focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                          transition-shadow"
+                                      >
+                                        <SelectValue placeholder="Select your country" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="afghanistan">Afghanistan</SelectItem>
+                                        {/* Add more countries as needed */}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* Privacy Policy Checkbox */}
+                                <div className="flex items-start space-x-2">
+                                  <Checkbox
+                                    id="privacy"
                                     required
-                                    className="h-11 pl-10 
-                                      bg-slate-100 dark:bg-white/5 
-                                      border-0 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-lg 
-                                      focus:ring-0
-                                      focus:border-0
-                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                      transition-shadow"
+                                    className="border-0 bg-slate-100 dark:bg-white/5 data-[state=checked]:bg-blue-600 dark:data-[state=checked]:bg-blue-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
                                   />
-                                </div>
-                              </div>
-
-                              {/* Password */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
-                                  <Input
-                                    id="register-password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Password*"
-                                    required
-                                    className="h-11 pl-10 
-                                      bg-slate-100 dark:bg-white/5 
-                                      border-0 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-lg 
-                                      focus:ring-0
-                                      focus:border-0
-                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                      transition-shadow"
-                                  />
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Info className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Password must be at least 8 characters long</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              </div>
-
-                              {/* Company Name */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
-                                  <Input
-                                    id="company"
-                                    type="text"
-                                    placeholder="Company name"
-                                    className="h-11 pl-10 
-                                      bg-slate-100 dark:bg-white/5 
-                                      border-0 
-                                      text-slate-800 dark:text-white 
-                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                      rounded-lg 
-                                      focus:ring-0
-                                      focus:border-0
-                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                      transition-shadow"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* What are you building? */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <RefreshCw className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
-                                  <Select>
-                                    <SelectTrigger
-                                      className="h-11 pl-10 
-                                        bg-slate-100 dark:bg-white/5 
-                                        border-0 
-                                        text-slate-800 dark:text-white 
-                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                        rounded-lg
-                                        focus:ring-0
-                                        focus:border-0
-                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                        transition-shadow"
+                                  <label htmlFor="privacy" className="text-sm text-slate-600 dark:text-gray-300">
+                                    I confirm that I have read and accepted the DIRO{" "}
+                                    <Link
+                                      href="#"
+                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                                     >
-                                      <SelectValue placeholder="What are you building?" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="web">Web Application</SelectItem>
-                                      <SelectItem value="mobile">Mobile Application</SelectItem>
-                                      <SelectItem value="desktop">Desktop Application</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                      Privacy Policy
+                                    </Link>
+                                  </label>
                                 </div>
-                              </div>
 
-                              {/* What role are you in? */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <PenBox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
-                                  <Select>
-                                    <SelectTrigger
-                                      className="h-11 pl-10 
-                                        bg-slate-100 dark:bg-white/5 
-                                        border-0 
-                                        text-slate-800 dark:text-white 
-                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                        rounded-lg
-                                        focus:ring-0
-                                        focus:border-0
-                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                        transition-shadow"
-                                    >
-                                      <SelectValue placeholder="What role are you in?" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="developer">Developer</SelectItem>
-                                      <SelectItem value="designer">Designer</SelectItem>
-                                      <SelectItem value="manager">Project Manager</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              {/* Country Selection */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
-                                  <Select>
-                                    <SelectTrigger
-                                      className="h-11 pl-10 
-                                        bg-slate-100 dark:bg-white/5 
-                                        border-0 
-                                        text-slate-800 dark:text-white 
-                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                        rounded-lg
-                                        focus:ring-0
-                                        focus:border-0
-                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                        transition-shadow"
-                                    >
-                                      <SelectValue placeholder="Select your country" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="afghanistan">Afghanistan</SelectItem>
-                                      {/* Add more countries as needed */}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              {/* Privacy Policy Checkbox */}
-                              <div className="flex items-start space-x-2">
-                                <Checkbox
-                                  id="privacy"
-                                  required
-                                  className="border-0 bg-slate-100 dark:bg-white/5 data-[state=checked]:bg-blue-600 dark:data-[state=checked]:bg-blue-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
-                                />
-                                <label htmlFor="privacy" className="text-sm text-slate-600 dark:text-gray-300">
-                                  I confirm that I have read and accepted the DIRO{" "}
-                                  <Link
-                                    href="#"
-                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                                  >
-                                    Privacy Policy
-                                  </Link>
-                                </label>
-                              </div>
-
-                              {/* Register Button */}
-                              <Button
-                                type="submit"
-                                className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
-                              >
-                                Register
-                              </Button>
-                            </form>
+                                {/* Register Button */}
+                                <Button
+                                  type="submit"
+                                  disabled={loading}
+                                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
+                                >
+                                  {loading ? (
+                                    <div className="flex items-center justify-center">
+                                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                      Registering...
+                                    </div>
+                                  ) : (
+                                    "Register"
+                                  )}
+                                </Button>
+                              </form>
+                            )}
                           </motion.div>
                         </TabsContent>
                       </AnimatePresence>

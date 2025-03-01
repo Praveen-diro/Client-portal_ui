@@ -492,7 +492,7 @@ const stage1: Environment = {
   customerreminder: true,
   getemailreminder: "https://api1.diro.live/emailReminder/getemailreminder",
   testEmailReminder: "https://stage.diro.live/Zuul-1.0/uploadKyc-2.0/setcustomerremindermail",
-  Skey: "6LfMOrwlAAAAANapKjS4i9wOe067YD9s3gcOTSbM",
+  Skey: "6Ld8meQqAAAAAO9sa-1xtNRXz9LVbnTZkMJK7gld",
   recaptcha: "https://api1.diro.live/recaptcha/",
   sentryDSN: "https://911505faffdb4b389a347914a0f0f0c8@o4505041099030528.ingest.sentry.io/4505045968093184",
   fusionAuth: "http://fauth1.diro.live:9011",
@@ -716,6 +716,6 @@ const prodeu: Environment = {
   uploadverification_link: "https://verify.diro.io/?buttonid=",
 };
 
-export { stage1 };
+export { stage1 as env };
 export { prodeu };
-export { stage2 as env };
+export { stage2  };
