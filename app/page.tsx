@@ -580,11 +580,16 @@ export default function LoginPage() {
             </motion.div>
           </div>
 
-          {/* Right Section */}
-          <div className="flex-1 flex items-start justify-center p-6 lg:p-12 bg-transparent">
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl mt-4">
+          {/* Right Section - Modified for vertical alignment based on active tab */}
+          <div className="flex-1 flex justify-center p-6 lg:p-12 bg-transparent">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className={`w-full max-w-2xl ${activeTab === "login" ? "self-center" : "self-start mt-4"}`}
+            >
               {/* Main container with floating card design */}
-              <div className="relative">
+              <div className="relative w-full">
                 {/* Decorative accent elements */}
                 <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-xl"></div>
                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-xl"></div>
