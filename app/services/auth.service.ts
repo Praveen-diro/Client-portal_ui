@@ -199,6 +199,13 @@ class AuthService {
             CookieService.set("isTwoFactor", "true");
             CookieService.set("twoFactorId", response.data.twoFactorId);
             CookieService.set("authMode", response.data.sandbox === true ? "2" : "1");
+
+            // Set multifactor enabled cookie based on API response
+            if (response.data.multiFactorEnabled) {
+              CookieService.set("multifactor", "true");
+            } else {
+              CookieService.remove("multifactor");
+            }
           }
 
           // Dispatch authenticated login action to Redux
@@ -216,6 +223,13 @@ class AuthService {
             CookieService.set("isTwoFactor", "true");
             CookieService.set("twoFactorId", response.data.twoFactorId);
             CookieService.set("authMode", "2");
+
+            // Set multifactor enabled cookie based on API response
+            if (response.data.multiFactorEnabled) {
+              CookieService.set("multifactor", "true");
+            } else {
+              CookieService.remove("multifactor");
+            }
           }
 
           // Dispatch sandbox login action to Redux

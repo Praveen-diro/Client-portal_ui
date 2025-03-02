@@ -18,6 +18,7 @@ const loginRoute = "/";
 
 // Two factor auth route
 const twoFactorRoute = "/authentication/two-factor";
+const twoFactorConfigureRoute = "/authentication/two-factor-configure";
 
 // Public authentication routes that don't require authentication
 const publicAuthRoutes = ["/forgotpassword"];
@@ -41,6 +42,7 @@ export function middleware(request: NextRequest) {
   const isTwoFactor = request.cookies.get("isTwoFactor")?.value === "true";
   const twoFactorId = request.cookies.get("twoFactorId")?.value;
   const isAuthenticatedCookie = request.cookies.get("isAuthenticated")?.value === "true";
+  const multiFactorEnabled = request.cookies.get("multifactor")?.value === "true";
 
   // Determine authentication state - check both apikey and token
   const isAuthenticated = apikey || token ? true : false || isAuthenticatedCookie;
@@ -63,7 +65,7 @@ export function middleware(request: NextRequest) {
   // Handle authentication routes
   if (path.startsWith("/authentication")) {
     // Allow two-factor page when two-factor is needed
-    if (path === "/authentication/two-factor" && needsTwoFactor) {
+    if ((path === "/authentication/two-factor" || path === "/authentication/two-factor-configure") && needsTwoFactor) {
       return NextResponse.next();
     }
     // Redirect all other /authentication/* paths to login
@@ -73,8 +75,9 @@ export function middleware(request: NextRequest) {
   // Handle two-factor auth path
   if (path === "/two-factor") {
     if (needsTwoFactor) {
-      // User needs to complete two-factor auth
-      return NextResponse.rewrite(new URL(twoFactorRoute, request.url));
+      // User needs to complete two-factor auth - either configuration or verification
+      const redirectUrl = multiFactorEnabled ? twoFactorRoute : twoFactorConfigureRoute;
+      return NextResponse.rewrite(new URL(redirectUrl, request.url));
     } else if (isAuthenticated) {
       // User is already authenticated, redirect to protected area
       return NextResponse.redirect(new URL("/client/validation-buttons", request.url));

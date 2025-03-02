@@ -251,6 +251,7 @@ export default function LoginPage() {
     roles,
     registermsg,
     registersucc,
+    multiFactorEnabled,
   } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
@@ -296,10 +297,18 @@ export default function LoginPage() {
         router.push("/client/validation-buttons");
       }
     } else if (isTwoFactor) {
-      console.log("User needs two-factor authentication, redirecting to two-factor page");
-      router.push("authentication/two-factor");
+      console.log("User needs two-factor authentication");
+
+      // Check if user needs to configure 2FA or use existing 2FA
+      if (multiFactorEnabled) {
+        console.log("User has 2FA configured, redirecting to two-factor authentication page");
+        router.push("authentication/two-factor");
+      } else {
+        console.log("User needs to configure 2FA, redirecting to two-factor configuration page");
+        router.push("authentication/two-factor-configure");
+      }
     }
-  }, [isAuthenticated, isTwoFactor, roles, router]);
+  }, [isAuthenticated, isTwoFactor, multiFactorEnabled, roles, router]);
 
   const sanitizeInput = (input: string) => {
     return DOMPurify.sanitize(input).replace(/[<>]/g, "");
