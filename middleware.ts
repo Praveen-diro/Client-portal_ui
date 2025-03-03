@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
   const isTwoFactor = request.cookies.get("isTwoFactor")?.value === "true";
   const twoFactorId = request.cookies.get("twoFactorId")?.value;
   const isAuthenticatedCookie = request.cookies.get("isAuthenticated")?.value === "true";
-  const multiFactorEnabled = request.cookies.get("multifactor")?.value === "true";
+  const multiFactorEnabled = request.cookies.get("multiFactorEnabled")?.value === "true";
 
   // Determine authentication state - check both apikey and token
   const isAuthenticated = apikey || token ? true : false || isAuthenticatedCookie;
@@ -82,6 +82,7 @@ export function middleware(request: NextRequest) {
       // User is already authenticated, redirect to protected area
       return NextResponse.redirect(new URL("/client/validation-buttons", request.url));
     } else {
+
       // User is not authenticated at all, redirect to login
       return NextResponse.redirect(new URL(loginRoute, request.url));
     }

@@ -1,17 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Send } from "lucide-react";
-
+import { Send, Loader2 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { env as Environment } from "../../config/environment";
+import { enableTwoFactor } from "@/app/services/auth.service";
 export default function TwoFactorAuth() {
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [activeTab, setActiveTab] = useState<"authenticator" | "email">("authenticator");
+  const [qrCodeLoading, setQrCodeLoading] = useState(false);
+  const [secretBase32Encoded, setSecretBase32Encoded] = useState("EXAMPLESECRETKEY234567");
+  const [otpSent, setOtpSent] = useState(false);
+  const [secret, setSecret] = useState("");
+  const [twoFactorId, setTwoFactorId] = useState("");
+  const [formErrors, setFormErrors] = useState({ otp: "" });
+  const [formData, setFormData] = useState({
+    otp: "",
+    email: "",
+  });
+
+  // Mock function to simulate loading QR code data
+  const handleAuthenticatorClick = () => {
+    setQrCodeLoading(true);
+    // Simulate API call to get QR code data
+    setTimeout(() => {
+      setQrCodeLoading(false);
+    }, 1500);
+  };
+
+  // Function to handle sending OTP
+  const handleSendOTP = () => {
+    if (email) {
+      setOtpSent(true);
+    }
+  };
+
+  // Check if URL is valid (used for QR code)
+  function isValidUrl(string: string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Validate form input
+  const handleValidation = () => {
+    let isValid = true;
+    const errors = { otp: "" };
+
+    if (!formData.otp) {
+      isValid = false;
+      errors.otp = "Verification code cannot be empty";
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, otp: e.target.value });
+    setCode(e.target.value); // Keep both states in sync
+  };
+
+  // Handle authenticator form submission
+  const onSubmitAuthenticator = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (handleValidation()) {
+      enableTwoFactor(email, formData.otp, "Authenticator app", secret, twoFactorId);
+      setFormData({ ...formData, otp: "" });
+      setCode(""); // Keep both states in sync
+    }
+  };
+
+  // Handle email form submission
+  const onSubmitEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (handleValidation()) {
+      try {
+        // In a real implementation, you would call your API here
+        console.log("Submitting email verification with:", {
+          email,
+          otp: formData.otp,
+          selectedOption: "Email address",
+          twoFactorId,
+        });
+
+        // Mock successful verification
+        alert("Verification successful!");
+
+        // Reset the form
+        setFormData({ ...formData, otp: "" });
+        setCode(""); // Keep both states in sync
+      } catch (error) {
+        console.error("Error verifying code:", error);
+      }
+    }
+  };
+
+  // Load QR code data when authenticator tab is selected
+  useEffect(() => {
+    if (activeTab === "authenticator") {
+      handleAuthenticatorClick();
+    }
+  }, [activeTab]);
 
   return (
     <TooltipProvider>
@@ -161,15 +262,60 @@ export default function TwoFactorAuth() {
                         </p>
 
                         <div className="bg-slate-100 dark:bg-white/5 rounded-lg p-8 flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
-                          <div className="w-48 h-48 bg-slate-200 dark:bg-white/10 rounded-lg shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"></div>
+                          <div
+                            className="w-48 h-48 bg-slate-200 dark:bg-white/10 rounded-lg flex items-center justify-center overflow-hidden"
+                            style={{
+                              position: "relative",
+                            }}
+                          >
+                            <div
+                              style={{
+                                filter: qrCodeLoading ? "blur(8px)" : "none",
+                                transition: "filter 0.3s",
+                                backgroundColor: "white",
+                                padding: "10px",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              <QRCodeSVG
+                                value={`otpauth://totp/${encodeURIComponent(
+                                  email || "user@example.com"
+                                )}?secret=${secretBase32Encoded}&issuer=${encodeURIComponent(
+                                  `${
+                                    isValidUrl(Environment.clientPortalUrl)
+                                      ? Environment.clientPortalUrl
+                                      : "https://client.diro.io"
+                                  }`
+                                )}`}
+                                size={128}
+                              />
+                            </div>
+                            {qrCodeLoading && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  backgroundColor: "rgba(255, 255, 255, 0)",
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <Input
                           type="text"
                           placeholder="Enter verification code"
-                          value={code}
-                          onChange={(e) => setCode(e.target.value)}
-                          className="h-12 px-4 
+                          value={formData.otp}
+                          onChange={handleOtpChange}
+                          className={`h-12 px-4 
                             bg-slate-100 dark:bg-white/5
                             border-0
                             text-slate-800 dark:text-white
@@ -179,11 +325,13 @@ export default function TwoFactorAuth() {
                             focus:border-0
                             shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
                             focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                            transition-shadow"
+                            transition-shadow
+                            ${formErrors.otp ? "border border-red-500 dark:border-red-400" : ""}`}
                         />
 
                         <Button
                           type="submit"
+                          onClick={onSubmitAuthenticator}
                           className="w-full h-12 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
                         >
                           Verify
@@ -216,18 +364,27 @@ export default function TwoFactorAuth() {
                         />
 
                         <div className="flex justify-end">
-                          <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-2 transition-colors hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
-                            <Send className="h-4 w-4" />
-                            Send one-time code
+                          <button
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-2 transition-colors hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
+                            onClick={handleSendOTP}
+                          >
+                            {otpSent ? (
+                              <>Code sent</>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4" />
+                                Send one-time code
+                              </>
+                            )}
                           </button>
                         </div>
 
                         <Input
                           type="text"
                           placeholder="Enter verification code"
-                          value={code}
-                          onChange={(e) => setCode(e.target.value)}
-                          className="h-12 px-4 
+                          value={formData.otp}
+                          onChange={handleOtpChange}
+                          className={`h-12 px-4 
                             bg-slate-100 dark:bg-white/5
                             border-0
                             text-slate-800 dark:text-white
@@ -237,11 +394,13 @@ export default function TwoFactorAuth() {
                             focus:border-0
                             shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
                             focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                            transition-shadow"
+                            transition-shadow
+                            ${formErrors.otp ? "border border-red-500 dark:border-red-400" : ""}`}
                         />
 
                         <Button
                           type="submit"
+                          onClick={onSubmitEmail}
                           className="w-full h-12 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
                         >
                           Verify

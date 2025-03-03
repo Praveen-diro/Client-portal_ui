@@ -33,6 +33,7 @@ import { authService } from "./services/auth.service";
 import { env } from "./config/environment";
 import { Alert } from "@/components/ui/alert";
 import type { RootState } from "./store/store";
+import { CookieService } from "./services/auth.service";
 
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -257,8 +258,14 @@ export default function LoginPage() {
   useEffect(() => {
     // Redirect already authenticated users to dashboard
     if (isAuthenticated) {
-      console.log("User already authenticated, redirecting to dashboard");
-      router.push("/client/validation-buttons");
+      console.log("User already authenticated, preparing to redirect to dashboard");
+      // Add a small delay to ensure network requests complete before navigation
+      const redirectTimer = setTimeout(() => {
+        console.log("Redirecting to dashboard");
+        router.push("/client/validation-buttons");
+      }, 300);
+
+      return () => clearTimeout(redirectTimer);
     }
   }, [isAuthenticated, router]);
 
@@ -382,46 +389,101 @@ export default function LoginPage() {
     setSuccessMessage("");
 
     try {
-      // Execute reCAPTCHA
-      const token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+      // Skip reCAPTCHA for diro.io emails
+      if (formData.email.includes("diro.io")) {
+        console.log("Bypassing reCAPTCHA for diro.io email during registration");
+        const response = await authService.register(formData);
+        handleRegisterResponse(response);
+        return;
+      }
+
+      // For non-diro.io emails, proceed with reCAPTCHA
+      if (typeof window.grecaptcha === "undefined") {
+        throw new Error("Security verification not loaded. Please refresh the page.");
+      }
+
+      // Get the token with retry mechanism
+      const token = await new Promise<string>((resolve, reject) => {
+        const maxAttempts = 5;
+        let attempts = 0;
+
+        const tryGetToken = async () => {
+          try {
+            const recaptchaToken = await window.grecaptcha.execute(env.Skey, {
+              action: "submit",
+            });
+            console.log("reCAPTCHA token received");
+            if (!recaptchaToken) {
+              throw new Error("Empty token received");
+            }
+            resolve(recaptchaToken);
+          } catch (error) {
+            console.error(`reCAPTCHA execution attempt ${attempts + 1} failed:`, error);
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(tryGetToken, 1000); // Retry after 1 second
+            } else {
+              reject(new Error("Security verification failed. Please try again."));
+            }
+          }
+        };
+
+        window.grecaptcha.ready(() => {
+          console.log("reCAPTCHA ready, attempting to get token");
+          tryGetToken();
+        });
+      });
 
       // Validate reCAPTCHA
       const recaptchaResponse = await authService.validateRecaptcha(token);
+      console.log("reCAPTCHA validation response:", recaptchaResponse);
 
-      if (handleValidation(recaptchaResponse.score)) {
+      if (recaptchaResponse?.score >= 0.3) {
+        console.log("reCAPTCHA validation passed, proceeding with registration");
         const response = await authService.register(formData);
-
-        if (response.data?.error) {
-          setError(response.data.message || "Registration failed");
-        } else if (response.data?.message === "plz check you email") {
-          setSuccessMessage("Please check your email for verification instructions. We've sent you an email with next steps.");
-          // Clear form data
-          setFormData({
-            firstname: "",
-            lastname: "",
-            email: "",
-            country: "",
-            password: "",
-            confirmPassword: "",
-            companyname: "",
-            building: "",
-            roleincompany: "",
-          });
-          // Redirect to login tab after 6 seconds
-          setTimeout(() => {
-            setActiveTab("login");
-            setSuccessMessage("");
-          }, 10000);
-        } else {
-          // Handle other successful responses
-          setActiveTab("login");
-        }
+        handleRegisterResponse(response);
+      } else {
+        console.log("Low reCAPTCHA score:", recaptchaResponse?.score);
+        setError("Security verification failed. Please try again.");
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || "An error occurred during registration");
+      console.error("Registration error:", err);
+      if (err.message.includes("security verification")) {
+        setError("Security verification failed. Please refresh the page and try again.");
+      } else {
+        setError(err.response?.data?.message || "An error occurred during registration");
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to handle registration response
+  const handleRegisterResponse = (response: any) => {
+    if (response.data?.error) {
+      setError(response.data.message || "Registration failed");
+    } else if (response.data?.message === "plz check you email") {
+      setSuccessMessage("Please check your email for verification instructions. We've sent you an email with next steps.");
+      // Clear form data
+      setFormData({
+        firstname: "",
+        lastname: "",
+        email: "",
+        country: "",
+        password: "",
+        confirmPassword: "",
+        companyname: "",
+        building: "",
+        roleincompany: "",
+      });
+      // Redirect to login tab after 10 seconds
+      setTimeout(() => {
+        setActiveTab("login");
+        setSuccessMessage("");
+      }, 10000);
+    } else {
+      // Handle other successful responses
+      setActiveTab("login");
     }
   };
 
@@ -435,54 +497,154 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      // Execute reCAPTCHA
-      const token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+      // Skip reCAPTCHA for diro.io emails
+      if (email.includes("diro.io")) {
+        console.log("Bypassing reCAPTCHA for diro.io email");
+        const response = await authService.login({ email, password });
+        handleLoginResponse(response, email);
+        return;
+      }
+
+      // For non-diro.io emails, proceed with reCAPTCHA
+      if (typeof window.grecaptcha === "undefined") {
+        console.error("reCAPTCHA not loaded");
+        setError("Security verification not loaded. Please refresh the page.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Getting reCAPTCHA token...");
+      let token;
+      try {
+        token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+        console.log("reCAPTCHA token received:", token);
+      } catch (error) {
+        console.error("Error getting reCAPTCHA token:", error);
+        setError("Failed to verify security. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (!token) {
+        console.error("No reCAPTCHA token received");
+        setError("Security verification failed. Please try again.");
+        setLoading(false);
+        return;
+      }
 
       // Validate reCAPTCHA
-      const recaptchaResponse = await authService.validateRecaptcha(token);
+      try {
+        const recaptchaResponse = await authService.validateRecaptcha(token);
+        console.log("reCAPTCHA validation response:", recaptchaResponse);
 
-      if (recaptchaResponse.score >= 0.3 || email.includes("diro.io")) {
-        // Attempt login
-        const response = await authService.login({ email, password });
-        // const response = { data: { statusCode: 242, sandbox: false, error: false } };
-
-        if (response.data?.error === true) {
-          dispatch(loginFail({ payload: response.data }));
-          setError(response.data?.message || "Login failed");
-        } else if (response.data.statusCode === 242) {
-          // Set cookie to allow access to 2FA page
-          document.cookie = "requiresTwoFactor=true; path=/";
-
-          if (response.data.sandbox === false || response.data.sandbox === "1") {
-            dispatch(
-              loginAuthenticated({
-                headers: response.headers,
-                payload: response.data,
-                email,
-              })
-            );
-          } else {
-            dispatch(
-              loginSandbox({
-                headers: response.headers,
-                payload: response.data,
-                email,
-              })
-            );
-          }
+        if (recaptchaResponse.success) {
+          console.log("reCAPTCHA validation passed, proceeding with login");
+          const response = await authService.login({ email, password });
+          handleLoginResponse(response, email);
         } else {
-          dispatch(loginFail({ payload: response.data }));
-          setError(response.data.message || "Login failed");
+          console.error("reCAPTCHA validation failed:", recaptchaResponse);
+          setError("Security verification failed. Please try again.");
+          setLoading(false);
         }
-      } else {
-        setError("reCAPTCHA verification failed");
+      } catch (error: any) {
+        console.error("reCAPTCHA validation error:", error);
+        // If there's a reCAPTCHA error but the email is from diro.io, proceed with login
+        if (email.includes("diro.io")) {
+          console.log("reCAPTCHA validation failed but proceeding for diro.io email");
+          const response = await authService.login({ email, password });
+          handleLoginResponse(response, email);
+        } else {
+          setError("Security verification failed. Please refresh and try again.");
+          setLoading(false);
+        }
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || "An error occurred during login");
-      dispatch(loginFail({ payload: err.response?.data?.message }));
-    } finally {
+      console.error("Login error:", err);
+      setError(err.message || "An error occurred during login");
+      dispatch(loginFail({ payload: err.message }));
       setLoading(false);
+    }
+  };
+
+  // Modify the handleLoginResponse function to use router instead of window.location
+  const handleLoginResponse = (response: any, email: string) => {
+    try {
+      console.log("Handling login response:", response);
+
+      if (response.data?.error === true) {
+        console.log("Login failed:", response.data.message);
+        dispatch(loginFail({ payload: response.data }));
+        setError(response.data.message || "Login failed");
+        setLoading(false);
+      } else if (response.data.statusCode === 242) {
+        console.log("Two-factor authentication required");
+
+        // Set cookies and dispatch actions before navigation
+        if (response.headers.authorization) {
+          CookieService.set("token", response.headers.authorization);
+        }
+        if (email) {
+          CookieService.set("email", email);
+        }
+        if (response.data.twoFactorId) {
+          CookieService.set("isTwoFactor", "true");
+          CookieService.set("twoFactorId", response.data.twoFactorId);
+          CookieService.set("authMode", response.data.sandbox === true ? "2" : "1");
+
+          if (response.data.multiFactorEnabled) {
+            CookieService.set("multiFactorEnabled", "true");
+          }
+        }
+
+        // Dispatch actions based on sandbox status
+        if (response.data.sandbox === false || response.data.sandbox === "1") {
+          dispatch(
+            loginAuthenticated({
+              headers: response.headers,
+              payload: response.data,
+              email,
+            })
+          );
+        } else {
+          dispatch(
+            loginSandbox({
+              headers: response.headers,
+              payload: response.data,
+              email,
+            })
+          );
+        }
+
+        // Use router.push instead of window.location for client-side navigation
+        // This prevents a full page reload
+        console.log("Navigating to two-factor page...");
+        router.push("/authentication/two-factor");
+      } else if (response.data?.statusCode === 200) {
+        console.log("Login successful, redirecting to dashboard");
+
+        // Direct login success
+        if (response.headers.authorization) {
+          CookieService.set("token", response.headers.authorization);
+          CookieService.set("isAuthenticated", "true");
+        }
+        if (email) {
+          CookieService.set("email", email);
+        }
+
+        // Use router.push instead of window.location
+        dispatch(loginSuccess({ headers: response.headers, payload: response.data }));
+        router.push("/client/validation-buttons");
+      } else {
+        // Fallback for other cases
+        console.log("Login response not handled:", response.data);
+        dispatch(loginFail({ payload: response.data }));
+        setError("Login failed with an unexpected response");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error in handleLoginResponse:", error);
+      setLoading(false);
+      setError("An error occurred while processing the login response");
     }
   };
 

@@ -325,7 +325,7 @@ const stage2: Environment = {
   getS3bucket: "https://list-bucket.diro.me/api/get-bucket-data",
   searchS3bucket: "https://list-bucket.diro.me/api/search-bucket-data",
   testEmailReminder: "https://stage2.diro.live/Zuul-1.0/uploadKyc-2.0/setcustomerremindermail",
-  Skey: "6LfMOrwlAAAAANapKjS4i9wOe067YD9s3gcOTSbM",
+  Skey: "6Ld8meQqAAAAAO9sa-1xtNRXz9LVbnTZkMJK7gld",
   recaptcha: "https://api2.diro.live/recaptcha/",
   sentryDSN: "https://57a0371f3cc74c059f48d93a0a3aafcc@o1042621.ingest.sentry.io/4505016759746560",
   fusionAuth: "https://fauth2.diro.live",
@@ -718,4 +718,4 @@ const prodeu: Environment = {
 
 export { stage1 as env };
 export { prodeu };
-export { stage2  };
+export { stage2 };

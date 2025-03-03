@@ -127,7 +127,7 @@ const initialState: AuthState = {
   twoFactorId: "",
   secret: null,
   secretBase32Encoded: null,
-  multiFactorEnabled: CookieService.get("multifactor") ? true : false,
+  multiFactorEnabled: CookieService.get("multiFactorEnabled") ? true : false,
   method: "",
   qrLoading: true,
   recoverCodes: [],
@@ -238,7 +238,7 @@ const authSlice = createSlice({
       CookieService.set("country", doc.country || "USA");
       CookieService.set("email", doc.email);
       CookieService.set("orgid", doc.data.orgid);
-      CookieService.set("multifactor", "true");
+      CookieService.set("multiFactorEnabled", "true");
       CookieService.set("authMode", 2);
 
       // Update state
