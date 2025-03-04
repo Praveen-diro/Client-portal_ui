@@ -16,6 +16,10 @@ const nextConfig = {
                 {
                     source: '/two-factor',
                     destination: '/authentication/two-factor'
+                },
+                {
+                    source: '/passwordreset/:id/:userEmail',
+                    destination: '/passwordreset/:id/:userEmail'
                 }
             ]
         };

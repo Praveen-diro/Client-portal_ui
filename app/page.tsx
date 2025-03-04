@@ -353,7 +353,6 @@ export default function LoginPage() {
       errors.password = "Password is required";
     }
 
-
     if (!formData.email) {
       formIsValid = false;
       errors.email = "Email is required";

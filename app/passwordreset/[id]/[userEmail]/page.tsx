@@ -3,27 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft, RefreshCw } from "lucide-react";
+import { Key, Eye, EyeOff, ArrowLeft, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { env } from "@/app/config/environment";
-import axios from "axios";
-import { forgotPassword } from "@/app/services/auth.service";
-
-// Declare Window interface with grecaptcha property
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
-    };
-  }
-}
+import { resetPassword } from "@/app/services/auth.service";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -58,137 +46,72 @@ const containerVariants = {
   },
 };
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+interface ResetPasswordPageProps {
+  params: {
+    id: string;
+    userEmail: string;
+  };
+}
+
+export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const token = params.id;
+  const userEmail = decodeURIComponent(params.userEmail);
+
   useEffect(() => {
-    // Load reCAPTCHA script
-    const loadScriptByURL = (id: string, url: string, callback: () => void) => {
-      const isScriptExist = document.getElementById(id);
+    // Log the token and email for debugging
+    console.log("Reset token:", token);
+    console.log("User email:", userEmail);
+  }, [token, userEmail]);
 
-      if (!isScriptExist) {
-        const script = document.createElement("script");
-        script.type = "text/javascript";
-        script.src = url;
-        script.id = id;
-        script.onload = callback;
-        document.body.appendChild(script);
-      }
-
-      if (isScriptExist && callback) callback();
-    };
-
-    loadScriptByURL("recaptcha-key", `https://www.google.com/recaptcha/api.js?render=${env.Skey}`, () =>
-      console.log("reCAPTCHA script loaded!")
-    );
-  }, []);
-
-  const handleValidation = (captchaScore: number) => {
-    let isValid = true;
-
-    if (!email) {
-      setError("Email is required");
-      isValid = false;
-      return isValid;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address");
-      isValid = false;
-      return isValid;
-    }
-
-    if (captchaScore < 0.3 && !email.includes("diro.io")) {
-      setError("Security verification failed. Please try again.");
-      isValid = false;
-      return isValid;
-    }
-
-    return isValid;
+  const validatePassword = (password: string): boolean => {
+    // Password must be at least 8 characters long
+    return password.length >= 8;
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+
+    // Validate password
+    if (!validatePassword(password)) {
+      setError("Password must be at least 8 characters long");
+      return;
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Check if reCAPTCHA is loaded
-      if (!window.grecaptcha) {
-        console.error("reCAPTCHA not loaded");
-        setError("Security verification not loaded. Please refresh the page.");
-        setLoading(false);
-        return;
-      }
+      // Call the reset password API
+      const response = await resetPassword(
+        {
+          token,
+          userEmail,
+          newPassword: password,
+        },
+        router
+      );
 
-      console.log("Getting reCAPTCHA token...");
-      let token;
-      try {
-        token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
-        console.log("reCAPTCHA token received");
-      } catch (error) {
-        console.error("Error getting reCAPTCHA token:", error);
-        setError("Failed to verify security. Please refresh and try again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!token) {
-        console.error("No reCAPTCHA token received");
-        setError("Security verification failed. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Validate reCAPTCHA
-      try {
-        const recaptchaResponse = await axios.post(
-          env.recaptcha,
-          { token },
-          {
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-          }
-        );
-        console.log("reCAPTCHA validation response:", recaptchaResponse);
-
-        if (recaptchaResponse.data && handleValidation(recaptchaResponse.data.score)) {
-          // Call forgot password service
-          const response = await forgotPassword({ email }, router);
-
-          console.log("Forgot password response:", response);
-          setIsSubmitted(true);
-          setLoading(false);
-        } else {
-          setLoading(false);
-        }
-      } catch (error: any) {
-        console.error("Error during forgot password:", error);
-
-        // If email is from diro.io, proceed even with reCAPTCHA errors
-        if (email.includes("diro.io")) {
-          try {
-            const response = await forgotPassword({ email }, router);
-            console.log("Forgot password response for diro.io email:", response);
-            setIsSubmitted(true);
-          } catch (forgotError: any) {
-            setError(forgotError.message || "Failed to process forgot password request");
-          }
-        } else {
-          setError(error.message || "An error occurred. Please try again.");
-        }
-
-        setLoading(false);
-      }
+      console.log("Password reset response:", response);
+      setIsSubmitted(true);
+      setLoading(false);
     } catch (err: any) {
-      console.error("General error in forgot password:", err);
-      setError(err.message || "An unexpected error occurred");
+      console.error("Error resetting password:", err);
+      setError(err.message || "An error occurred. Please try again or request a new reset link.");
       setLoading(false);
     }
   };
@@ -199,6 +122,10 @@ export default function ForgotPasswordPage() {
         {/* Background gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-[#182848] dark:to-[#4b6cb7] opacity-90" />
 
+        {/* Theme toggle */}
+        <div className="absolute right-4 top-4 z-20">
+          <ThemeToggle />
+        </div>
         {/* Content container */}
         <div className="relative flex min-h-screen z-10">
           {/* Left Section */}
@@ -228,11 +155,9 @@ export default function ForgotPasswordPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                <h1 className="text-slate-900 dark:text-white text-5xl font-bold leading-tight mb-6">
-                  Get instant original documents online
-                </h1>
+                <h1 className="text-slate-900 dark:text-white text-5xl font-bold leading-tight mb-6">Reset your password</h1>
                 <p className="text-slate-600 dark:text-white/80 text-xl leading-relaxed">
-                  Enter your email address and we'll send you instructions to reset your password.
+                  Create a new password for your account.
                 </p>
               </motion.div>
 
@@ -326,9 +251,9 @@ export default function ForgotPasswordPage() {
                       {!isSubmitted ? (
                         <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
                           <div className="space-y-2 text-center">
-                            <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">Forgot Password?</h2>
+                            <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">Reset Your Password</h2>
                             <p className="text-slate-600 dark:text-gray-300 text-sm">
-                              Don't worry! Just enter your email below and we'll send you instructions to reset your password.
+                              Create a new password for your account. Password must be at least 8 characters long.
                             </p>
                           </div>
 
@@ -340,18 +265,19 @@ export default function ForgotPasswordPage() {
 
                           <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-4">
+                              {/* Password */}
                               <div className="space-y-2">
-                                <Label htmlFor="email" className="text-slate-700 dark:text-gray-300">
-                                  Email
+                                <Label htmlFor="password" className="text-slate-700 dark:text-gray-300">
+                                  New Password
                                 </Label>
                                 <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
                                   <Input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Enter your email"
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter new password"
                                     required
                                     className="h-12 pl-10 
                                       bg-slate-100 dark:bg-white/5 
@@ -365,6 +291,57 @@ export default function ForgotPasswordPage() {
                                       focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
                                       transition-shadow"
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                  >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Password must be at least 8 characters long</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </div>
+
+                              {/* Confirm Password */}
+                              <div className="space-y-2">
+                                <Label htmlFor="confirm-password" className="text-slate-700 dark:text-gray-300">
+                                  Confirm Password
+                                </Label>
+                                <div className="relative">
+                                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
+                                  <Input
+                                    id="confirm-password"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm your password"
+                                    required
+                                    className="h-12 pl-10 
+                                      bg-slate-100 dark:bg-white/5 
+                                      border-0 
+                                      text-slate-800 dark:text-white 
+                                      placeholder:text-slate-500 dark:placeholder:text-gray-400 
+                                      rounded-lg 
+                                      focus:ring-0
+                                      focus:border-0
+                                      shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                                      focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
+                                      transition-shadow"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                  >
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -380,7 +357,7 @@ export default function ForgotPasswordPage() {
                                   Processing...
                                 </div>
                               ) : (
-                                "Send Reset Instructions"
+                                "Reset Password"
                               )}
                             </Button>
                           </form>
@@ -395,11 +372,11 @@ export default function ForgotPasswordPage() {
                         >
                           <div className="space-y-4">
                             <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                              <Mail className="h-8 w-8 text-green-600 dark:text-green-400" />
+                              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
                             </div>
-                            <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">Check your email</h2>
+                            <h2 className="text-2xl font-semibold text-slate-800 dark:text-white">Password Reset Successful</h2>
                             <p className="text-slate-600 dark:text-gray-300 text-sm">
-                              We have sent password reset instructions to your email address. Please check your inbox.
+                              Your password has been successfully updated. You can now use your new password to log in.
                             </p>
                           </div>
 
@@ -407,7 +384,7 @@ export default function ForgotPasswordPage() {
                             onClick={() => router.push("/")}
                             className="h-12 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-[#4b6cb7] dark:to-[#182848] text-white px-6 rounded-lg transition-all duration-300 shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_8px_rgba(0,0,0,0.3)] dark:hover:opacity-90"
                           >
-                            Return to Login
+                            Go to Login
                           </Button>
                         </motion.div>
                       )}
@@ -415,35 +392,9 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Decoration for reCAPTCHA visibility */}
-              <style jsx global>{`
-                .grecaptcha-badge {
-                  visibility: visible;
-                }
-              `}</style>
             </motion.div>
           </div>
         </div>
-
-        {/* Theme toggle with tooltip */}
-        <motion.div
-          className="absolute top-4 right-4 lg:top-6 lg:right-8 z-50"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-        >
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <div className="cursor-pointer hover:scale-105 transition-all duration-200">
-                <ThemeToggle showText={false} />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm">
-              <p>Change theme</p>
-            </TooltipContent>
-          </Tooltip>
-        </motion.div>
       </div>
     </TooltipProvider>
   );

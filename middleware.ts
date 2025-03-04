@@ -34,6 +34,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip middleware for passwordreset route
+  if (path.startsWith("/passwordreset/")) {
+    return NextResponse.next();
+  }
+
   // Get auth status from cookies
   const apikey = request.cookies.get("apikey")?.value;
   const token = request.cookies.get("token")?.value;
@@ -109,6 +114,12 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
       }
     }
+
+    // Allow direct access to forgotpassword page
+    if (path === "/authentication/forgotpassword") {
+      return NextResponse.next();
+    }
+
     // Redirect all other /authentication/* paths to login
     return NextResponse.redirect(new URL(loginRoute, request.url));
   }
@@ -184,6 +195,7 @@ export const config = {
     "/forgotpassword",
     "/resetpassword",
     "/two-factor",
+    "/passwordreset/:id/:userEmail*",
     "/client/validation-buttons/:path*",
     "/client/requests-sent/:path*",
     "/client/documents-received/:path*",
