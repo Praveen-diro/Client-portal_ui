@@ -86,7 +86,6 @@ interface FormData {
   email: string;
   country: string;
   password: string;
-  confirmPassword: string;
   companyname: string;
   building: string;
   roleincompany: string;
@@ -241,7 +240,6 @@ export default function LoginPage() {
     email: "",
     country: "",
     password: "",
-    confirmPassword: "",
     companyname: "",
     building: "",
     roleincompany: "",
@@ -355,13 +353,6 @@ export default function LoginPage() {
       errors.password = "Password is required";
     }
 
-    if (!formData.confirmPassword) {
-      formIsValid = false;
-      errors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      formIsValid = false;
-      errors.confirmPassword = "Passwords do not match";
-    }
 
     if (!formData.email) {
       formIsValid = false;
@@ -491,7 +482,6 @@ export default function LoginPage() {
         email: "",
         country: "",
         password: "",
-        confirmPassword: "",
         companyname: "",
         building: "",
         roleincompany: "",
@@ -1083,33 +1073,6 @@ export default function LoginPage() {
                                         <p>Password must be at least 8 characters long</p>
                                       </TooltipContent>
                                     </Tooltip>
-                                  </div>
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div className="space-y-1">
-                                  <div className="relative">
-                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400" />
-                                    <Input
-                                      id="register-confirm-password"
-                                      name="confirmPassword"
-                                      type="text"
-                                      placeholder="Confirm Password*"
-                                      required
-                                      value={formData.confirmPassword}
-                                      onChange={onChange}
-                                      className="h-11 pl-10 
-                                        bg-slate-100 dark:bg-white/5 
-                                        border-0 
-                                        text-slate-800 dark:text-white 
-                                        placeholder:text-slate-500 dark:placeholder:text-gray-400 
-                                        rounded-lg 
-                                        focus:ring-0
-                                        focus:border-0
-                                        shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
-                                        focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
-                                        transition-shadow"
-                                    />
                                   </div>
                                 </div>
 

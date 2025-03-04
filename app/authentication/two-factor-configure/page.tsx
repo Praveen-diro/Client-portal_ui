@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,31 +9,53 @@ import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/comp
 import { Send, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { env as Environment } from "../../config/environment";
-import { enableTwoFactor } from "@/app/services/auth.service";
+import { enableTwoFactor, generateQrCode } from "@/app/services/auth.service";
 import Cookies from "js-cookie";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/store/store";
 
 export default function TwoFactorAuth() {
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [activeTab, setActiveTab] = useState<"authenticator" | "email">("authenticator");
-  const [qrCodeLoading, setQrCodeLoading] = useState(false);
-  const [secretBase32Encoded, setSecretBase32Encoded] = useState("EXAMPLESECRETKEY234567");
   const [otpSent, setOtpSent] = useState(false);
-  const [secret, setSecret] = useState("");
-  const [twoFactorId, setTwoFactorId] = useState("");
   const [formErrors, setFormErrors] = useState({ otp: "" });
   const [formData, setFormData] = useState({
     otp: "",
     email: "",
   });
 
-  // Mock function to simulate loading QR code data
-  const handleAuthenticatorClick = () => {
-    setQrCodeLoading(true);
-    // Simulate API call to get QR code data
-    setTimeout(() => {
-      setQrCodeLoading(false);
-    }, 1500);
+  const qrGenerated = useRef(false);
+
+  // Get QR code data from Redux state
+  const { secret, secretBase32Encoded, qrLoading, twoFactorId} = useSelector((state: RootState) => state.auth);
+
+  // Generate QR code on initial load if authenticator tab is active
+  useEffect(() => {
+    if (activeTab === "authenticator" && !qrGenerated.current) {
+      qrGenerated.current = true;
+      generateQrCode();
+    }
+  }, []);
+
+  // Handle tab change to authenticator
+  const handleAuthenticatorClick = async () => {
+    setActiveTab("authenticator");
+    if (!qrGenerated.current) {
+      qrGenerated.current = true;
+      try {
+        await generateQrCode();
+      } catch (error) {
+        console.error("Error generating QR code:", error);
+        qrGenerated.current = false;
+      }
+    }
+  };
+
+  // Handle tab change to email
+  const handleEmailClick = () => {
+    setActiveTab("email");
+    qrGenerated.current = false;
   };
 
   // Function to handle sending OTP
@@ -77,7 +99,7 @@ export default function TwoFactorAuth() {
   const onSubmitAuthenticator = async (e: React.FormEvent) => {
     e.preventDefault();
     if (handleValidation()) {
-      enableTwoFactor(email, formData.otp, "Authenticator app", secret, twoFactorId);
+      enableTwoFactor(Cookies.get("email") || "", formData.otp, "Authenticator app", secret || "", twoFactorId);
       setFormData({ ...formData, otp: "" });
       setCode(""); // Keep both states in sync
     }
@@ -108,13 +130,6 @@ export default function TwoFactorAuth() {
       }
     }
   };
-
-  // Load QR code data when authenticator tab is selected
-  useEffect(() => {
-    if (activeTab === "authenticator") {
-      handleAuthenticatorClick();
-    }
-  }, [activeTab]);
 
   return (
     <TooltipProvider>
@@ -227,7 +242,7 @@ export default function TwoFactorAuth() {
                   {/* Custom Tab Implementation */}
                   <div className="flex gap-4 p-1 rounded-lg bg-slate-100 dark:bg-white/5 shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
                     <button
-                      onClick={() => setActiveTab("authenticator")}
+                      onClick={handleAuthenticatorClick}
                       className={`flex-1 py-3 px-4 rounded-lg transition-all duration-200 
                         ${
                           activeTab === "authenticator"
@@ -238,7 +253,7 @@ export default function TwoFactorAuth() {
                       Authenticator app
                     </button>
                     <button
-                      onClick={() => setActiveTab("email")}
+                      onClick={handleEmailClick}
                       className={`flex-1 py-3 px-4 rounded-lg transition-all duration-200 
                         ${
                           activeTab === "email"
@@ -272,7 +287,7 @@ export default function TwoFactorAuth() {
                           >
                             <div
                               style={{
-                                filter: qrCodeLoading ? "blur(8px)" : "none",
+                                filter: qrLoading ? "blur(8px)" : "none",
                                 transition: "filter 0.3s",
                                 backgroundColor: "white",
                                 padding: "10px",
@@ -280,19 +295,27 @@ export default function TwoFactorAuth() {
                               }}
                             >
                               <QRCodeSVG
-                                value={`otpauth://totp/${encodeURIComponent(
-                                  Cookies.get("email") || "user@example.com"
-                                )}?secret=${secretBase32Encoded}&issuer=${encodeURIComponent(
+                                value={`otpauth://totp/${encodeURIComponent(Cookies.get("email") || "user@example.com")}?secret=${
+                                  secretBase32Encoded || "EXAMPLESECRETKEY234567"
+                                }&issuer=${encodeURIComponent(
                                   `${
                                     isValidUrl(Environment.clientPortalUrl)
                                       ? Environment.clientPortalUrl
                                       : "https://client.diro.io"
                                   }`
                                 )}`}
-                                size={128}
+                                size={256}
+                                level="H"
+                                includeMargin={true}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  maxWidth: "256px",
+                                  maxHeight: "256px",
+                                }}
                               />
                             </div>
-                            {qrCodeLoading && (
+                            {qrLoading && (
                               <div
                                 style={{
                                   position: "absolute",

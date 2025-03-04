@@ -20,6 +20,9 @@ import {
   enableTwoFactorError,
   twoFactorLogin as twoFactorLoginAction,
   loginSuccess,
+  startQrCode,
+  setQrCode,
+  qrCodeFail,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
 
@@ -552,6 +555,7 @@ class AuthService {
       );
 
       // Send recovery codes via email
+      console.log("", response.data.data.recoveryCodes);
       const recoveryCodes = response.data.data.recoveryCodes;
       const emailPayload = this.generateEmailPayload(email, recoveryCodes);
 
@@ -559,17 +563,15 @@ class AuthService {
       const emailReminderUrl = "https://api1.diro.live/emailReminder";
       const emailReminderRes = await axios.post(emailReminderUrl, emailPayload);
       console.log("Email reminder response:", emailReminderRes.data);
-      console.log(response.data.data.code);
+      console.log("here is the response data ", response.data.data.code);
 
       // Log in with two-factor authentication
-      dispatchAction(
-        twoFactorLoginAction({
-          email,
-          otp: response.data.data.code,
-          twoFactorId,
-          sandboxStatus: false,
-        })
-      );
+      const twoFactorResponse = await this.twoFactorLogin(email, response.data.data.code, twoFactorId, false);
+      if (twoFactorResponse.success) {
+        dispatchAction(twoFactorLoginSuccess({ headers: twoFactorResponse.data.headers, payload: twoFactorResponse.data }));
+      } else {
+        dispatchAction(twoFactorLoginFailure(twoFactorResponse.data));
+      }
     } catch (error: any) {
       console.log(error.response?.data, "payload msg");
 
@@ -629,7 +631,7 @@ class AuthService {
    */
   async generateQrCode(): Promise<void> {
     // Dispatch QR code generation start action
-    dispatchAction({ type: "QR_CODE_START" });
+    dispatchAction(startQrCode());
 
     try {
       const response = await axios.post(env.qrCode, null, {
@@ -641,15 +643,22 @@ class AuthService {
       console.log("QR data", response.data);
 
       // Dispatch success action with the QR code data
-      dispatchAction({
-        type: "QR_CODE",
-        payload: response.data,
-      });
+      dispatchAction(
+        setQrCode({
+          secret: response.data.secret,
+          secretBase32Encoded: response.data.secretBase32Encoded,
+        })
+      );
     } catch (error) {
       console.error("QR ERROR", error);
 
-      // Dispatch failure action
-      dispatchAction({ type: "QR_CODE_FAIL" });
+      // Dispatch failure action with error data
+      dispatchAction(
+        qrCodeFail({
+          secret: null,
+          secretBase32Encoded: null,
+        })
+      );
       throw error;
     }
   }
@@ -797,7 +806,7 @@ class AuthService {
    * @param authStatus Authentication status (false for live, true for sandbox)
    * @returns A promise that resolves when the two-factor login is completed
    */
-  async twoFactorLogin(email: string, otp: string, twoFactorId: any, authStatus: boolean): Promise<any> {
+  async twoFactorLogin(email: string, otp: string, twoFactorId: string, authStatus: boolean): Promise<any> {
     // Clear cookies before login
     console.log("Two-factor login attempt for:", email);
 
