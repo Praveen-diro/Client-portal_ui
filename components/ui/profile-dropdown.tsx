@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { LogOut, User, Building2, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { deleteCookie, getCookies } from "cookies-next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +16,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function ProfileDropdown() {
+  const router = useRouter();
+
   const dropdownItems = [
     {
       label: "Organization",
@@ -26,6 +30,21 @@ export function ProfileDropdown() {
       href: "/account?tab=billing",
     },
   ];
+
+  const handleLogout = () => {
+    // Get all cookies and clear them one by one
+    const cookies = getCookies();
+
+    // Check if cookies is an object before trying to iterate
+    if (cookies && typeof cookies === "object") {
+      Object.keys(cookies).forEach((cookieName) => {
+        deleteCookie(cookieName);
+      });
+    }
+
+    // Instead of router.push, use window.location to force a complete page reload
+    window.location.href = "/";
+  };
 
   return (
     <DropdownMenu>
@@ -51,7 +70,7 @@ export function ProfileDropdown() {
           </Link>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>
         </DropdownMenuItem>

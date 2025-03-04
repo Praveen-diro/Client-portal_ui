@@ -26,7 +26,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
     // If not authenticated, redirect to login page
     if (!auth.isAuthenticated) {
-      console.log("User not authenticated, redirecting to login");
       router.push("/");
     }
   }, [auth.isAuthenticated, router, mounted]);

@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosResponse, AxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../config/environment";
 import Cookies from "js-cookie";
@@ -21,6 +21,29 @@ import {
   twoFactorLogin as twoFactorLoginAction,
   loginSuccess,
 } from "../store/features/authSlice";
+import { dispatchAction } from "../store/hooks";
+
+// Add a router reference that can be set from components
+let globalRouter: any = null;
+
+// Function to set the router reference
+export const setAuthRouter = (router: any) => {
+  globalRouter = router;
+  console.log("Auth router set:", router ? "Router available" : "No router");
+};
+
+// Helper function for navigation that uses router when available
+const navigateTo = (path: string) => {
+  if (globalRouter) {
+    // Use router for client-side navigation
+    console.log("Navigating with Next.js router:", path);
+    globalRouter.push(path);
+  } else if (typeof window !== "undefined") {
+    // Fallback to window.location only when router is not available
+    console.log("Navigating with window.location:", path);
+    window.location.href = path;
+  }
+};
 
 // Utility function for logging
 export const sendLogs = (action: string, data: any, source: string): void => {
@@ -36,23 +59,22 @@ const cookieOptions = {
   path: "/",
 };
 
-// Cookie helper functions
-const CookieService = {
+// Make CookieService a properly exported object
+export const CookieService = {
   set(key: string, value: any) {
     Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
   },
+
   get(key: string) {
-    const value = Cookies.get(key);
-    if (!value) return null;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
+    const cookieValue = Cookies.get(key);
+    if (cookieValue) return cookieValue;
+    return null;
   },
+
   remove(key: string) {
-    Cookies.remove(key, { path: "/" });
+    Cookies.remove(key, cookieOptions);
   },
+
   clear() {
     // Get all cookies and remove them one by one
     const cookies = Cookies.get();
@@ -126,41 +148,74 @@ class AuthService {
   }
 
   async validateRecaptcha(token: string) {
-    const idempotencyKey = uuidv4();
+    console.time("recaptchaValidation");
+
+    // Cache the recaptcha validation results for 2 minutes to avoid repeated calls
+    const cacheKey = `recaptcha_${token.substring(0, 20)}`;
+    const cachedResult = localStorage.getItem(cacheKey);
+
+    if (cachedResult) {
+      try {
+        const parsedResult = JSON.parse(cachedResult);
+        const cacheTime = parsedResult.timestamp;
+
+        // Use cached result if it's less than 2 minutes old
+        if (Date.now() - cacheTime < 120000) {
+          console.log("Using cached reCAPTCHA validation result");
+          console.timeEnd("recaptchaValidation");
+          return parsedResult.result;
+        }
+      } catch (e) {
+        // If there's an error parsing the cached result, proceed with the API call
+        console.error("Error parsing cached reCAPTCHA result:", e);
+      }
+    }
+
     try {
-      console.log("Validating reCAPTCHA token...", token);
-      const response = await axios.post(
-        env.recaptcha,
+      // Set a timeout of 5 seconds for reCAPTCHA validation
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const result = await axios.post(
+        env.recaptcha, // Use the existing recaptcha endpoint from environment
         { token },
         {
-          headers: {
-            "Content-Type": "application/json",
-            "Idempotency-Key": idempotencyKey,
-          },
+          timeout: 5000,
+          signal: controller.signal,
         }
       );
-      console.log("reCAPTCHA validation response:", response.data);
 
-      // If no score is returned but the response is successful, return a default high score
-      if (!response.data || typeof response.data.score !== "number") {
-        console.log("No score in response, using default score");
-        return { success: true, score: 0.9 };
-      }
+      clearTimeout(timeoutId);
 
-      return response.data;
+      // Cache the result
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          result: result.data,
+          timestamp: Date.now(),
+        })
+      );
+
+      console.timeEnd("recaptchaValidation");
+      return result.data;
     } catch (error: any) {
-      console.error("reCAPTCHA validation error:", error.response?.data || error.message);
-      // Return a successful response with a high score for diro.io emails
-      if (error.response?.data?.error === "invalid-keys") {
-        console.log("Invalid keys error, using default score");
-        return { success: true, score: 0.9 };
+      console.error("reCAPTCHA validation error:", error);
+      console.timeEnd("recaptchaValidation");
+
+      // If request timed out or network error, assume score is good enough
+      // This is a fallback to prevent blocking users if reCAPTCHA service is slow
+      if (error.code === "ECONNABORTED" || error.name === "AbortError") {
+        console.log("reCAPTCHA validation timed out, using fallback score");
+        return { success: true, score: 0.7 };
       }
-      throw error;
+
+      // Return a default response with a medium score
+      return { success: true, score: 0.5 };
     }
   }
 
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    store.dispatch(setLoading(true));
+    dispatchAction(setLoading(true));
 
     try {
       console.log("Making login API request...");
@@ -186,7 +241,7 @@ class AuthService {
       if (response.data.error === true) {
         console.log("login failed");
         // Dispatch login failure to Redux
-        store.dispatch(loginFail({ payload: response.data }));
+        dispatchAction(loginFail({ payload: response.data }));
       } else if (response.data.statusCode === 242) {
         if (response.data.sandbox === false || response.data.sandbox === "1") {
           console.log("inside if auth");
@@ -205,11 +260,19 @@ class AuthService {
             CookieService.set("isTwoFactor", "true");
             CookieService.set("twoFactorId", response.data.twoFactorId);
             CookieService.set("authMode", response.data.sandbox === true ? "2" : "1");
-            CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled);
+
+            // Ensure multiFactorEnabled is set with the correct value
+            if (response.data.multiFactorEnabled !== undefined) {
+              console.log("Setting multiFactorEnabled cookie:", response.data.multiFactorEnabled);
+              CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled ? "true" : "false");
+            } else {
+              console.log("multiFactorEnabled not found in response, defaulting to false");
+              CookieService.set("multiFactorEnabled", "false");
+            }
           }
 
           // Dispatch login authenticated action
-          store.dispatch(
+          dispatchAction(
             loginAuthenticated({
               headers: response.headers,
               payload: response.data,
@@ -233,11 +296,19 @@ class AuthService {
             CookieService.set("isTwoFactor", "true");
             CookieService.set("twoFactorId", response.data.twoFactorId);
             CookieService.set("authMode", "2");
-            CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled);
+
+            // Ensure multiFactorEnabled is set with the correct value
+            if (response.data.multiFactorEnabled !== undefined) {
+              console.log("Setting multiFactorEnabled cookie (sandbox):", response.data.multiFactorEnabled);
+              CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled ? "true" : "false");
+            } else {
+              console.log("multiFactorEnabled not found in response (sandbox), defaulting to false");
+              CookieService.set("multiFactorEnabled", "false");
+            }
           }
 
           // Dispatch sandbox login action
-          store.dispatch(
+          dispatchAction(
             loginSandbox({
               headers: response.headers,
               payload: response.data,
@@ -258,21 +329,21 @@ class AuthService {
         }
 
         // Dispatch login success action
-        store.dispatch(loginSuccess({ headers: response.headers, payload: response.data }));
+        dispatchAction(loginSuccess({ headers: response.headers, payload: response.data }));
       }
 
       return response;
     } catch (error: any) {
       console.error("Login failed with error:", error.response?.data || error.message);
       // Dispatch login failure action
-      store.dispatch(loginFail({ payload: error.response?.data || { message: "Login request failed" } }));
+      dispatchAction(loginFail({ payload: error.response?.data || { message: "Login request failed" } }));
       throw error;
     }
   }
 
   async register(signupData: SignupData) {
     // Dispatch loading action
-    store.dispatch(startRegLoader());
+    dispatchAction(startRegLoader());
 
     try {
       const response = await axios.post(env.signup, signupData, {
@@ -282,7 +353,7 @@ class AuthService {
       });
 
       // Dispatch success action
-      store.dispatch(
+      dispatchAction(
         registerSuccess({
           payload: response.data,
           regloading: false,
@@ -292,7 +363,7 @@ class AuthService {
       return response;
     } catch (error: any) {
       // Dispatch failure action
-      store.dispatch(
+      dispatchAction(
         registerFail({
           payload: error.response?.data,
           fieldErrors: error.response?.data?.fieldErrors,
@@ -343,13 +414,13 @@ class AuthService {
       CookieService.clear();
 
       // Dispatch logout action to Redux
-      store.dispatch(logoutAction());
+      dispatchAction(logoutAction());
 
       return true;
     } catch (error) {
       console.error("Logout error:", error);
       // Still dispatch logout action to Redux even if API calls fail
-      store.dispatch(logoutAction());
+      dispatchAction(logoutAction());
       throw error;
     }
   }
@@ -417,7 +488,7 @@ class AuthService {
     console.log("change mode logout", mode);
 
     // Dispatch the auth mode change
-    store.dispatch(setAuthMode(mode));
+    dispatchAction(setAuthMode(mode));
 
     // Log the action
     sendLogs("Org Logout", "Logged out successfully and profile cleared", "services/auth.service.ts");
@@ -439,11 +510,11 @@ class AuthService {
       console.log("Mode Change:", response.data.sandbox);
 
       // Dispatch the auth mode change based on response
-      store.dispatch(setAuthMode(response.data.sandbox === true ? 2 : 1));
+      dispatchAction(setAuthMode(response.data.sandbox === true ? 2 : 1));
     } catch (error) {
       console.error("Final failure in switching the Modes:", error);
       // Default to mode 1 (live) if there's an error
-      store.dispatch(setAuthMode(1));
+      dispatchAction(setAuthMode(1));
     }
   }
 
@@ -474,7 +545,7 @@ class AuthService {
       console.log("response is : ", response);
 
       // Dispatch success action
-      store.dispatch(
+      dispatchAction(
         enableTwoFactorAction({
           data: response.data,
         })
@@ -491,7 +562,7 @@ class AuthService {
       console.log(response.data.data.code);
 
       // Log in with two-factor authentication
-      store.dispatch(
+      dispatchAction(
         twoFactorLoginAction({
           email,
           otp: response.data.data.code,
@@ -503,7 +574,7 @@ class AuthService {
       console.log(error.response?.data, "payload msg");
 
       // Dispatch error action
-      store.dispatch(enableTwoFactorError(error.response?.data || { message: "Failed to enable two-factor authentication" }));
+      dispatchAction(enableTwoFactorError(error.response?.data || { message: "Failed to enable two-factor authentication" }));
 
       console.error("Error enabling two-factor authentication:", error.response?.data?.msg);
       throw error;
@@ -558,7 +629,7 @@ class AuthService {
    */
   async generateQrCode(): Promise<void> {
     // Dispatch QR code generation start action
-    store.dispatch({ type: "QR_CODE_START" });
+    dispatchAction({ type: "QR_CODE_START" });
 
     try {
       const response = await axios.post(env.qrCode, null, {
@@ -570,7 +641,7 @@ class AuthService {
       console.log("QR data", response.data);
 
       // Dispatch success action with the QR code data
-      store.dispatch({
+      dispatchAction({
         type: "QR_CODE",
         payload: response.data,
       });
@@ -578,7 +649,7 @@ class AuthService {
       console.error("QR ERROR", error);
 
       // Dispatch failure action
-      store.dispatch({ type: "QR_CODE_FAIL" });
+      dispatchAction({ type: "QR_CODE_FAIL" });
       throw error;
     }
   }
@@ -591,7 +662,7 @@ class AuthService {
    */
   async updatePassword(forgotData: ForgotPasswordData, history: any): Promise<void> {
     // Dispatch loading action
-    store.dispatch({ type: "START_REG_LOADER" });
+    dispatchAction({ type: "START_REG_LOADER" });
 
     const config = {
       headers: {
@@ -610,7 +681,7 @@ class AuthService {
       }
     } catch (error) {
       console.log("in updatepassword");
-      store.dispatch({
+      dispatchAction({
         type: "AUTH_ERROR",
       });
       throw error;
@@ -625,7 +696,7 @@ class AuthService {
    */
   async resetPassword(forgotData: ForgotPasswordData, history: any): Promise<any> {
     // Dispatch loading action
-    store.dispatch({ type: "START_REG_LOADER" });
+    dispatchAction({ type: "START_REG_LOADER" });
 
     const config = {
       headers: {
@@ -639,7 +710,7 @@ class AuthService {
 
       if (response.data.statusCode === 200) {
         // Dispatch password error false
-        store.dispatch({
+        dispatchAction({
           type: "PASSWORD_ERROR",
           payload: false,
         });
@@ -656,13 +727,13 @@ class AuthService {
         history.push("/login");
       } else if (response.data.statusCode === 410) {
         // Dispatch reset link expired
-        store.dispatch({
+        dispatchAction({
           type: "RESET_LINK_EXPIRED",
           payload: true,
         });
       } else if (response.data.message === "Your new password cannot be the same as your previous password.") {
         // Dispatch password error true
-        store.dispatch({
+        dispatchAction({
           type: "PASSWORD_ERROR",
           payload: true,
         });
@@ -672,7 +743,7 @@ class AuthService {
       return response;
     } catch (error) {
       console.log("in auth service resetpassword");
-      store.dispatch({
+      dispatchAction({
         type: "AUTH_ERROR",
       });
       throw error;
@@ -687,7 +758,7 @@ class AuthService {
    */
   async forgotPassword(forgotData: ForgotPasswordData, history: any): Promise<any> {
     // Dispatch loading action
-    store.dispatch({ type: "START_REG_LOADER" });
+    dispatchAction({ type: "START_REG_LOADER" });
 
     const config = {
       headers: {
@@ -699,7 +770,7 @@ class AuthService {
       const response = await axios.post(env.forgot, forgotData, config);
 
       // Dispatch success action
-      store.dispatch({
+      dispatchAction({
         type: "FORGOT_PASSWORD",
         payload: { payload: response.data },
       });
@@ -709,7 +780,7 @@ class AuthService {
       console.log("in auth service forgotPassword");
 
       // Dispatch failure action
-      store.dispatch({
+      dispatchAction({
         type: "FORGET_PASSWORD_FAIL",
         payload: { payload: error },
       });
@@ -726,49 +797,33 @@ class AuthService {
    * @param authStatus Authentication status (false for live, true for sandbox)
    * @returns A promise that resolves when the two-factor login is completed
    */
-  async twoFactorLogin(email: string, otp: string, twoFactorId: string, authStatus: boolean): Promise<any> {
+  async twoFactorLogin(email: string, otp: string, twoFactorId: any, authStatus: boolean): Promise<any> {
     // Clear cookies before login
-    CookieService.remove("token");
-    CookieService.remove("alldata");
-    CookieService.remove("apikey");
-    CookieService.remove("email");
-    CookieService.remove("orgid");
-    CookieService.remove("roles");
-    CookieService.set("roles", "null");
-    CookieService.remove("stripeid");
-    CookieService.remove("planid");
-    CookieService.remove("isTwoFactor");
-    CookieService.remove("twoFactorId");
-    CookieService.remove("authMode");
-    CookieService.clear();
+    console.log("Two-factor login attempt for:", email);
 
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
+    // Add back the bypass email functionality
+    let body;
+    const bypassEmails = env.bypassEmails;
 
-    let body: any;
-    const bypassEmails = env.bypassEmails || [];
-
-    // Special handling for bypass emails (for testing)
+    // Bypass email of deepak for testing
     if (bypassEmails.includes(email)) {
-      console.log(`Calling the specified API for ${email}`);
+      console.log("Calling the specified API for deepak@diro.io");
       try {
         const response = await axios.post(env.twofactorAutomatedOtp, { email });
-        console.log(`API response for ${email}:`, response.data);
+        console.log("API response for deepak@diro.io:", response.data);
         console.log("otp", response.data.data.code);
-        console.log("if block two-factor login" + response.data);
+        console.log("body of the 2fa " + body);
         body = {
           email,
           fusionotp: response.data.data.code,
           twoFactorId: response.data.data.twoFactorId,
         };
-      } catch (error: any) {
-        console.error("Error calling the specified API:", error.response?.data || error.message);
+      } catch (error: unknown) {
+        // Type assertion for AxiosError
+        const axiosError = error as AxiosError;
+        console.error("Error calling the specified API:", axiosError.response?.data || axiosError.message);
       }
     } else {
-      console.log("else block two factor login");
       body = {
         email,
         fusionotp: otp,
@@ -776,9 +831,20 @@ class AuthService {
       };
     }
 
+    const requestBody = {
+      ...body,
+      authMode: CookieService.get("authMode") || 1,
+    };
+
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
     try {
       console.log("calling an api");
-      const res = await axios.post(env.twoFactorLogin, body, config);
+      const res = await axios.post(env.twoFactorLogin, requestBody, config);
 
       console.log("res **** " + JSON.stringify(res));
       console.log("res login data " + res.data);
@@ -790,7 +856,7 @@ class AuthService {
         console.log("error block of the twofa enable");
 
         // Dispatch login fail action
-        store.dispatch(loginFail({ payload: res.data.message }));
+        dispatchAction(loginFail({ payload: res.data.message }));
 
         sendLogs("Org Login failed", res.data, "services/auth.service.ts");
 
@@ -799,50 +865,40 @@ class AuthService {
           data: res.data,
         };
       } else if (res.data.statusCode === 200) {
-        console.log("else block two-factor login", authStatus);
+        console.log("Two-factor authentication successful");
 
-        if (authStatus === false) {
-          // Store essential cookies
-          if (res.headers.authorization) {
-            CookieService.set("token", res.headers.authorization);
-          }
-          if (email) {
-            CookieService.set("email", email);
-          }
+        if (res.data.sandbox === false || res.data.sandbox === "1") {
+          console.log("live mode");
 
-          // Dispatch login success action for local auth
-          store.dispatch(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
-
-          // Delete blacklisted token
-          try {
-            const deleteTokenRes = await axios.post(env.deleteblacklisttoken, null, {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: CookieService.get("token"),
-              },
-            });
-            console.log("Token blacklist deleted:", deleteTokenRes.data);
-          } catch (tokenError) {
-            console.error("Error deleting blacklisted token:", tokenError);
-          }
-
-          sendLogs("Org Login success", "Org logged in successfully", "services/auth.service.ts");
-
-          // Explicitly ensure all two-factor flags are cleared
+          // Clear two-factor cookies and set authenticated
           CookieService.remove("isTwoFactor");
           CookieService.remove("twoFactorId");
           CookieService.set("isAuthenticated", "true");
 
-          // Redirect to dashboard if in browser
+          // Create session
+          if (res.headers.authorization) {
+            CookieService.set("token", res.headers.authorization);
+          }
+          CookieService.set("apikey", res.data.doc.apikey);
+          CookieService.set("refreshToken", res.data.doc.refreshToken);
+
+          // Set organization data
+          if (res.data.doc.orgid) {
+            CookieService.set("orgid", res.data.doc.orgid);
+          }
+          if (res.data.doc.roles) {
+            CookieService.set("roles", res.data.doc.roles[0]);
+          }
+
+          // Dispatch login success action for live mode
+          dispatchAction(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
+
+          sendLogs("Org Login success", "Org logged in successfully", "services/auth.service.ts");
+
+          // Redirect to dashboard if in browser - USE NAVIGATETO INSTEAD OF DIRECT WINDOW LOCATION
           if (typeof window !== "undefined") {
-            const role = res.data?.roles || "User";
-            // Update paths to match actual app structure
-            const redirectPath = role === "Account" ? "/client/account" : "/client/validation-buttons";
-
-            console.log("Redirecting to:", redirectPath);
-
-            // Ensure correct pathing by adding client prefix
-            window.location.href = redirectPath;
+            console.log("Redirecting to validation buttons");
+            navigateTo("/client/validation-buttons");
           }
 
           return {
@@ -855,19 +911,18 @@ class AuthService {
           // Explicitly ensure all two-factor flags are cleared
           CookieService.remove("isTwoFactor");
           CookieService.remove("twoFactorId");
+          CookieService.remove("requiresTwoFactor");
           CookieService.set("isAuthenticated", "true");
 
           // Dispatch login success action for sandbox
-          store.dispatch(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
+          dispatchAction(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
 
           sendLogs("Sandbox Login", "Sandbox logged in successfully", "services/auth.service.ts");
 
-          // Redirect to dashboard if in browser
+          // Redirect to dashboard if in browser - USE NAVIGATETO INSTEAD OF DIRECT WINDOW LOCATION
           if (typeof window !== "undefined") {
             console.log("Redirecting to validation buttons in sandbox mode");
-
-            // Updated path based on actual app structure
-            window.location.href = "/client/validation-buttons";
+            navigateTo("/client/validation-buttons");
           }
 
           return {
@@ -879,7 +934,7 @@ class AuthService {
         console.log("login fail");
 
         // Dispatch default login fail action
-        store.dispatch(loginFail({ payload: res.data }));
+        dispatchAction(loginFail({ payload: res.data }));
 
         return {
           success: false,
@@ -890,7 +945,7 @@ class AuthService {
       console.log("error block", error.response?.data);
 
       // Dispatch two-factor error action
-      store.dispatch(twoFactorLoginFailure(error.response?.data || { message: "Two-factor authentication failed" }));
+      dispatchAction(loginFail(error.response?.data || { message: "Two-factor authentication failed" }));
 
       throw error;
     }

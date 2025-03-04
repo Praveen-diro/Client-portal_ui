@@ -19,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={cn(interFont.variable, "font-sans min-h-screen")}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="diro-theme">
           <Providers>
-            <div className="min-h-screen">{children}</div>
+            <div className="min-h-screen">
+              {children}
+            </div>
           </Providers>
         </ThemeProvider>
       </body>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -60,20 +60,27 @@ export default function TwoFactorPage() {
   const [error, setError] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaLoaded = useRef(false);
+  const [recaptchaInitializing, setRecaptchaInitializing] = useState(true);
 
   const { isAuthenticated, email, twoFactorId, methodId, method, roles, sandboxStatus, loginError } = useSelector(
     (state: RootState) => state.auth
   );
 
+  // Pre-fetch reCAPTCHA token as soon as component loads
   useEffect(() => {
     let scriptLoaded = false;
+    let timeoutId: NodeJS.Timeout;
 
     const loadRecaptcha = async () => {
       try {
+        console.time("recaptcha-load");
         await new Promise((resolve, reject) => {
           const existingScript = document.querySelector('script[src*="recaptcha"]');
           if (existingScript) {
             scriptLoaded = true;
+            recaptchaLoaded.current = true;
             resolve(true);
             return;
           }
@@ -83,38 +90,60 @@ export default function TwoFactorPage() {
           script.src = `https://www.google.com/recaptcha/api.js?render=${env.Skey}`;
           script.id = "recaptcha-key";
           script.async = true;
-          script.defer = true;
+
+          // Set a timeout to reject the promise if the script takes too long to load
+          const scriptTimeout = setTimeout(() => {
+            reject(new Error("reCAPTCHA script loading timed out"));
+          }, 8000);
+
           script.onload = () => {
+            clearTimeout(scriptTimeout);
             scriptLoaded = true;
+            recaptchaLoaded.current = true;
+            console.timeEnd("recaptcha-load");
             resolve(true);
           };
-          script.onerror = (error) => reject(error);
+
+          script.onerror = (error) => {
+            clearTimeout(scriptTimeout);
+            console.error("Error loading reCAPTCHA script:", error);
+            reject(error);
+          };
+
           document.head.appendChild(script);
         });
 
-        window.grecaptcha?.ready(() => {
-          console.log("reCAPTCHA ready");
-        });
+        // Add a small delay to ensure reCAPTCHA API is fully initialized
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Immediately fetch the first token
+        const token = await fetchRecaptchaToken();
+        if (token) {
+          console.log("Initial reCAPTCHA token successfully fetched");
+        }
+
+        setRecaptchaInitializing(false);
       } catch (error) {
-        console.error("Error loading reCAPTCHA:", error);
-        setError("Failed to load reCAPTCHA. Please refresh the page.");
+        console.error("Failed to load reCAPTCHA:", error);
+        setRecaptchaInitializing(false);
+        // Continue without reCAPTCHA as a fallback
+        recaptchaLoaded.current = true; // Mark as loaded to avoid blocking user
       }
     };
 
     loadRecaptcha();
 
-    return () => {
-      if (scriptLoaded) {
-        const script = document.getElementById("recaptcha-key");
-        if (script && script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-        // Clean up reCAPTCHA badge
-        const badge = document.querySelector(".grecaptcha-badge");
-        if (badge && badge.parentNode) {
-          badge.parentNode.removeChild(badge);
-        }
+    // Set up periodic token refresh
+    const refreshToken = async () => {
+      if (recaptchaLoaded.current) {
+        await fetchRecaptchaToken();
       }
+    };
+
+    timeoutId = setInterval(refreshToken, 60000); // Refresh token every minute
+
+    return () => {
+      clearInterval(timeoutId);
     };
   }, []);
 
@@ -152,21 +181,28 @@ export default function TwoFactorPage() {
 
   const submitData = async (token: string, otp: string) => {
     try {
-      // First validate reCAPTCHA using authService
-      const recaptchaResponse = await authService.validateRecaptcha(token);
+      // First validate reCAPTCHA using authService - we do this in parallel
+      const recaptchaPromise = authService.validateRecaptcha(token);
+
+      if (!email) {
+        setError("Email is required");
+        setLoading(false);
+        return;
+      }
+
+      // While reCAPTCHA is validating, prepare the authMode and twoFactorId
+      const authMode = Cookies.get("authMode") === "2" ? true : false;
+      const twoFactorId = Cookies.get("twoFactorId");
+
+      // Wait for reCAPTCHA validation
+      const recaptchaResponse = await recaptchaPromise;
       console.log("reCAPTCHA validation response:", recaptchaResponse);
 
       // Check if email is diro.io domain or reCAPTCHA score is valid
       if (email?.includes("diro.io") || recaptchaResponse.score >= 0.3) {
-        if (!email) {
-          setError("Email is required");
-          setLoading(false);
-          return;
-        }
-
         try {
-          // Verify OTP using authService directly
-          const verificationResponse = await authService.twoFactorLogin(email, otp, twoFactorId, Cookies.get("authMode") === "2");
+          // Immediately start the two-factor login process
+          const verificationResponse = await authService.twoFactorLogin(email, otp, twoFactorId, authMode);
 
           console.log("two factor response", verificationResponse);
 
@@ -193,10 +229,48 @@ export default function TwoFactorPage() {
     }
   };
 
+  const fetchRecaptchaToken = async (): Promise<string | null> => {
+    try {
+      console.time("recaptcha-token-fetch");
+      if (!recaptchaLoaded.current) {
+        console.log("reCAPTCHA not loaded yet, waiting...");
+        return null;
+      }
+
+      const token = await new Promise<string>((resolve, reject) => {
+        const tokenTimeout = setTimeout(() => {
+          reject(new Error("reCAPTCHA token generation timed out"));
+        }, 5000);
+
+        // @ts-ignore - grecaptcha is loaded from external script
+        window.grecaptcha.ready(async () => {
+          try {
+            // @ts-ignore - grecaptcha is loaded from external script
+            const token = await window.grecaptcha.execute(env.Skey, { action: "twoFactorAuth" });
+            clearTimeout(tokenTimeout);
+            resolve(token);
+          } catch (error) {
+            clearTimeout(tokenTimeout);
+            reject(error);
+          }
+        });
+      });
+
+      console.timeEnd("recaptcha-token-fetch");
+      setRecaptchaToken(token);
+      return token;
+    } catch (error) {
+      console.error("Error fetching reCAPTCHA token:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) {
-      setError("Please enter the verification code");
+    if (loading) return;
+
+    if (!code || code.length < 6) {
+      setError("Please enter a valid verification code");
       return;
     }
 
@@ -204,29 +278,44 @@ export default function TwoFactorPage() {
     setError("");
 
     try {
-      if (typeof window.grecaptcha === "undefined") {
-        throw new Error("reCAPTCHA not loaded. Please refresh the page.");
+      // If reCAPTCHA is still initializing, wait for it briefly
+      if (recaptchaInitializing) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      // Get the token first and then process it separately
-      const token = await new Promise<string>((resolve, reject) => {
-        window.grecaptcha.ready(async () => {
-          try {
-            const recaptchaToken = await window.grecaptcha.execute(env.Skey, { action: "submit" });
-            resolve(recaptchaToken);
-          } catch (error) {
-            console.error("reCAPTCHA execution error:", error);
-            reject(new Error("reCAPTCHA verification failed"));
-          }
-        });
-      });
+      // Use existing token or get a new one
+      let token = recaptchaToken;
+      if (!token && recaptchaLoaded.current) {
+        console.log("No pre-fetched token available, getting a new one");
+        token = await fetchRecaptchaToken();
+      }
 
-      // Now process the token in a separate step
-      await submitData(token, code);
+      // If we still can't get a token but reCAPTCHA is loaded, try one more time
+      if (!token && recaptchaLoaded.current) {
+        console.log("Second attempt to fetch reCAPTCHA token");
+        token = await fetchRecaptchaToken();
+      }
+
+      // Proceed even without token as a fallback (server should handle this case)
+      await submitData(token || "", code);
+
+      // Pre-fetch a new token for next time
+      fetchRecaptchaToken();
     } catch (error: any) {
-      console.error("Submit error:", error);
-      setError(error.message || "An error occurred. Please try again.");
+      console.error("Error during 2FA verification:", error);
+      setError(error?.message || "Verification failed. Please try again.");
+    } finally {
       setLoading(false);
+    }
+  };
+
+  // Update code input handler to pre-fetch a new token when user is typing
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+
+    // Once the code is complete (usually 6 digits), pre-fetch a fresh token
+    if (value.length === 6 && recaptchaLoaded.current) {
+      fetchRecaptchaToken();
     }
   };
 
@@ -235,9 +324,26 @@ export default function TwoFactorPage() {
       <div className="min-h-screen relative overflow-hidden bg-gray-50 dark:bg-[#182848]">
         <style>{`
           .grecaptcha-badge { 
-            visibility: visible;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 999 !important;
+            bottom: 16px !important;
+            right: 16px !important;
+            width: 70px !important;
+            overflow: hidden !important;
+            transition: none !important;
+            transform: scale(0.9) !important;
+          }
+          
+          .grecaptcha-badge .grecaptcha-logo {
+            display: block !important;
+          }
+          
+          .grecaptcha-badge:hover {
+            width: 256px !important;
           }
         `}</style>
+
         {/* Background gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-[#182848] dark:to-[#4b6cb7] opacity-90" />
 
@@ -366,47 +472,45 @@ export default function TwoFactorPage() {
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="otp" className="text-slate-700 dark:text-gray-300">
-                          Authentication Code
-                        </Label>
-                        <div className="flex justify-center">
-                          <InputOTP
-                            maxLength={6}
-                            value={code}
-                            onChange={(value) => setCode(value)}
-                            containerClassName="group flex items-center has-[:disabled]:opacity-50"
-                            render={({ slots }) => (
-                              <InputOTPGroup className="flex gap-2">
-                                {slots.map((slot, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={cn(
-                                      "relative flex h-14 w-14 items-center justify-center",
-                                      "rounded-xl border-2 border-slate-200 dark:border-slate-800",
-                                      "bg-white dark:bg-slate-950",
-                                      "transition-all duration-200",
-                                      "group-hover:border-slate-300 dark:group-hover:border-slate-700",
-                                      "focus-within:border-slate-400 dark:focus-within:border-slate-600",
-                                      "focus-within:ring-2 focus-within:ring-slate-400/20 dark:focus-within:ring-slate-600/20",
-                                      { "z-10 ring-2 ring-slate-400/20 dark:ring-slate-600/20": slot.isActive }
-                                    )}
-                                  >
-                                    {slot.char !== null && (
-                                      <div className="text-xl font-medium text-slate-800 dark:text-slate-200">{slot.char}</div>
-                                    )}
-                                    {slot.hasFakeCaret && (
-                                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                        <div className="h-6 w-px animate-caret-blink bg-slate-800 dark:bg-slate-200 duration-1000" />
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </InputOTPGroup>
-                            )}
-                          />
-                        </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="otp" className="text-slate-700 dark:text-gray-300">
+                        Authentication Code
+                      </Label>
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={code}
+                          onChange={handleCodeChange}
+                          containerClassName="group flex items-center has-[:disabled]:opacity-50"
+                          render={({ slots }) => (
+                            <InputOTPGroup className="flex gap-2">
+                              {slots.map((slot, idx) => (
+                                <div
+                                  key={idx}
+                                  className={cn(
+                                    "relative flex h-14 w-14 items-center justify-center",
+                                    "rounded-xl border-2 border-slate-200 dark:border-slate-800",
+                                    "bg-white dark:bg-slate-950",
+                                    "transition-all duration-200",
+                                    "group-hover:border-slate-300 dark:group-hover:border-slate-700",
+                                    "focus-within:border-slate-400 dark:focus-within:border-slate-600",
+                                    "focus-within:ring-2 focus-within:ring-slate-400/20 dark:focus-within:ring-slate-600/20",
+                                    { "z-10 ring-2 ring-slate-400/20 dark:ring-slate-600/20": slot.isActive }
+                                  )}
+                                >
+                                  {slot.char !== null && (
+                                    <div className="text-xl font-medium text-slate-800 dark:text-slate-200">{slot.char}</div>
+                                  )}
+                                  {slot.hasFakeCaret && (
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                      <div className="h-6 w-px animate-caret-blink bg-slate-800 dark:bg-slate-200 duration-1000" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </InputOTPGroup>
+                          )}
+                        />
                       </div>
                     </div>
 

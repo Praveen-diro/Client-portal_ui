@@ -44,6 +44,25 @@ export function middleware(request: NextRequest) {
   const isAuthenticatedCookie = request.cookies.get("isAuthenticated")?.value === "true";
   const multiFactorEnabled = request.cookies.get("multiFactorEnabled")?.value === "true";
 
+  // EMERGENCY FIX - Force redirect to config page when path is two-factor verification
+  // but multiFactorEnabled is not true
+  if (path === "/authentication/two-factor" && request.cookies.get("multiFactorEnabled")?.value !== "true" && twoFactorId) {
+    console.log("🚨 EMERGENCY REDIRECT: User with multiFactorEnabled=false trying to access verification page");
+    return NextResponse.redirect(new URL(twoFactorConfigureRoute, request.url));
+  }
+
+  // DEBUGGING - Log all relevant cookies
+  console.log("ALL AUTH COOKIES:", {
+    path,
+    multiFactorEnabled,
+    multiFactorEnabledRawValue: request.cookies.get("multiFactorEnabled")?.value,
+    isTwoFactor,
+    twoFactorId,
+    email,
+    authMode,
+    isAuthenticated: isAuthenticatedCookie,
+  });
+
   // Determine authentication state - check both apikey and token
   const isAuthenticated = apikey || token ? true : false || isAuthenticatedCookie;
   const needsTwoFactor = email && authMode && isTwoFactor && twoFactorId;
@@ -64,9 +83,31 @@ export function middleware(request: NextRequest) {
 
   // Handle authentication routes
   if (path.startsWith("/authentication")) {
-    // Allow two-factor page when two-factor is needed
-    if ((path === "/authentication/two-factor" || path === "/authentication/two-factor-configure") && needsTwoFactor) {
-      return NextResponse.next();
+    // Specifically handle the two-factor paths
+    if (path === "/authentication/two-factor" || path === "/authentication/two-factor-configure") {
+      if (needsTwoFactor) {
+        // Force routing based on multiFactorEnabled
+        const multiFactorValue = request.cookies.get("multiFactorEnabled")?.value;
+        console.log("Two-factor path direct access:", {
+          path,
+          multiFactorValue,
+          shouldConfigureFirst: multiFactorValue !== "true",
+        });
+
+        // If not configured yet and trying to access verification page, redirect to config
+        if (path === "/authentication/two-factor" && multiFactorValue !== "true") {
+          console.log("REDIRECTING: User needs to configure 2FA first");
+          return NextResponse.redirect(new URL(twoFactorConfigureRoute, request.url));
+        }
+
+        // If already configured and trying to access config page, redirect to verification
+        if (path === "/authentication/two-factor-configure" && multiFactorValue === "true") {
+          console.log("REDIRECTING: User already configured 2FA, sending to verification");
+          return NextResponse.redirect(new URL(twoFactorRoute, request.url));
+        }
+
+        return NextResponse.next();
+      }
     }
     // Redirect all other /authentication/* paths to login
     return NextResponse.redirect(new URL(loginRoute, request.url));
@@ -76,13 +117,24 @@ export function middleware(request: NextRequest) {
   if (path === "/two-factor") {
     if (needsTwoFactor) {
       // User needs to complete two-factor auth - either configuration or verification
-      const redirectUrl = multiFactorEnabled ? twoFactorRoute : twoFactorConfigureRoute;
+      const multiFactorValue = request.cookies.get("multiFactorEnabled")?.value;
+      const isConfigured = multiFactorValue === "true";
+
+      // Explicitly choose destination based on configuration status
+      const redirectUrl = isConfigured ? twoFactorRoute : twoFactorConfigureRoute;
+
+      console.log("Two-factor routing decision:", {
+        multiFactorValue,
+        isConfigured,
+        redirectUrl,
+        destination: isConfigured ? "verification page" : "configuration page",
+      });
+
       return NextResponse.rewrite(new URL(redirectUrl, request.url));
     } else if (isAuthenticated) {
       // User is already authenticated, redirect to protected area
       return NextResponse.redirect(new URL("/client/validation-buttons", request.url));
     } else {
-
       // User is not authenticated at all, redirect to login
       return NextResponse.redirect(new URL(loginRoute, request.url));
     }

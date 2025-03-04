@@ -10,6 +10,8 @@ import { Send, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { env as Environment } from "../../config/environment";
 import { enableTwoFactor } from "@/app/services/auth.service";
+import Cookies from "js-cookie";
+
 export default function TwoFactorAuth() {
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
@@ -279,7 +281,7 @@ export default function TwoFactorAuth() {
                             >
                               <QRCodeSVG
                                 value={`otpauth://totp/${encodeURIComponent(
-                                  email || "user@example.com"
+                                  Cookies.get("email") || "user@example.com"
                                 )}?secret=${secretBase32Encoded}&issuer=${encodeURIComponent(
                                   `${
                                     isValidUrl(Environment.clientPortalUrl)

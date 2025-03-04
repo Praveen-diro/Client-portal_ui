@@ -224,6 +224,11 @@ const SuccessMessage = ({ message, onRedirect }: { message: string; onRedirect: 
   );
 };
 
+// Define and export setAuthRouter type for TypeScript
+export interface AuthServiceType {
+  setAuthRouter?: (router: any) => void;
+}
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
@@ -316,6 +321,21 @@ export default function LoginPage() {
       }
     }
   }, [isAuthenticated, isTwoFactor, multiFactorEnabled, roles, router]);
+
+  // Set the router in auth service if available
+  useEffect(() => {
+    // Import dynamically to avoid SSR issues
+    import("./services/auth.service")
+      .then((authService) => {
+        if (authService.setAuthRouter) {
+          authService.setAuthRouter(router);
+          console.log("Router passed to auth service");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load auth service:", err);
+      });
+  }, [router]);
 
   const sanitizeInput = (input: string) => {
     return DOMPurify.sanitize(input).replace(/[<>]/g, "");
@@ -566,7 +586,7 @@ export default function LoginPage() {
     }
   };
 
-  // Modify the handleLoginResponse function to use router instead of window.location
+  // Update the handleLoginResponse function to ensure client-side navigation
   const handleLoginResponse = (response: any, email: string) => {
     try {
       console.log("Handling login response:", response);
@@ -586,6 +606,9 @@ export default function LoginPage() {
         if (email) {
           CookieService.set("email", email);
         }
+        CookieService.set("requiresTwoFactor", "true");
+        CookieService.set("isAuthenticated", "false"); // Add this to ensure consistent state
+
         if (response.data.twoFactorId) {
           CookieService.set("isTwoFactor", "true");
           CookieService.set("twoFactorId", response.data.twoFactorId);
@@ -593,6 +616,8 @@ export default function LoginPage() {
 
           if (response.data.multiFactorEnabled) {
             CookieService.set("multiFactorEnabled", "true");
+          } else {
+            CookieService.set("multiFactorEnabled", "false");
           }
         }
 
@@ -615,9 +640,9 @@ export default function LoginPage() {
           );
         }
 
-        // Use router.push instead of window.location for client-side navigation
-        // This prevents a full page reload
+        // Use setTimeout to ensure Redux state is updated before navigation
         console.log("Navigating to two-factor page...");
+        // Use router.push for client-side navigation
         router.push("/authentication/two-factor");
       } else if (response.data?.statusCode === 200) {
         console.log("Login successful, redirecting to dashboard");
@@ -631,8 +656,11 @@ export default function LoginPage() {
           CookieService.set("email", email);
         }
 
-        // Use router.push instead of window.location
+        // Dispatch success action
         dispatch(loginSuccess({ headers: response.headers, payload: response.data }));
+
+        // Use router.push for client-side navigation
+        console.log("Navigating to dashboard...");
         router.push("/client/validation-buttons");
       } else {
         // Fallback for other cases
