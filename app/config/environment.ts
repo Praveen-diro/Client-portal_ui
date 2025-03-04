@@ -180,6 +180,7 @@ interface Environment {
   fulltextsearch: string;
   documentjson: string;
   tagfields: string;
+  emailReminderUrl: string;
 }
 
 const baseurl: BaseUrl = {
@@ -364,6 +365,7 @@ const stage2: Environment = {
   varificationSwaggerLink: "/betav3",
   varificationSwaggerLinkBeta: "/beta",
   uploadverification_link: "https://verify.diro.live/?buttonid=",
+  emailReminderUrl: "https://api2.diro.live/emailReminder",
 };
 
 const stage1: Environment = {
@@ -539,6 +541,7 @@ const stage1: Environment = {
   uploadverification_link: "https://verify.diro.live/?buttonid=",
   getAutoNavData: "https://api1.diro.live/auto_nav/getAutoNavData",
   ownerTransfer: baseurl.stage1baseurl + "organization-2.0/makeowner",
+  emailReminderUrl: "https://api.diro.io/emailReminder",
 };
 
 const prodeu: Environment = {
@@ -714,6 +717,7 @@ const prodeu: Environment = {
   getS3bucket: "https://list-bucket.diro.me/api/get-bucket-data",
   searchS3bucket: "https://list-bucket.diro.me/api/search-bucket-data",
   uploadverification_link: "https://verify.diro.io/?buttonid=",
+  emailReminderUrl: "https://api.diro.io/emailReminder",
 };
 
 export { stage1 as env };

@@ -560,8 +560,8 @@ class AuthService {
       const emailPayload = this.generateEmailPayload(email, recoveryCodes);
 
       // Send email reminder
-      const emailReminderUrl = "https://api1.diro.live/emailReminder";
-      const emailReminderRes = await axios.post(emailReminderUrl, emailPayload);
+      
+      const emailReminderRes = await axios.post( env.emailReminderUrl, emailPayload);
       console.log("Email reminder response:", emailReminderRes.data);
       console.log("here is the response data ", response.data.data.code);
 

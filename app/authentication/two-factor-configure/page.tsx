@@ -9,7 +9,7 @@ import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/comp
 import { Send, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { env as Environment } from "../../config/environment";
-import { enableTwoFactor, generateQrCode } from "@/app/services/auth.service";
+import { enableTwoFactor, generateQrCode, sendOtp } from "@/app/services/auth.service";
 import Cookies from "js-cookie";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/store/store";
@@ -28,7 +28,7 @@ export default function TwoFactorAuth() {
   const qrGenerated = useRef(false);
 
   // Get QR code data from Redux state
-  const { secret, secretBase32Encoded, qrLoading, twoFactorId} = useSelector((state: RootState) => state.auth);
+  const { secret, secretBase32Encoded, qrLoading, twoFactorId } = useSelector((state: RootState) => state.auth);
 
   // Generate QR code on initial load if authenticator tab is active
   useEffect(() => {
@@ -59,8 +59,9 @@ export default function TwoFactorAuth() {
   };
 
   // Function to handle sending OTP
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (email) {
+      await sendOtp(email);
       setOtpSent(true);
     }
   };
@@ -119,9 +120,7 @@ export default function TwoFactorAuth() {
           twoFactorId,
         });
 
-        // Mock successful verification
-        alert("Verification successful!");
-
+        enableTwoFactor(Cookies.get("email") || "", formData.otp, "Email", secret || "", twoFactorId);
         // Reset the form
         setFormData({ ...formData, otp: "" });
         setCode(""); // Keep both states in sync
@@ -388,22 +387,6 @@ export default function TwoFactorAuth() {
                             transition-shadow"
                         />
 
-                        <div className="flex justify-end">
-                          <button
-                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-2 transition-colors hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
-                            onClick={handleSendOTP}
-                          >
-                            {otpSent ? (
-                              <>Code sent</>
-                            ) : (
-                              <>
-                                <Send className="h-4 w-4" />
-                                Send one-time code
-                              </>
-                            )}
-                          </button>
-                        </div>
-
                         <Input
                           type="text"
                           placeholder="Enter verification code"
@@ -422,6 +405,21 @@ export default function TwoFactorAuth() {
                             transition-shadow
                             ${formErrors.otp ? "border border-red-500 dark:border-red-400" : ""}`}
                         />
+                        <div className="flex justify-end">
+                          <button
+                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center gap-2 transition-colors hover:shadow-[0_2px_4px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
+                            onClick={handleSendOTP}
+                          >
+                            {otpSent ? (
+                              <>Code sent</>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4" />
+                                Send one-time code
+                              </>
+                            )}
+                          </button>
+                        </div>
 
                         <Button
                           type="submit"
