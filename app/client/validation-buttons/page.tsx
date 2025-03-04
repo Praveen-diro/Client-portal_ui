@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Download, FileText, Globe, Info, LayoutGrid, Link2, Search, Plus, MoreHorizontal } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PageContainer } from "@/components/ui/page-container";
-import { RootState } from "@/store/store";
+import { RootState } from "@/app/store/store";
+import { store } from "@/app/store/store";
+import { getUserFromCookies } from "@/app/store/features/authSlice";
 
 const buttons = [
   {
@@ -92,9 +94,22 @@ export default function ValidationButtons() {
   const pathname = usePathname();
   const router = useRouter();
   const [shouldAnimate, setShouldAnimate] = useState(true);
+  const dispatch = useDispatch();
+
+  // Initialize Redux state safely
+  useEffect(() => {
+    // Safely initialize user data from cookies
+    dispatch(getUserFromCookies());
+  }, [dispatch]);
 
   // Add this to access Redux auth state for debugging
   const auth = useSelector((state: RootState) => state.auth);
+
+  // Access all slices to ensure they're properly loaded
+  const user = useSelector((state: RootState) => state.user);
+  const buttonSettings = useSelector((state: RootState) => state.buttonSettings);
+  const privacy = useSelector((state: RootState) => state.privacy);
+  const trigger = useSelector((state: RootState) => state.trigger);
 
   // Add a debug effect to check Redux state on mount
   useEffect(() => {
@@ -106,6 +121,15 @@ export default function ValidationButtons() {
       apikey: auth.apikey ? "exists" : "missing",
     });
 
+    // Log all Redux slices to verify they're loaded
+    console.log("ValidationButtons page - Redux slices:", {
+      auth: !!auth,
+      user: !!user,
+      buttonSettings: !!buttonSettings,
+      privacy: !!privacy,
+      trigger: !!trigger,
+    });
+
     // Check cookies directly as well
     console.log("ValidationButtons page - Cookies:", {
       token: Cookies.get("token") ? "exists" : "missing",
@@ -113,7 +137,29 @@ export default function ValidationButtons() {
       email: Cookies.get("email"),
       roles: Cookies.get("roles"),
     });
-  }, [auth]);
+
+    // Force connection with Redux DevTools for this specific page
+    if (typeof window !== "undefined") {
+      // Force Redux store to be accessible to DevTools
+      // @ts-ignore
+      if (!window.__REDUX_STORE__) {
+        // @ts-ignore
+        window.__REDUX_STORE__ = store;
+      }
+
+      // Force DevTools connection
+      // @ts-ignore
+      if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+        try {
+          // @ts-ignore
+          window.__REDUX_DEVTOOLS_EXTENSION__.connect();
+          console.log("Redux DevTools connection refreshed for validation-buttons page");
+        } catch (err) {
+          console.error("Failed to connect to Redux DevTools:", err);
+        }
+      }
+    }
+  }, [auth, user, buttonSettings, privacy, trigger]);
 
   useEffect(() => {
     setShouldAnimate(true);

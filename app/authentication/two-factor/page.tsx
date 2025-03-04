@@ -192,7 +192,7 @@ export default function TwoFactorPage() {
 
       // While reCAPTCHA is validating, prepare the authMode and twoFactorId
       const authMode = Cookies.get("authMode") === "2" ? true : false;
-      const twoFactorId = Cookies.get("twoFactorId");
+      const twoFactorId = Cookies.get("twoFactorId") || "";
 
       // Wait for reCAPTCHA validation
       const recaptchaResponse = await recaptchaPromise;

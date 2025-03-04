@@ -2,6 +2,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
 import buttonSettingsReducer from "./features/buttonSettingsSlice";
 import authReducer from "./features/authSlice";
+import privacyReducer from "./features/privacySlice";
+import triggerReducer from "./features/triggerSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
 // Create the root reducer separately so we can extract the RootState type
@@ -9,12 +11,14 @@ const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
   buttonSettings: buttonSettingsReducer,
+  privacy: privacyReducer,
+  trigger: triggerReducer,
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
 const createStore = () => {
   // To ensure we only create the store once in the client
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // @ts-ignore
     if (window.__REDUX_STORE__) {
       // @ts-ignore
@@ -29,13 +33,20 @@ const createStore = () => {
       getDefaultMiddleware({
         serializableCheck: false, // Disable serializable check for non-serializable data
       }),
-    devTools: process.env.NODE_ENV !== "production",
+    devTools: true, // Always enable DevTools regardless of environment
   });
 
   // Save the store reference in the window object to ensure it persists across page navigation
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // @ts-ignore
     window.__REDUX_STORE__ = store;
+
+    // Explicitly connect to Redux DevTools
+    // @ts-ignore
+    if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+      // @ts-ignore
+      window.__REDUX_DEVTOOLS_EXTENSION__.connect();
+    }
   }
 
   return store;
@@ -45,10 +56,25 @@ const createStore = () => {
 export const store = createStore();
 
 // Enable hot reloading in development
-if (process.env.NODE_ENV !== "production" && typeof module !== 'undefined' && module.hot) {
-  module.hot.accept("./features/authSlice", () => {
-    store.replaceReducer(rootReducer);
-  });
+if (
+  process.env.NODE_ENV !== "production" &&
+  typeof module !== "undefined" &&
+  // @ts-ignore - Module hot loading is available in some environments
+  module.hot
+) {
+  // @ts-ignore - Module hot loading is available in some environments
+  module.hot.accept(
+    [
+      "./features/authSlice",
+      "./features/userSlice",
+      "./features/buttonSettingsSlice",
+      "./features/privacySlice",
+      "./features/triggerSlice",
+    ],
+    () => {
+      store.replaceReducer(rootReducer);
+    }
+  );
 }
 
 // Export types for TypeScript

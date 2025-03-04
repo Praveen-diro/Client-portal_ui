@@ -232,14 +232,6 @@ class AuthService {
         withCredentials: true,
       });
 
-      console.log("Login API response received:", {
-        status: response.status,
-        statusCode: response.data.statusCode,
-        headers: Object.keys(response.headers),
-      });
-      console.log("authmode::", credentials.authMode);
-      console.log("res header " + JSON.stringify(response.headers));
-
       // Process the response and dispatch appropriate Redux actions
       if (response.data.error === true) {
         console.log("login failed");
@@ -247,9 +239,6 @@ class AuthService {
         dispatchAction(loginFail({ payload: response.data }));
       } else if (response.data.statusCode === 242) {
         if (response.data.sandbox === false || response.data.sandbox === "1") {
-          console.log("inside if auth");
-          console.log("login success!!!");
-
           // Store user data in cookies if needed
           if (response.headers.authorization) {
             CookieService.set("token", response.headers.authorization);
@@ -283,9 +272,6 @@ class AuthService {
             })
           );
         } else {
-          console.log("inside else auth");
-          console.log("sandbox login! " + response.data.sandbox);
-
           // Store user data in cookies for sandbox mode
           if (response.headers.authorization) {
             CookieService.set("token", response.headers.authorization);

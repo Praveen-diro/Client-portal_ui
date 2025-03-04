@@ -17,10 +17,18 @@ const CookieService = {
   get(key: string) {
     const value = Cookies.get(key);
     if (!value) return null;
+
+    // If it's not a JSON string, return as is
+    if (!value.startsWith("{") && !value.startsWith("[")) {
+      return value;
+    }
+
+    // Otherwise try to parse as JSON, but handle errors gracefully
     try {
       return JSON.parse(value);
-    } catch {
-      return value;
+    } catch (e) {
+      console.error(`Error parsing cookie '${key}':`, e);
+      return value; // Return the raw string value if parsing fails
     }
   },
   remove(key: string) {
@@ -88,8 +96,24 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: CookieService.get("alldata") ? JSON.parse(CookieService.get("alldata") as string) : "",
-  login_user: CookieService.get("alldataa") ? JSON.parse(CookieService.get("alldataa") as string) : "",
+  user: (() => {
+    try {
+      const alldata = CookieService.get("alldata");
+      return alldata || "";
+    } catch (e) {
+      console.error("Error parsing alldata cookie:", e);
+      return "";
+    }
+  })(),
+  login_user: (() => {
+    try {
+      const alldataa = CookieService.get("alldataa");
+      return alldataa || "";
+    } catch (e) {
+      console.error("Error parsing alldataa cookie:", e);
+      return "";
+    }
+  })(),
   token: CookieService.get("token") as string,
   apikey: CookieService.get("apikey") as string,
   email: CookieService.get("email") as string,
@@ -97,7 +121,15 @@ const initialState: AuthState = {
   secrettoken: CookieService.get("secrettoken") as string,
   tempsecret: CookieService.get("tempsecret") as string,
   isAuthenticated: CookieService.get("apikey") ? true : false,
-  sandboxStatus: CookieService.get("authMode") ? JSON.parse(CookieService.get("authMode") as string) === 2 : false,
+  sandboxStatus: (() => {
+    try {
+      const authMode = CookieService.get("authMode");
+      return authMode ? authMode === 2 : false;
+    } catch (e) {
+      console.error("Error parsing authMode cookie:", e);
+      return false;
+    }
+  })(),
   loading: true,
   regloading: false,
   orgloader: false,
@@ -118,7 +150,15 @@ const initialState: AuthState = {
   loginloaders: true,
   roles: CookieService.get("roles") as string,
   stripeid: CookieService.get("stripeid") as string,
-  authMode: CookieService.get("authMode") ? JSON.parse(CookieService.get("authMode") as string) : null,
+  authMode: (() => {
+    try {
+      const authMode = CookieService.get("authMode");
+      return authMode || null;
+    } catch (e) {
+      console.error("Error parsing authMode cookie:", e);
+      return null;
+    }
+  })(),
   onremove: {},
   onremoveerror: [],
   samePasswordError: false,
@@ -178,7 +218,13 @@ const authSlice = createSlice({
     },
     getCountries: (state, action: PayloadAction<any>) => {
       state.countries = action.payload.data;
-      state.user = CookieService.get("alldata") ? JSON.parse(CookieService.get("alldata") as string) : "";
+      try {
+        const alldata = CookieService.get("alldata");
+        state.user = alldata || "";
+      } catch (e) {
+        console.error("Error parsing alldata cookie in getCountries:", e);
+        state.user = "";
+      }
       state.loadingcountry = false;
     },
     loginSandbox: (state, action: PayloadAction<any>) => {
@@ -191,7 +237,6 @@ const authSlice = createSlice({
       state.twoFactorId = action.payload.payload.twoFactorId;
       state.multiFactorEnabled = action.payload.payload.multiFactorEnabled;
       state.method = action.payload.payload.method;
-      state.methodId = action.payload.payload.methodId;
       state.authMode = 2;
       state.sandboxStatus = true;
     },
@@ -286,7 +331,12 @@ const authSlice = createSlice({
       state.loading = false;
       state.apikey = doc.apikey;
       state.email = doc.email;
-      state.user = doc;
+      try {
+        state.user = CookieService.get("alldata") || "";
+      } catch (e) {
+        console.error("Error getting alldata cookie:", e);
+        state.user = "";
+      }
       state.login_user = doc;
       state.roles = doc.roles?.[0];
       state.stripeid = doc.stripeid;
@@ -412,31 +462,31 @@ const authSlice = createSlice({
         // Extract payload data safely
         const payload = action.payload.payload || {};
         const headers = action.payload.headers || {};
-
+        console.log("Payload: here is the payload", payload);
         // Set token from headers if available
         if (headers.authorization) {
           console.log("Setting token from headers:", headers.authorization);
           CookieService.set("token", headers.authorization);
           state.token = headers.authorization;
-
-          // Also set apikey for isAuthenticated check consistency
-          CookieService.set("apikey", headers.authorization);
-          state.apikey = headers.authorization;
         }
 
         // Handle email
-        if (payload.email) {
+        if (payload.doc.email) {
           console.log("Setting email:", payload.email);
           CookieService.set("email", payload.email);
           state.email = payload.email;
         }
 
         // Handle roles - can be array or string
-        if (payload.roles) {
+        if (payload.doc.roles) {
           const role = Array.isArray(payload.roles) ? payload.roles[0] : payload.roles;
           console.log("Setting role:", role);
           CookieService.set("roles", role);
           state.roles = role;
+        }
+        if (payload.doc) {
+          CookieService.set("alldata", JSON.stringify(payload.doc));
+          state.user = payload.doc;
         }
 
         // Additional user data if available
@@ -491,6 +541,15 @@ const authSlice = createSlice({
       state.loading = false;
       state.loginError = action.payload;
     },
+    getUserFromCookies: (state) => {
+      try {
+        const alldata = CookieService.get("alldata");
+        state.user = alldata || "";
+      } catch (e) {
+        console.error("Error parsing alldata cookie:", e);
+        state.user = "";
+      }
+    },
   },
 });
 
@@ -530,6 +589,7 @@ export const {
   sendLoginOtp,
   sendLoginOtpSuccess,
   sendLoginOtpFailure,
+  getUserFromCookies,
 } = authSlice.actions;
 
 export default authSlice.reducer;
