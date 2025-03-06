@@ -19,7 +19,7 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { PageContainer } from "@/components/ui/page-container";
 import { RootState } from "@/app/store/store";
 import { store } from "@/app/store/store";
-import { getUserFromCookies } from "@/app/store/features/authSlice";
+// import { getUserFromCookies } from "@/app/store/features/authSlice";
 
 const buttons = [
   {
@@ -96,11 +96,11 @@ export default function ValidationButtons() {
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const dispatch = useDispatch();
 
-  // Initialize Redux state safely
-  useEffect(() => {
-    // Safely initialize user data from cookies
-    dispatch(getUserFromCookies());
-  }, [dispatch]);
+  // // Initialize Redux state safely
+  // useEffect(() => {
+  //   // Safely initialize user data from cookies
+  //   dispatch(getUserFromCookies());
+  // }, [dispatch]);
 
   // Add this to access Redux auth state for debugging
   const auth = useSelector((state: RootState) => state.auth);

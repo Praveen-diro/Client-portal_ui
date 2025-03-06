@@ -473,8 +473,8 @@ const authSlice = createSlice({
         // Handle email
         if (payload.doc.email) {
           console.log("Setting email:", payload.email);
-          CookieService.set("email", payload.email);
-          state.email = payload.email;
+          CookieService.set("email", payload.doc.email);
+          state.email = payload.doc.email;
         }
 
         // Handle roles - can be array or string
@@ -494,6 +494,11 @@ const authSlice = createSlice({
           console.log("Setting orgid:", payload.data.orgid);
           CookieService.set("orgid", payload.data.orgid);
           state.orgid = payload.data.orgid;
+        }
+
+        if (payload.data) {
+          CookieService.set("apikey", payload.data.apikey);
+          state.apikey = payload.data.apikey;
         }
 
         // Explicitly clear two-factor flags in cookies

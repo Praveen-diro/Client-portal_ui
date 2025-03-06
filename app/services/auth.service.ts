@@ -23,6 +23,8 @@ import {
   startQrCode,
   setQrCode,
   qrCodeFail,
+  setPasswordError,
+  setResetLinkExpired,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
 
@@ -238,6 +240,7 @@ class AuthService {
         // Dispatch login failure to Redux
         dispatchAction(loginFail({ payload: response.data }));
       } else if (response.data.statusCode === 242) {
+        console.log("login passed");
         if (response.data.sandbox === false || response.data.sandbox === "1") {
           // Store user data in cookies if needed
           if (response.headers.authorization) {
@@ -323,9 +326,14 @@ class AuthService {
 
       return response;
     } catch (error: any) {
-      console.error("Login failed with error:", error.response?.data || error.message);
+      console.error("Login failed with error:", error.response?.data?.message, error.response?.status);
       // Dispatch login failure action
-      dispatchAction(loginFail({ payload: error.response?.data || { message: "Login request failed" } }));
+      if (error.response?.status === 403) {
+        console.log("login catch block 403");
+        dispatchAction(loginFail({ payload: error.response?.data?.message }));
+      } else {
+        dispatchAction(loginFail({ payload: error.response?.data || { message: "Login request failed" } }));
+      }
       throw error;
     }
   }
@@ -546,8 +554,8 @@ class AuthService {
       const emailPayload = this.generateEmailPayload(email, recoveryCodes);
 
       // Send email reminder
-      
-      const emailReminderRes = await axios.post( env.emailReminderUrl, emailPayload);
+
+      const emailReminderRes = await axios.post(env.emailReminderUrl, emailPayload);
       console.log("Email reminder response:", emailReminderRes.data);
       console.log("here is the response data ", response.data.data.code);
 
@@ -705,10 +713,7 @@ class AuthService {
 
       if (response.data.statusCode === 200) {
         // Dispatch password error false
-        dispatchAction({
-          type: "PASSWORD_ERROR",
-          payload: false,
-        });
+        dispatchAction(setPasswordError(false));
 
         // Expire refresh token if email is provided
         if (forgotData.userEmail) {
@@ -717,21 +722,12 @@ class AuthService {
           };
           await axios.delete(env.expireRefreshtoken, { ...config, data: body });
         }
-
-        // Redirect to login page
-        history.push("/login");
       } else if (response.data.statusCode === 410) {
         // Dispatch reset link expired
-        dispatchAction({
-          type: "RESET_LINK_EXPIRED",
-          payload: true,
-        });
+        dispatchAction(setResetLinkExpired(true));
       } else if (response.data.message === "Your new password cannot be the same as your previous password.") {
         // Dispatch password error true
-        dispatchAction({
-          type: "PASSWORD_ERROR",
-          payload: true,
-        });
+        dispatchAction(setPasswordError(true));
         return response;
       }
 

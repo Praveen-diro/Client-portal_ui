@@ -4,6 +4,7 @@ import buttonSettingsReducer from "./features/buttonSettingsSlice";
 import authReducer from "./features/authSlice";
 import privacyReducer from "./features/privacySlice";
 import triggerReducer from "./features/triggerSlice";
+import sessionReportReducer from "./features/sessionReportSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
 // Create the root reducer separately so we can extract the RootState type
@@ -13,6 +14,7 @@ const rootReducer = combineReducers({
   buttonSettings: buttonSettingsReducer,
   privacy: privacyReducer,
   trigger: triggerReducer,
+  sessionReport: sessionReportReducer,
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
@@ -70,6 +72,7 @@ if (
       "./features/buttonSettingsSlice",
       "./features/privacySlice",
       "./features/triggerSlice",
+      "./features/sessionReportSlice",
     ],
     () => {
       store.replaceReducer(rootReducer);

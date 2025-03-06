@@ -99,15 +99,21 @@ export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
       // Call the reset password API
       const response = await resetPassword(
         {
-          token,
+          emailId: token,
           userEmail,
-          newPassword: password,
+          password: password,
         },
         router
       );
 
       console.log("Password reset response:", response);
-      setIsSubmitted(true);
+      if (response.status === 200) {
+        if (response.data.error) {
+          setError(response.data.message);
+        } else {
+          setIsSubmitted(true);
+        }
+      }
       setLoading(false);
     } catch (err: any) {
       console.error("Error resetting password:", err);
@@ -213,24 +219,6 @@ export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
           {/* Right Section */}
           <div className="flex-1 flex items-start justify-center p-6 lg:p-12 bg-transparent">
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-2xl mt-20">
-              {/* Back to login button */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="mb-6"
-              >
-                <Link href="/">
-                  <Button
-                    variant="ghost"
-                    className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to login
-                  </Button>
-                </Link>
-              </motion.div>
-
               {/* Main container with floating card design */}
               <div className="relative">
                 {/* Decorative accent elements */}

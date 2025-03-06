@@ -37,8 +37,56 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
+import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
+import {
+  fetchSessionReport,
+  fetchAutoNavData,
+  submitFeedback,
+  resetFeedbackStatus,
+} from "@/app/store/features/sessionReportSlice";
+import SessionReportTable from "@/app/components/SessionReportTable";
+import AiLogsTable from "@/app/components/AiLogsTable";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { tableService } from "@/app/services/table.service";
+import { getUserTime } from "@/app/utils/timeUtils";
 
-const requests = [
+// Define form schema for feedback
+const formSchema = z.object({
+  comment: z.string().min(1, { message: "Comment is required" }),
+});
+
+// Type for request items
+interface RequestItem {
+  sessionId: string;
+  button: string;
+  site: string;
+  initiatedOn: string;
+  finalStatus: string;
+  exitReason: string;
+  trackId: string;
+  statusColor: string;
+}
+
+// Type for stats card
+interface StatsCard {
+  title: string;
+  value: string;
+  description: string;
+  icon: any; // Component type
+  color: string;
+  trend: string;
+  trendUp: boolean;
+}
+
+// Mock requests data - will be replaced with API data
+const initialRequests = [
   {
     sessionId: "US-zsXuEe",
     button: "Download address",
@@ -91,7 +139,8 @@ const requests = [
   },
 ];
 
-const statsCards = [
+// Initial stats cards data
+const initialStatsCards: StatsCard[] = [
   {
     title: "Total Requests",
     value: "5",
@@ -124,39 +173,188 @@ const statsCards = [
 const getStatusIcon = (status: string) => {
   switch (status.toLowerCase()) {
     case "tried download / submit":
+    case "download / submit":
       return <Loader2 className="h-4 w-4 text-yellow-500" />;
     case "abandon":
+    case "abandoned":
       return <Ban className="h-4 w-4 text-red-500" />;
     case "in progress":
       return <RefreshCw className="h-4 w-4 text-blue-500" />;
     case "started":
       return <Timer className="h-4 w-4 text-blue-500" />;
     case "done, now in review":
+    case "completed":
+    case "verified":
       return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     default:
       return <Clock className="h-4 w-4 text-gray-500" />;
   }
 };
 
-const getStatusBadgeColor = (color: string) => {
-  switch (color) {
-    case "yellow":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-    case "red":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-    case "blue":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-    case "green":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+const getStatusBadgeColor = (status: string) => {
+  status = status.toLowerCase();
+
+  if (status.includes("abandon")) {
+    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+  } else if (status.includes("tried") || status.includes("download") || status.includes("submit")) {
+    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+  } else if (status.includes("progress") || status.includes("started")) {
+    return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+  } else if (
+    status.includes("done") ||
+    status.includes("review") ||
+    status.includes("completed") ||
+    status.includes("verified")
+  ) {
+    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+  } else {
+    return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+  }
+};
+
+// Function to map API response to request items
+const mapApiResponseToRequestItems = (apiData: any): RequestItem[] => {
+  if (!apiData || !Array.isArray(apiData.data)) {
+    return [];
+  }
+
+  return apiData.data.map((item: any) => {
+    const status = item.status || "Unknown";
+
+    return {
+      sessionId: item.sessionId || item.session_id || "Unknown",
+      button: item.button || item.buttonName || "Unknown",
+      site: item.site || item.siteName || item.website || "Unknown",
+      initiatedOn: item.timestamp ? getUserTime(item.timestamp) : "Unknown",
+      finalStatus: status,
+      exitReason: item.exitReason || item.reason || "",
+      trackId: item.trackId || item.track_id || "",
+      statusColor: getStatusColorFromStatus(status),
+    };
+  });
+};
+
+// Helper function to determine status color
+const getStatusColorFromStatus = (status: string): string => {
+  status = status.toLowerCase();
+
+  if (status.includes("abandon")) {
+    return "red";
+  } else if (status.includes("tried") || status.includes("download") || status.includes("submit")) {
+    return "yellow";
+  } else if (status.includes("progress") || status.includes("started")) {
+    return "blue";
+  } else if (
+    status.includes("done") ||
+    status.includes("review") ||
+    status.includes("completed") ||
+    status.includes("verified")
+  ) {
+    return "green";
+  } else {
+    return "gray";
   }
 };
 
 export default function RequestsSent() {
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
+  const { autoNavData, loading, feedbackSubmitted } = useAppSelector((state) => state.sessionReport);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sessionModal, setSessionModal] = useState(false);
+  const [reportModal, setReportModal] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<RequestItem[]>(initialRequests);
+  const [stats, setStats] = useState<StatsCard[]>(initialStatsCards);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const itemsPerPage = 10;
+
+  // Initialize form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      comment: "",
+    },
+  });
+
+  // Fetch requests data from API
+  const fetchRequests = async (page = 1, search = "") => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const offset = (page - 1) * itemsPerPage;
+      let response;
+
+      if (search) {
+        response = await tableService.searchTable(search, offset, itemsPerPage);
+      } else {
+        response = await tableService.getRequested({
+          offset,
+          limit: itemsPerPage,
+          status: "invite",
+        });
+      }
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to fetch requests");
+      }
+
+      const mappedRequests = mapApiResponseToRequestItems(response.data);
+      setRequests(mappedRequests);
+
+      // Update stats based on data
+      const totalRequests = mappedRequests.length;
+      const completedRequests = mappedRequests.filter(
+        (req) =>
+          req.statusColor === "green" ||
+          req.finalStatus.toLowerCase().includes("done") ||
+          req.finalStatus.toLowerCase().includes("completed") ||
+          req.finalStatus.toLowerCase().includes("verified")
+      ).length;
+      const abandonedRequests = mappedRequests.filter(
+        (req) => req.statusColor === "red" || req.finalStatus.toLowerCase().includes("abandon")
+      ).length;
+
+      setStats([
+        {
+          ...initialStatsCards[0],
+          value: totalRequests.toString(),
+          trend: totalRequests > 0 ? "+12% from last week" : "No recent activity",
+        },
+        {
+          ...initialStatsCards[1],
+          value: completedRequests.toString(),
+          trend: completedRequests > 0 ? "On track" : "No completed requests",
+        },
+        {
+          ...initialStatsCards[2],
+          value: abandonedRequests.toString(),
+          trend: abandonedRequests > 0 ? `${abandonedRequests} need attention` : "No abandoned requests",
+        },
+      ]);
+
+      // Update pagination
+      const totalItems = response.data?.total || mappedRequests.length;
+      setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
+      setCurrentPage(page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      console.error("Error fetching requests:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Effect to fetch data on mount and when page or search changes
+  useEffect(() => {
+    fetchRequests(currentPage, searchQuery);
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -185,6 +383,53 @@ export default function RequestsSent() {
     mass: 0.5,
   };
 
+  // Function to handle session detail view
+  const handleViewSessionDetails = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    dispatch(fetchSessionReport(sessionId));
+    dispatch(fetchAutoNavData(sessionId));
+    setSessionModal(true);
+  };
+
+  // Function to open report modal
+  const handleOpenReportModal = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setReportModal(true);
+    dispatch(resetFeedbackStatus());
+    form.reset();
+  };
+
+  // Function to handle feedback submission
+  const onSubmitFeedback = (values: z.infer<typeof formSchema>) => {
+    if (!selectedSessionId) return;
+
+    const feedbackData = {
+      email: "user@example.com", // Replace with actual user email
+      sessionId: selectedSessionId,
+      comment: values.comment,
+      source: "client portal",
+    };
+
+    dispatch(submitFeedback(feedbackData));
+  };
+
+  // Check if the auto nav data has URLs
+  const hasUrls = autoNavData && autoNavData.navLogs && autoNavData.navLogs.some((log) => log.currentUrl);
+
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1); // Reset to first page when searching
+    fetchRequests(1, searchQuery);
+  };
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
@@ -196,7 +441,7 @@ export default function RequestsSent() {
             <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
             <div className="container mx-auto px-6 py-8">
               <div className="grid gap-4 md:grid-cols-3">
-                {statsCards.map((card, index) => (
+                {stats.map((card, index) => (
                   <motion.div
                     key={card.title}
                     initial={initialAnimation}
@@ -225,6 +470,21 @@ export default function RequestsSent() {
                     </Card>
                   </motion.div>
                 ))}
+              </div>
+
+              <div className="mt-6 mb-4">
+                <form onSubmit={handleSearch} className="flex gap-2">
+                  <Input
+                    placeholder="Search requests..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="max-w-md"
+                  />
+                  <Button type="submit">
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </Button>
+                </form>
               </div>
 
               <motion.div
@@ -258,65 +518,96 @@ export default function RequestsSent() {
                       </motion.tr>
                     </TableHeader>
                     <TableBody>
-                      {requests.map((request, index) => (
-                        <motion.tr
-                          key={request.sessionId}
-                          initial={initialAnimation}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{
-                            ...transitionConfig,
-                            delay: 0.5 + index * 0.05,
-                          }}
-                          className="group"
-                        >
-                          <TableCell className="font-medium">
-                            <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
+                      {isLoading ? (
+                        // Loading state
+                        Array(5)
+                          .fill(0)
+                          .map((_, index) => (
+                            <TableRow key={index}>
+                              <TableCell colSpan={8} className="h-12 animate-pulse bg-gray-100 dark:bg-gray-800"></TableCell>
+                            </TableRow>
+                          ))
+                      ) : error ? (
+                        // Error state
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-red-500">
+                            Error loading requests: {error}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Download className="h-4 w-4 text-blue-500" />
-                              {request.button}
-                            </div>
+                        </TableRow>
+                      ) : requests.length === 0 ? (
+                        // Empty state
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center">
+                            No requests found
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <ExternalLink className="h-4 w-4 text-gray-500" />
-                              {request.site}
-                            </div>
-                          </TableCell>
-                          <TableCell>{request.initiatedOn}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Badge className={getStatusBadgeColor(request.statusColor)}>
-                                <div className="flex items-center gap-1">
-                                  {getStatusIcon(request.finalStatus)}
-                                  <span>{request.finalStatus}</span>
-                                </div>
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>{request.exitReason}</TableCell>
-                          <TableCell>
-                            {request.trackId && <code className="rounded bg-muted px-2 py-1 text-sm">{request.trackId}</code>}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>View Details</DropdownMenuItem>
-                                  <DropdownMenuItem>Download Report</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </motion.tr>
-                      ))}
+                        </TableRow>
+                      ) : (
+                        // Populated state
+                        requests.map((request, index) => (
+                          <motion.tr
+                            key={request.sessionId}
+                            initial={initialAnimation}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{
+                              ...transitionConfig,
+                              delay: 0.5 + index * 0.05,
+                            }}
+                            className="group"
+                          >
+                            <TableCell className="font-medium">
+                              <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Download className="h-4 w-4 text-blue-500" />
+                                {request.button}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <ExternalLink className="h-4 w-4 text-gray-500" />
+                                {request.site}
+                              </div>
+                            </TableCell>
+                            <TableCell>{request.initiatedOn}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Badge className={getStatusBadgeColor(request.finalStatus)}>
+                                  <div className="flex items-center gap-1">
+                                    {getStatusIcon(request.finalStatus)}
+                                    <span>{request.finalStatus}</span>
+                                  </div>
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>{request.exitReason}</TableCell>
+                            <TableCell>
+                              {request.trackId && <code className="rounded bg-muted px-2 py-1 text-sm">{request.trackId}</code>}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleViewSessionDetails(request.sessionId)}>
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>Download Report</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenReportModal(request.sessionId)}>
+                                      Report Issue
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -333,21 +624,52 @@ export default function RequestsSent() {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious href="#" />
+                        <PaginationPrevious
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
                       </PaginationItem>
+
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        // Logic to show pagination numbers around current page
+                        let pageNumber;
+                        if (totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNumber = totalPages - 4 + i;
+                        } else {
+                          pageNumber = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <PaginationItem key={pageNumber}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(pageNumber);
+                              }}
+                              isActive={currentPage === pageNumber}
+                            >
+                              {pageNumber}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+
+                      {totalPages > 5 && currentPage < totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
                       <PaginationItem>
-                        <PaginationLink href="#" isActive>
-                          1
-                        </PaginationLink>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationLink href="#">2</PaginationLink>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext href="#" />
+                        <PaginationNext
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
@@ -357,6 +679,88 @@ export default function RequestsSent() {
           </div>
         </TooltipProvider>
       </main>
+
+      {/* Session Details Modal */}
+      <Dialog open={sessionModal} onOpenChange={setSessionModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Session Details: {selectedSessionId}</DialogTitle>
+            <DialogDescription>View detailed information about this session.</DialogDescription>
+          </DialogHeader>
+
+          <Tabs defaultValue="session">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="session">Session Report</TabsTrigger>
+              <TabsTrigger value="aiLogs" disabled={!hasUrls}>
+                AI Navigation Logs
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="session" className="space-y-4 mt-4">
+              {selectedSessionId && <SessionReportTable sessionId={selectedSessionId} />}
+            </TabsContent>
+            <TabsContent value="aiLogs" className="space-y-4 mt-4">
+              {selectedSessionId && <AiLogsTable sessionId={selectedSessionId} />}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-4">
+            <Button onClick={() => handleOpenReportModal(selectedSessionId!)}>Report Issue</Button>
+            <Button variant="outline" onClick={() => setSessionModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Issue Modal */}
+      <Dialog open={reportModal} onOpenChange={setReportModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Report Issue</DialogTitle>
+            <DialogDescription>Submit feedback for session {selectedSessionId}</DialogDescription>
+          </DialogHeader>
+
+          {feedbackSubmitted ? (
+            <Alert className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <AlertDescription>Thank you for your feedback! Your issue has been reported successfully.</AlertDescription>
+            </Alert>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmitFeedback)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="comment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Comment</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Please describe the issue you're experiencing" className="min-h-24" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" type="button" onClick={() => setReportModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
