@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
+import Script from "next/script";
 
 const interFont = Inter({
   subsets: ["latin"],
@@ -15,13 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Script src="//geoip-js.com/js/apis/geoip2/v2.1/geoip2.js" strategy="beforeInteractive" />
       </head>
       <body className={cn(interFont.variable, "font-sans min-h-screen")}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="diro-theme">
           <Providers>
-            <div className="min-h-screen">
-              {children}
-            </div>
+            <div className="min-h-screen">{children}</div>
           </Providers>
         </ThemeProvider>
       </body>

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User2, Mail, Key, Info, Box, RefreshCw, PenBox, MapPin } from "lucide-react";
+import { User2, Mail, Key, Info, Box, RefreshCw, PenBox, MapPin, CheckCircle2, Circle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from "next/link";
@@ -30,7 +30,7 @@ import {
 } from "./store/features/authSlice";
 import { authService } from "./services/auth.service";
 import { env } from "./config/environment";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { RootState } from "./store/store";
 import { CookieService } from "./services/auth.service";
 
@@ -229,10 +229,21 @@ export interface AuthServiceType {
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordStrength, setShowPasswordStrength] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [registerError, setRegisterError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [passwordCriteria, setPasswordCriteria] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+  });
+  const [passwordStrength, setPasswordStrength] = useState(0); // 0-4 scale
   const [formData, setFormData] = useState<FormData>({
     firstname: "",
     lastname: "",
@@ -249,13 +260,50 @@ export default function LoginPage() {
   const {
     isAuthenticated,
     loading: authLoading,
-    loginError,
+    loginError: authLoginError,
     isTwoFactor,
     roles,
     registermsg,
     registersucc,
     multiFactorEnabled,
+    countries,
   } = useSelector((state: RootState) => state.auth);
+
+  const [showdefault, setShowdefault] = useState(true);
+  const [defaultCountry, setDefaultCountry] = useState("");
+
+  useEffect(() => {
+    // Load countries and set default country
+    const loadDefaultCountry = async () => {
+      if (countries && countries.length > 0) {
+        try {
+          // Get ISO code from cookies instead of localStorage
+          const code = CookieService.get("iso_code");
+          console.log("ISO Code from cookies:", code);
+
+          if (code) {
+            // Find default country based on ISO code
+            const defaultCountryData = countries.find((item) => item.alpha2code === code);
+            console.log("Default country data:", defaultCountryData);
+
+            if (defaultCountryData) {
+              const countryValue = defaultCountryData.country;
+              setDefaultCountry(countryValue);
+              // Set both the default country and form data
+              setFormData((prev) => ({
+                ...prev,
+                country: countryValue,
+              }));
+            }
+          }
+        } catch (error) {
+          console.error("Error setting default country:", error);
+        }
+      }
+    };
+
+    loadDefaultCountry();
+  }, [countries]); // Run when countries data changes
 
   useEffect(() => {
     // Redirect already authenticated users to dashboard
@@ -291,7 +339,10 @@ export default function LoginPage() {
     loadScriptByURL("recaptcha-key", `https://www.google.com/recaptcha/api.js?render=${env.Skey}`, () =>
       console.log("Script loaded!")
     );
-  }, []);
+
+    // Fetch countries only once on mount
+    authService.getCountries();
+  }, []); // Empty dependency array to run only once
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -387,15 +438,29 @@ export default function LoginPage() {
       errors.recaptcha = "Only humans allowed";
     }
 
-    setError(Object.values(errors)[0] || "");
+    setLoginError(Object.values(errors)[0] || "");
     return formIsValid;
   };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setRegisterError("");
     setSuccessMessage("");
+
+    // Validate password meets all criteria
+    const allCriteriaMet = Object.values(passwordCriteria).every((criterion) => criterion === true);
+    if (!allCriteriaMet) {
+      setRegisterError("Password does not meet all requirements");
+      setLoading(false);
+
+      // Auto-hide error message after 10 seconds
+      setTimeout(() => {
+        setRegisterError("");
+      }, 10000);
+
+      return;
+    }
 
     try {
       // Skip reCAPTCHA for diro.io emails
@@ -453,15 +518,25 @@ export default function LoginPage() {
         handleRegisterResponse(response);
       } else {
         console.log("Low reCAPTCHA score:", recaptchaResponse?.score);
-        setError("Security verification failed. Please try again.");
+        setRegisterError("Security verification failed. Please try again.");
+
+        // Auto-hide error message after 10 seconds
+        setTimeout(() => {
+          setRegisterError("");
+        }, 10000);
       }
     } catch (err: any) {
       console.error("Registration error:", err);
       if (err.message.includes("security verification")) {
-        setError("Security verification failed. Please refresh the page and try again.");
+        setRegisterError("Security verification failed. Please refresh the page and try again.");
       } else {
-        setError(err.response?.data?.message || "An error occurred during registration");
+        setRegisterError(err.response?.data?.message || "An error occurred during registration");
       }
+
+      // Auto-hide error message after 10 seconds
+      setTimeout(() => {
+        setRegisterError("");
+      }, 10000);
     } finally {
       setLoading(false);
     }
@@ -470,7 +545,12 @@ export default function LoginPage() {
   // Helper function to handle registration response
   const handleRegisterResponse = (response: any) => {
     if (response.data?.error) {
-      setError(response.data.message || "Registration failed");
+      setRegisterError(response.data.message || "Registration failed");
+
+      // Auto-hide error message after 10 seconds
+      setTimeout(() => {
+        setRegisterError("");
+      }, 10000);
     } else if (response.data?.message === "plz check you email") {
       setSuccessMessage("Please check your email for verification instructions. We've sent you an email with next steps.");
       // Clear form data
@@ -498,7 +578,7 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setError("");
+    setLoginError("");
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get("email") as string;
@@ -516,7 +596,7 @@ export default function LoginPage() {
       // For non-diro.io emails, proceed with reCAPTCHA
       if (typeof window.grecaptcha === "undefined") {
         console.error("reCAPTCHA not loaded");
-        setError("Security verification not loaded. Please refresh the page.");
+        setLoginError("Security verification not loaded. Please refresh the page.");
         setLoading(false);
         return;
       }
@@ -528,14 +608,14 @@ export default function LoginPage() {
         console.log("reCAPTCHA token received:", token);
       } catch (error) {
         console.error("Error getting reCAPTCHA token:", error);
-        setError("Failed to verify security. Please refresh and try again.");
+        setLoginError("Failed to verify security. Please refresh and try again.");
         setLoading(false);
         return;
       }
 
       if (!token) {
         console.error("No reCAPTCHA token received");
-        setError("Security verification failed. Please try again.");
+        setLoginError("Security verification failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -551,7 +631,7 @@ export default function LoginPage() {
           handleLoginResponse(response, email);
         } else {
           console.error("reCAPTCHA validation failed:", recaptchaResponse);
-          setError("Security verification failed. Please try again.");
+          setLoginError("Security verification failed. Please try again.");
           setLoading(false);
         }
       } catch (error: any) {
@@ -562,13 +642,13 @@ export default function LoginPage() {
           const response = await authService.login({ email, password });
           handleLoginResponse(response, email);
         } else {
-          setError("Security verification failed. Please refresh and try again.");
+          setLoginError("Security verification failed. Please refresh and try again.");
           setLoading(false);
         }
       }
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.message || "An error occurred during login");
+      setLoginError(err.message || "An error occurred during login");
       dispatch(loginFail({ payload: err.message }));
       setLoading(false);
     }
@@ -582,7 +662,7 @@ export default function LoginPage() {
       if (response.data?.error === true) {
         console.log("Login failed:", response.data.message);
         dispatch(loginFail({ payload: response.data }));
-        setError(response.data.message || "Login failed");
+        setLoginError(response.data.message || "Login failed");
         setLoading(false);
       } else if (response.data.statusCode === 242) {
         console.log("Two-factor authentication required");
@@ -654,22 +734,58 @@ export default function LoginPage() {
         // Fallback for other cases
         console.log("Login response not handled:", response.data);
         dispatch(loginFail({ payload: response.data }));
-        setError("Login failed with an unexpected response");
+        setLoginError("Login failed with an unexpected response");
         setLoading(false);
       }
     } catch (error) {
       console.error("Error in handleLoginResponse:", error);
       setLoading(false);
-      setError("An error occurred while processing the login response");
+      setLoginError("An error occurred while processing the login response");
     }
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Update form data
     setFormData({
       ...formData,
       [name]: name === "password" ? value : sanitizeInput(value),
     });
+
+    // Check password criteria if the password field is being updated
+    if (name === "password") {
+      const criteria = {
+        minLength: value.length >= 8,
+        hasUppercase: /[A-Z]/.test(value),
+        hasLowercase: /[a-z]/.test(value),
+        hasNumber: /[0-9]/.test(value),
+        hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value),
+      };
+
+      setPasswordCriteria(criteria);
+
+      // Reset fading state and ensure component is shown
+      setIsFadingOut(false);
+      setShowPasswordStrength(true);
+
+      // Calculate password strength (0-4)
+      const metCriteriaCount = Object.values(criteria).filter(Boolean).length;
+      setPasswordStrength(metCriteriaCount);
+
+      // If all criteria are met, set a timer to hide the component with fade-out animation
+      if (Object.values(criteria).every(Boolean)) {
+        setTimeout(() => {
+          setIsFadingOut(true); // Start fade-out animation
+
+          // Wait for animation to complete before hiding the component
+          setTimeout(() => {
+            setShowPasswordStrength(false);
+            setIsFadingOut(false);
+          }, 300); // Match the animation duration
+        }, 2000);
+      }
+    }
   };
 
   return (
@@ -773,7 +889,7 @@ export default function LoginPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className={`w-full max-w-2xl ${activeTab === "login" ? "self-center" : "self-start mt-4"}`}
+              className={`w-full max-w-[calc(32rem-1rem)] ${activeTab === "login" ? "self-center" : "self-start mt-4"}`}
             >
               {/* Main container with floating card design */}
               <div className="relative w-full">
@@ -794,7 +910,19 @@ export default function LoginPage() {
                     <h1 className="text-2xl font-semibold text-slate-800 dark:text-white text-center mb-6">
                       {activeTab === "login" ? "Welcome Back" : "Create Account"}
                     </h1>
-                    <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+                    <Tabs
+                      value={activeTab}
+                      className="w-full"
+                      onValueChange={(value) => {
+                        setActiveTab(value);
+                        // Clear errors when switching tabs
+                        if (value === "login") {
+                          setLoginError("");
+                        } else {
+                          setRegisterError("");
+                        }
+                      }}
+                    >
                       <TabsList className="w-full mb-4 bg-slate-100 dark:bg-white/5 rounded-xl p-1.5 backdrop-blur-sm">
                         <TabsTrigger
                           value="login"
@@ -821,13 +949,25 @@ export default function LoginPage() {
                             exit="exit"
                             className="space-y-4"
                           >
-                            {error && (
-                              <Alert variant="destructive" className="mb-4">
-                                <p>{error}</p>
+                            {loginError && (
+                              <Alert
+                                variant="destructive"
+                                className="mb-4 animate-fadeIn transition-all duration-300 ease-in-out"
+                              >
+                                <AlertDescription className="font-medium">{loginError}</AlertDescription>
                               </Alert>
                             )}
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
+                            <form
+                              onSubmit={handleSubmit}
+                              className="space-y-4"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+                                }
+                              }}
+                            >
                               <div className="space-y-3">
                                 <div className="space-y-1">
                                   <Label htmlFor="email" className="text-slate-700 dark:text-gray-300">
@@ -901,7 +1041,7 @@ export default function LoginPage() {
                                     Remember me
                                   </label> */}
                                 </div>
-                                <Link href="/authentication/forgotpassword">
+                                <Link href="/forgotpassword">
                                   <Button
                                     variant="link"
                                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0"
@@ -947,9 +1087,12 @@ export default function LoginPage() {
                               />
                             ) : (
                               <form onSubmit={handleRegister} className="space-y-4">
-                                {error && (
-                                  <Alert variant="destructive" className="mb-4">
-                                    <p>{error}</p>
+                                {registerError && (
+                                  <Alert
+                                    variant="destructive"
+                                    className="mb-4 animate-fadeIn transition-all duration-300 ease-in-out"
+                                  >
+                                    <AlertDescription className="font-medium">{registerError}</AlertDescription>
                                   </Alert>
                                 )}
 
@@ -1063,15 +1206,136 @@ export default function LoginPage() {
                                     >
                                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 cursor-pointer hover:text-slate-700 dark:hover:text-white" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Password must be at least 8 characters long</p>
-                                      </TooltipContent>
-                                    </Tooltip>
                                   </div>
+
+                                  {/* Password Policy Indicators */}
+                                  {formData.password.length > 0 && showPasswordStrength && (
+                                    <div
+                                      className={`mt-2 p-3 bg-slate-50 dark:bg-white/5 rounded-lg shadow-sm border border-slate-100 dark:border-white/10 transition-all duration-300 ease-in-out ${
+                                        isFadingOut ? "opacity-0 transform translate-y-4" : "animate-fadeIn opacity-100"
+                                      }`}
+                                    >
+                                      {/* Password Strength Meter */}
+                                      <div className="mb-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                            Password Strength:
+                                          </span>
+                                          <span className="text-xs font-medium">
+                                            {passwordStrength === 0 && <span className="text-red-500">Very Weak</span>}
+                                            {passwordStrength === 1 && <span className="text-red-500">Weak</span>}
+                                            {passwordStrength === 2 && <span className="text-red-500">Fair</span>}
+                                            {passwordStrength === 3 && <span className="text-yellow-500">Good</span>}
+                                            {passwordStrength === 4 && <span className="text-yellow-500">Strong</span>}
+                                            {passwordStrength === 5 && <span className="text-green-500">Very Strong</span>}
+                                          </span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full transition-all duration-300 animate-pulse-once ${
+                                              passwordStrength === 0
+                                                ? "w-0"
+                                                : passwordStrength === 1
+                                                ? "w-1/5 bg-red-500"
+                                                : passwordStrength === 2
+                                                ? "w-2/5 bg-red-500"
+                                                : passwordStrength === 3
+                                                ? "w-3/5 bg-yellow-500"
+                                                : passwordStrength === 4
+                                                ? "w-4/5 bg-yellow-500"
+                                                : "w-full bg-green-500"
+                                            }`}
+                                          ></div>
+                                        </div>
+                                      </div>
+
+                                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">
+                                        Password must contain:
+                                      </p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center space-x-2">
+                                          {passwordCriteria.minLength ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 animate-fadeIn transition-transform duration-300 ease-in-out" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-slate-400 transition-all duration-300" />
+                                          )}
+                                          <span
+                                            className={`text-xs ${
+                                              passwordCriteria.minLength
+                                                ? "text-green-600 dark:text-green-400 font-medium transition-all duration-300"
+                                                : "text-slate-500 dark:text-slate-400 transition-all duration-300"
+                                            }`}
+                                          >
+                                            At least 8 characters
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          {passwordCriteria.hasUppercase ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 animate-fadeIn transition-transform duration-300 ease-in-out" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-slate-400 transition-all duration-300" />
+                                          )}
+                                          <span
+                                            className={`text-xs ${
+                                              passwordCriteria.hasUppercase
+                                                ? "text-green-600 dark:text-green-400 font-medium transition-all duration-300"
+                                                : "text-slate-500 dark:text-slate-400 transition-all duration-300"
+                                            }`}
+                                          >
+                                            Uppercase letter
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          {passwordCriteria.hasLowercase ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 animate-fadeIn transition-transform duration-300 ease-in-out" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-slate-400 transition-all duration-300" />
+                                          )}
+                                          <span
+                                            className={`text-xs ${
+                                              passwordCriteria.hasLowercase
+                                                ? "text-green-600 dark:text-green-400 font-medium transition-all duration-300"
+                                                : "text-slate-500 dark:text-slate-400 transition-all duration-300"
+                                            }`}
+                                          >
+                                            Lowercase letter
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          {passwordCriteria.hasNumber ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 animate-fadeIn transition-transform duration-300 ease-in-out" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-slate-400 transition-all duration-300" />
+                                          )}
+                                          <span
+                                            className={`text-xs ${
+                                              passwordCriteria.hasNumber
+                                                ? "text-green-600 dark:text-green-400 font-medium transition-all duration-300"
+                                                : "text-slate-500 dark:text-slate-400 transition-all duration-300"
+                                            }`}
+                                          >
+                                            Number
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          {passwordCriteria.hasSpecial ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 animate-fadeIn transition-transform duration-300 ease-in-out" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-slate-400 transition-all duration-300" />
+                                          )}
+                                          <span
+                                            className={`text-xs ${
+                                              passwordCriteria.hasSpecial
+                                                ? "text-green-600 dark:text-green-400 font-medium transition-all duration-300"
+                                                : "text-slate-500 dark:text-slate-400 transition-all duration-300"
+                                            }`}
+                                          >
+                                            Special character
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Company Name */}
@@ -1124,9 +1388,15 @@ export default function LoginPage() {
                                         <SelectValue placeholder="What are you building?" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="web">Web Application</SelectItem>
-                                        <SelectItem value="mobile">Mobile Application</SelectItem>
-                                        <SelectItem value="desktop">Desktop Application</SelectItem>
+                                        <SelectItem value="personal">Personal</SelectItem>
+                                        <SelectItem value="consumer payment">Consumer payment</SelectItem>
+                                        <SelectItem value="lending">Lending</SelectItem>
+                                        <SelectItem value="banking">Banking</SelectItem>
+                                        <SelectItem value="Identity verification services">
+                                          Identity verification services
+                                        </SelectItem>
+                                        <SelectItem value="crypto">Blockchain / crypto currencies</SelectItem>
+                                        <SelectItem value="others">Others</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -1156,9 +1426,10 @@ export default function LoginPage() {
                                         <SelectValue placeholder="What role are you in?" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="developer">Developer</SelectItem>
-                                        <SelectItem value="designer">Designer</SelectItem>
-                                        <SelectItem value="manager">Project Manager</SelectItem>
+                                        <SelectItem value="compliance"> Compliance</SelectItem>
+                                        <SelectItem value="executive"> Executive</SelectItem>
+                                        <SelectItem value="product">Product</SelectItem>
+                                        <SelectItem value="others"> Others</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -1170,7 +1441,11 @@ export default function LoginPage() {
                                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-gray-400 z-10" />
                                     <Select
                                       name="country"
-                                      onValueChange={(value) => setFormData({ ...formData, country: value })}
+                                      value={formData.country}
+                                      onValueChange={(value) => {
+                                        setFormData({ ...formData, country: value });
+                                        setShowdefault(false);
+                                      }}
                                     >
                                       <SelectTrigger
                                         className="h-11 pl-10 
@@ -1188,8 +1463,15 @@ export default function LoginPage() {
                                         <SelectValue placeholder="Select your country" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="afghanistan">Afghanistan</SelectItem>
-                                        {/* Add more countries as needed */}
+                                        {countries && countries.length > 0 ? (
+                                          countries.map((value, key) => (
+                                            <SelectItem key={key} value={value.country}>
+                                              {value.country}
+                                            </SelectItem>
+                                          ))
+                                        ) : (
+                                          <SelectItem value="loading">Loading countries...</SelectItem>
+                                        )}
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -1205,8 +1487,9 @@ export default function LoginPage() {
                                   <label htmlFor="privacy" className="text-sm text-slate-600 dark:text-gray-300">
                                     I confirm that I have read and accepted the DIRO{" "}
                                     <Link
-                                      href="#"
+                                      href="https://diro.live/privacy-policy/"
                                       className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                      target="_blank"
                                     >
                                       Privacy Policy
                                     </Link>

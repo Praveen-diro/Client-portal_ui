@@ -217,15 +217,22 @@ const authSlice = createSlice({
       state.sandboxStatus = action.payload === 2;
     },
     getCountries: (state, action: PayloadAction<any>) => {
+      console.log("getCountries reducer called with payload:", action.payload);
+      if (!action.payload) {
+        console.error("getCountries received null/undefined payload");
+        return;
+      }
       state.countries = action.payload.data;
       try {
         const alldata = CookieService.get("alldata");
+        console.log("Retrieved alldata from cookie:", alldata);
         state.user = alldata || "";
       } catch (e) {
         console.error("Error parsing alldata cookie in getCountries:", e);
         state.user = "";
       }
       state.loadingcountry = false;
+      console.log("Updated state:", { countries: state.countries, user: state.user, loadingcountry: state.loadingcountry });
     },
     loginSandbox: (state, action: PayloadAction<any>) => {
       CookieService.set("authMode", 2);

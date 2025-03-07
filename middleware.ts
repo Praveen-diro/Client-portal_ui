@@ -114,12 +114,6 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
       }
     }
-
-    // Allow direct access to forgotpassword page
-    if (path === "/authentication/forgotpassword") {
-      return NextResponse.next();
-    }
-
     // Redirect all other /authentication/* paths to login
     return NextResponse.redirect(new URL(loginRoute, request.url));
   }

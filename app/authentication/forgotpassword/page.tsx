@@ -75,16 +75,39 @@ export default function ForgotPasswordPage() {
         script.type = "text/javascript";
         script.src = url;
         script.id = id;
+        script.async = true;
+        script.defer = true;
         script.onload = callback;
+        script.onerror = () => {
+          console.error("Failed to load reCAPTCHA script");
+          setError("Security verification failed to load. Please refresh the page.");
+        };
         document.body.appendChild(script);
       }
 
       if (isScriptExist && callback) callback();
     };
 
-    loadScriptByURL("recaptcha-key", `https://www.google.com/recaptcha/api.js?render=${env.Skey}`, () =>
-      console.log("reCAPTCHA script loaded!")
-    );
+    // Add a timeout to verify if grecaptcha is loaded
+    loadScriptByURL("recaptcha-key", `https://www.google.com/recaptcha/api.js?render=${env.Skey}`, () => {
+      console.log("reCAPTCHA script loaded!");
+
+      // Verify after a short delay that grecaptcha is actually available
+      setTimeout(() => {
+        if (!window.grecaptcha) {
+          console.error("reCAPTCHA not initialized properly");
+          setError("Security verification not initialized. Please refresh the page.");
+        }
+      }, 1000);
+    });
+
+    // Cleanup function
+    return () => {
+      const script = document.getElementById("recaptcha-key");
+      if (script) {
+        script.remove();
+      }
+    };
   }, []);
 
   const handleValidation = (captchaScore: number) => {
@@ -118,29 +141,38 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      // Check if reCAPTCHA is loaded
-      if (!window.grecaptcha) {
-        console.error("reCAPTCHA not loaded");
-        setError("Security verification not loaded. Please refresh the page.");
-        setLoading(false);
-        return;
-      }
+      // Check if reCAPTCHA is loaded with retry mechanism
+      let retries = 0;
+      const maxRetries = 3;
 
-      console.log("Getting reCAPTCHA token...");
-      let token;
-      try {
-        token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
-        console.log("reCAPTCHA token received");
-      } catch (error) {
-        console.error("Error getting reCAPTCHA token:", error);
-        setError("Failed to verify security. Please refresh and try again.");
-        setLoading(false);
-        return;
-      }
+      const waitForRecaptcha = async (): Promise<string | null> => {
+        if (window.grecaptcha) {
+          try {
+            console.log("Getting reCAPTCHA token...");
+            const recaptchaToken = await window.grecaptcha.execute(env.Skey, { action: "submit" });
+            console.log("reCAPTCHA token received");
+            return recaptchaToken;
+          } catch (error) {
+            console.error("Error executing reCAPTCHA:", error);
+            return null;
+          }
+        }
+
+        if (retries < maxRetries) {
+          retries++;
+          console.log(`Waiting for reCAPTCHA to load... Attempt ${retries}`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return waitForRecaptcha();
+        }
+
+        return null;
+      };
+
+      const token = await waitForRecaptcha();
 
       if (!token) {
-        console.error("No reCAPTCHA token received");
-        setError("Security verification failed. Please try again.");
+        console.error("reCAPTCHA not loaded after retries");
+        setError("Security verification not loaded. Please refresh the page.");
         setLoading(false);
         return;
       }
@@ -333,8 +365,8 @@ export default function ForgotPasswordPage() {
                           </div>
 
                           {error && (
-                            <Alert variant="destructive" className="mb-4">
-                              <AlertDescription>{error}</AlertDescription>
+                            <Alert variant="destructive" className="mb-4 animate-fadeIn transition-all duration-300 ease-in-out">
+                              <AlertDescription className="font-medium">{error}</AlertDescription>
                             </Alert>
                           )}
 

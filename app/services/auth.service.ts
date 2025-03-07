@@ -25,6 +25,7 @@ import {
   qrCodeFail,
   setPasswordError,
   setResetLinkExpired,
+  getCountries,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
 
@@ -380,16 +381,26 @@ class AuthService {
     }
   }
 
+  private isLoadingCountries = false;
+
   async getCountries() {
+    if (this.isLoadingCountries) {
+      return;
+    }
+
+    this.isLoadingCountries = true;
     try {
       const response = await axios.get(env.verifiedcountrylist, {
         headers: {
           "Content-Type": "application/json",
         },
       });
-      return response;
+      store.dispatch(getCountries(response.data));
     } catch (error) {
-      throw error;
+      console.error("Error fetching countries:", error);
+      store.dispatch(getCountries({ error: true }));
+    } finally {
+      this.isLoadingCountries = false;
     }
   }
 
