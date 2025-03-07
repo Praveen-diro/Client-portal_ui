@@ -3,6 +3,7 @@
 import { Provider } from "react-redux";
 import { store } from "./store/store";
 import { useEffect, useState } from "react";
+import fillInPage from "./utils/geoLocation";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -22,6 +23,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
           console.error("Failed to connect to Redux DevTools:", err);
         }
       }
+
+      // Initialize geolocation after a short delay to ensure the script is loaded
+      setTimeout(() => {
+        try {
+          console.log("Initializing geolocation...");
+          fillInPage();
+        } catch (error) {
+          console.error("Error initializing geolocation:", error);
+        }
+      }, 1000);
     }
   }, []);
 

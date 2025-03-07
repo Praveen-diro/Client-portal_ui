@@ -60,32 +60,66 @@ export const sendLogs = (action: string, data: any, source: string): void => {
 // Cookie options for security
 const cookieOptions = {
   expires: 7, // 7 days
-  secure: true, // HTTPS only
-  sameSite: "strict" as const, // Protect against CSRF
+  secure: process.env.NODE_ENV === "production", // Only use secure in production
+  sameSite: "lax" as const, // Changed to lax for better compatibility
   path: "/",
 };
 
 // Make CookieService a properly exported object
 export const CookieService = {
   set(key: string, value: any) {
-    Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
+    try {
+      Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
+      console.log(`Cookie set: ${key}=${typeof value === "object" ? JSON.stringify(value) : value}`);
+    } catch (error) {
+      console.error(`Error setting cookie ${key}:`, error);
+    }
   },
 
   get(key: string) {
-    const cookieValue = Cookies.get(key);
-    if (cookieValue) return cookieValue;
-    return null;
+    try {
+      const cookieValue = Cookies.get(key);
+      // Debug log for geolocation cookie specifically
+      if (key === "iso_code") {
+        console.log(`Retrieving iso_code cookie: ${cookieValue || "not found"}`);
+
+        // Fallback to direct document.cookie check for iso_code
+        if (!cookieValue && typeof document !== "undefined") {
+          const rawCookies = document.cookie;
+          console.log(`All cookies: ${rawCookies}`);
+          const match = new RegExp(`${key}=([^;]+)`).exec(rawCookies);
+          if (match) {
+            const directValue = match[1];
+            console.log(`Found iso_code directly in document.cookie: ${directValue}`);
+            return directValue;
+          }
+        }
+      }
+
+      return cookieValue || null;
+    } catch (error) {
+      console.error(`Error getting cookie ${key}:`, error);
+      return null;
+    }
   },
 
   remove(key: string) {
-    Cookies.remove(key, cookieOptions);
+    try {
+      Cookies.remove(key, cookieOptions);
+    } catch (error) {
+      console.error(`Error removing cookie ${key}:`, error);
+    }
   },
 
   clear() {
-    // Get all cookies and remove them one by one
-    const cookies = Cookies.get();
-    for (const cookie in cookies) {
-      Cookies.remove(cookie, { path: "/" });
+    try {
+      // Get all cookies and remove them one by one
+      const cookies = Cookies.get();
+      for (const cookie in cookies) {
+        Cookies.remove(cookie, { path: "/" });
+      }
+    } catch (error) {
+      console.error("Error clearing cookies:", error);
     }
   },
 };

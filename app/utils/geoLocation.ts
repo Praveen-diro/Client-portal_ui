@@ -33,9 +33,10 @@ interface ErrorDetails {
 // Cookie options for security
 const cookieOptions = {
   maxAge: 60 * 60 * 24 * 7, // 7 days
-  secure: true, // HTTPS only
-  sameSite: "strict" as const, // Protect against CSRF
+  secure: process.env.NODE_ENV === "production", // Only use secure in production
+  sameSite: "lax" as const, // Changed from strict to lax for better compatibility
   path: "/",
+  domain: typeof window !== "undefined" ? window.location.hostname : undefined, // Explicitly set domain
 };
 
 // Immediately Invoked Function Expression
@@ -52,8 +53,25 @@ const fillInPage = (function () {
     const iso_code = geoipResponse.country.iso_code || "unknown";
     console.log("ISO Code:", iso_code);
 
-    // Set the country code in a cookie instead of localStorage
-    setCookie("iso_code", iso_code, cookieOptions);
+    // Set the country code in a cookie
+    try {
+      // Ensure we're in browser environment
+      if (typeof window !== "undefined") {
+        setCookie("iso_code", iso_code, cookieOptions);
+
+        // Verify the cookie was set
+        setTimeout(() => {
+          const cookieValue = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("iso_code="))
+            ?.split("=")[1];
+
+          console.log("Cookie verification:", cookieValue ? "ISO code cookie set successfully" : "Failed to set ISO code cookie");
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error setting iso_code cookie:", error);
+    }
   };
 
   const onSuccess = function (geoipResponse: GeoIPResponse): void {

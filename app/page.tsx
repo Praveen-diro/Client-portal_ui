@@ -303,7 +303,33 @@ export default function LoginPage() {
     };
 
     loadDefaultCountry();
-  }, [countries]); // Run when countries data changes
+
+    // Add a slight delay to ensure the cookie is loaded after geolocation completes
+    const timer = setTimeout(() => {
+      loadDefaultCountry();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [countries]);
+
+  // Add another effect to specifically listen for cookie changes
+  useEffect(() => {
+    const checkCookieInterval = setInterval(() => {
+      const isoCode = CookieService.get("iso_code");
+      if (isoCode && countries && countries.length > 0) {
+        const countryData = countries.find((item) => item.alpha2code === isoCode);
+        if (countryData && formData.country !== countryData.country) {
+          setDefaultCountry(countryData.country);
+          setFormData((prev) => ({
+            ...prev,
+            country: countryData.country,
+          }));
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(checkCookieInterval);
+  }, [countries, formData.country]);
 
   useEffect(() => {
     // Redirect already authenticated users to dashboard
@@ -1442,6 +1468,7 @@ export default function LoginPage() {
                                     <Select
                                       name="country"
                                       value={formData.country}
+                                      defaultValue={defaultCountry}
                                       onValueChange={(value) => {
                                         setFormData({ ...formData, country: value });
                                         setShowdefault(false);
@@ -1460,7 +1487,7 @@ export default function LoginPage() {
                                           focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] dark:focus:shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]
                                           transition-shadow"
                                       >
-                                        <SelectValue placeholder="Select your country" />
+                                        <SelectValue placeholder={defaultCountry || "Select your country"} />
                                       </SelectTrigger>
                                       <SelectContent>
                                         {countries && countries.length > 0 ? (
