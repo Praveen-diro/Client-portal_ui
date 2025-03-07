@@ -486,7 +486,7 @@ const authSlice = createSlice({
 
         // Handle roles - can be array or string
         if (payload.doc.roles) {
-          const role = Array.isArray(payload.roles) ? payload.roles[0] : payload.roles;
+          const role = Array.isArray(payload.doc.roles) ? payload.doc.roles[0] : payload.doc.roles;
           console.log("Setting role:", role);
           CookieService.set("roles", role);
           state.roles = role;
@@ -505,7 +505,7 @@ const authSlice = createSlice({
 
         if (payload.data) {
           CookieService.set("apikey", payload.data.apikey);
-          state.apikey = payload.data.apikey;
+          state.apikey = payload.data.doc.apikey;
         }
 
         // Explicitly clear two-factor flags in cookies

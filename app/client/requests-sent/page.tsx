@@ -214,20 +214,40 @@ const getStatusBadgeColor = (status: string) => {
 
 // Function to map API response to request items
 const mapApiResponseToRequestItems = (apiData: any): RequestItem[] => {
-  if (!apiData || !Array.isArray(apiData.data)) {
+  console.log("Mapping API data to request items:", apiData);
+
+  if (!apiData) {
+    console.warn("No API data received");
     return [];
   }
 
-  return apiData.data.map((item: any) => {
+  // Handle different API response structures
+  let dataArray: any[] = [];
+
+  if (Array.isArray(apiData)) {
+    // Direct array response
+    dataArray = apiData;
+  } else if (apiData.data && Array.isArray(apiData.data)) {
+    // Nested data response
+    dataArray = apiData.data;
+  } else {
+    console.warn("Unexpected API response structure:", apiData);
+    return [];
+  }
+
+  console.log("Data array to map:", dataArray);
+
+  return dataArray.map((item: any) => {
     const status = item.status || "Unknown";
+    console.log("Mapping item:", item);
 
     return {
-      sessionId: item.sessionId || item.session_id || "Unknown",
-      button: item.button || item.buttonName || "Unknown",
-      site: item.site || item.siteName || item.website || "Unknown",
+      sessionId: item.sessionId || item.session_id || item.id || "Unknown",
+      button: item.button || item.buttonName || item.button_name || "Unknown",
+      site: item.site || item.siteName || item.website || item.site_name || "Unknown",
       initiatedOn: item.timestamp ? getUserTime(item.timestamp) : "Unknown",
       finalStatus: status,
-      exitReason: item.exitReason || item.reason || "",
+      exitReason: item.exitReason || item.reason || item.exit_reason || "",
       trackId: item.trackId || item.track_id || "",
       statusColor: getStatusColorFromStatus(status),
     };
@@ -259,7 +279,7 @@ const getStatusColorFromStatus = (status: string): string => {
 export default function RequestsSent() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const { autoNavData, loading, feedbackSubmitted } = useAppSelector((state) => state.sessionReport);
+  const { autoNavData, loading, feedbackSubmitted, error: reduxError } = useAppSelector((state) => state.sessionReport);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sessionModal, setSessionModal] = useState(false);
@@ -305,11 +325,16 @@ export default function RequestsSent() {
         throw new Error(response.error || "Failed to fetch requests");
       }
 
+      // Debug the response data
+      console.log("API Response data:", response.data);
+
       const mappedRequests = mapApiResponseToRequestItems(response.data);
+      console.log("Mapped requests:", mappedRequests);
+
       setRequests(mappedRequests);
 
       // Update stats based on data
-      const totalRequests = mappedRequests.length;
+      const totalRequests = response.data?.total || mappedRequests.length;
       const completedRequests = mappedRequests.filter(
         (req) =>
           req.statusColor === "green" ||
@@ -344,8 +369,8 @@ export default function RequestsSent() {
       setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
       setCurrentPage(page);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Error fetching requests:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -353,8 +378,16 @@ export default function RequestsSent() {
 
   // Effect to fetch data on mount and when page or search changes
   useEffect(() => {
+    // Debug Redux state - using the already retrieved state at component level
+    console.log("Redux sessionReport state:", {
+      autoNavData,
+      loading,
+      feedbackSubmitted,
+      error: reduxError,
+    });
+
     fetchRequests(currentPage, searchQuery);
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, autoNavData, loading, feedbackSubmitted, reduxError]);
 
   useEffect(() => {
     setShouldAnimate(true);

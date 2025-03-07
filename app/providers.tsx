@@ -14,14 +14,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     // Attempt to force connection with Redux DevTools on initial load and navigation
     if (typeof window !== "undefined") {
+      // Manually verify Redux store is properly instantiated
+      console.log("Redux store state:", store.getState());
+
       // @ts-ignore
       if (window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_STORE__) {
         try {
           // @ts-ignore
           window.__REDUX_DEVTOOLS_EXTENSION__.connect();
+          console.log("Redux DevTools connected successfully");
         } catch (err) {
           console.error("Failed to connect to Redux DevTools:", err);
         }
+      } else {
+        console.warn("Redux DevTools extension or store not found in window");
       }
 
       // Initialize geolocation after a short delay to ensure the script is loaded

@@ -2,14 +2,13 @@
 
 import { Sidebar } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "../store/store";
+import { useAppSelector } from "../store/hooks";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   // Get auth state from Redux
-  const auth = useSelector((state: RootState) => state.auth);
+  const auth = useAppSelector((state) => state.auth);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();

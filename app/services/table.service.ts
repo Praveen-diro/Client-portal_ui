@@ -130,7 +130,28 @@ class TableService {
       numberOfRecords: params.limit || 10,
     };
 
-    return this.makeRequest(env.invite, data, "getRequested");
+    console.log("Sending request to invite API with data:", {
+      ...data,
+      apikey: data.apikey ? "exists" : "missing",
+    });
+
+    try {
+      const response = await this.makeRequest<any>(env.invite, data, "getRequested");
+      console.log("Received response from invite API:", response);
+
+      // Ensure data property is properly structured even if API returns unexpected format
+      if (response.success && response.data && !response.data.data && Array.isArray(response.data)) {
+        response.data = { data: response.data, total: response.data.length };
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Error in getRequested:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "An unknown error occurred",
+      };
+    }
   }
 
   async getPending(params: RequestPaginationParams = { offset: 0, limit: 10, status: "pending" }): Promise<TableResponse<any>> {
