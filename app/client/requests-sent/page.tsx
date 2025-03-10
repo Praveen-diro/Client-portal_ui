@@ -86,86 +86,35 @@ interface StatsCard {
 }
 
 // Mock requests data - will be replaced with API data
-const initialRequests = [
-  {
-    sessionId: "US-zsXuEe",
-    button: "Download address",
-    site: "sample.diro.me",
-    initiatedOn: "23 Hours ago",
-    finalStatus: "Tried download / submit",
-    exitReason: "",
-    trackId: "",
-    statusColor: "yellow",
-  },
-  {
-    sessionId: "US-VXbYiZ",
-    button: "Bank download green",
-    site: "canarabank.com",
-    initiatedOn: "23 Hours ago",
-    finalStatus: "Abandon",
-    exitReason: "User left",
-    trackId: "",
-    statusColor: "red",
-  },
-  {
-    sessionId: "US-XWDHz2",
-    button: "Download address",
-    site: "sample.diro.me",
-    initiatedOn: "24 Hours ago",
-    finalStatus: "In Progress",
-    exitReason: "",
-    trackId: "",
-    statusColor: "blue",
-  },
-  {
-    sessionId: "US-ygs5iX",
-    button: "Download address",
-    site: "testing99.diro.me",
-    initiatedOn: "4 Days ago",
-    finalStatus: "Started",
-    exitReason: "",
-    trackId: "143",
-    statusColor: "blue",
-  },
-  {
-    sessionId: "US-NDufyc",
-    button: "Download address",
-    site: "utility5.diro.me",
-    initiatedOn: "4 Days ago",
-    finalStatus: "Done, now in Review",
-    exitReason: "",
-    trackId: "14141",
-    statusColor: "green",
-  },
-];
+const initialRequests: RequestItem[] = [];
 
 // Initial stats cards data
 const initialStatsCards: StatsCard[] = [
   {
     title: "Total Requests",
-    value: "5",
+    value: "0",
     description: "In the last 7 days",
     icon: Clock,
     color: "blue",
-    trend: "+12% from last week",
+    trend: "",
     trendUp: true,
   },
   {
     title: "Completed Requests",
-    value: "1",
+    value: "0",
     description: "In review",
     icon: CheckCircle2,
     color: "green",
-    trend: "On track",
+    trend: "",
     trendUp: true,
   },
   {
     title: "Abandoned Requests",
-    value: "1",
+    value: "0",
     description: "Require attention",
     icon: AlertCircle,
     color: "red",
-    trend: "-5% from last week",
+    trend: "",
     trendUp: false,
   },
 ];
@@ -238,16 +187,16 @@ const mapApiResponseToRequestItems = (apiData: any): RequestItem[] => {
   console.log("Data array to map:", dataArray);
 
   return dataArray.map((item: any) => {
-    const status = item.status || "Unknown";
+    const status = item.sessionstats?.[0].finalindicatorstatus || "Not available";
     console.log("Mapping item:", item);
 
     return {
-      sessionId: item.sessionId || item.session_id || item.id || "Unknown",
-      button: item.button || item.buttonName || item.button_name || "Unknown",
-      site: item.site || item.siteName || item.website || item.site_name || "Unknown",
-      initiatedOn: item.timestamp ? getUserTime(item.timestamp) : "Unknown",
+      sessionId: item.sessionId || item.session_id || item.usertoken || "Unknown",
+      button: item.button || item.buttonname || item.button_name || "Unknown",
+      site: item.site || item.sessionstats?.[0]?.site || item.website || item.site_name || "Not available",
+      initiatedOn: item.crtime ? getUserTime(item.crtime) : "",
       finalStatus: status,
-      exitReason: item.exitReason || item.reason || item.exit_reason || "",
+      exitReason: item.sessionstats?.[0]?.finalExitstatus || item.reason || item.exit_reason || "",
       trackId: item.trackId || item.track_id || "",
       statusColor: getStatusColorFromStatus(status),
     };
@@ -308,7 +257,7 @@ export default function RequestsSent() {
     setError(null);
 
     try {
-      const offset = (page - 1) * itemsPerPage;
+      const offset = page - 1;
       let response;
 
       if (search) {
@@ -329,6 +278,7 @@ export default function RequestsSent() {
       console.log("API Response data:", response.data);
 
       const mappedRequests = mapApiResponseToRequestItems(response.data);
+
       console.log("Mapped requests:", mappedRequests);
 
       setRequests(mappedRequests);
@@ -350,17 +300,17 @@ export default function RequestsSent() {
         {
           ...initialStatsCards[0],
           value: totalRequests.toString(),
-          trend: totalRequests > 0 ? "+12% from last week" : "No recent activity",
+          trend: "",
         },
         {
           ...initialStatsCards[1],
           value: completedRequests.toString(),
-          trend: completedRequests > 0 ? "On track" : "No completed requests",
+          trend: "",
         },
         {
           ...initialStatsCards[2],
           value: abandonedRequests.toString(),
-          trend: abandonedRequests > 0 ? `${abandonedRequests} need attention` : "No abandoned requests",
+          trend: "",
         },
       ]);
 
@@ -376,7 +326,7 @@ export default function RequestsSent() {
     }
   };
 
-  // Effect to fetch data on mount and when page or search changes
+  // Effect to fetch data on mount and when search or current page changes
   useEffect(() => {
     // Debug Redux state - using the already retrieved state at component level
     console.log("Redux sessionReport state:", {
@@ -386,8 +336,9 @@ export default function RequestsSent() {
       error: reduxError,
     });
 
+    // Fetch data with the current page
     fetchRequests(currentPage, searchQuery);
-  }, [currentPage, searchQuery, autoNavData, loading, feedbackSubmitted, reduxError]);
+  }, [currentPage, searchQuery, autoNavData, loading, feedbackSubmitted, reduxError, currentPage]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -492,12 +443,14 @@ export default function RequestsSent() {
                       <CardContent>
                         <div className="text-2xl font-bold">{card.value}</div>
                         <p className="text-xs text-muted-foreground">{card.description}</p>
-                        <div
-                          className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}
-                        >
-                          {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                          {card.trend}
-                        </div>
+                        {card.trend && (
+                          <div
+                            className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}
+                          >
+                            {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                            {card.trend}
+                          </div>
+                        )}
                         <div className={`absolute bottom-0 left-0 h-1 w-full bg-${card.color}-500/20`} />
                       </CardContent>
                     </Card>
@@ -575,6 +528,7 @@ export default function RequestsSent() {
                           </TableCell>
                         </TableRow>
                       ) : (
+                        (console.log(requests, "here is the request-sent"),
                         // Populated state
                         requests.map((request, index) => (
                           <motion.tr
@@ -585,7 +539,7 @@ export default function RequestsSent() {
                               ...transitionConfig,
                               delay: 0.5 + index * 0.05,
                             }}
-                            className="group"
+                            className="group cursor-pointer relative overflow-hidden hover:bg-gray-100/80 dark:hover:bg-gray-700/30 border-l-0 hover:border-l-4 border-l-transparent hover:border-primary"
                           >
                             <TableCell className="font-medium">
                               <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
@@ -621,7 +575,7 @@ export default function RequestsSent() {
                               <div className="flex items-center justify-end">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <Button variant="ghost" size="icon" className=" group-hover:opacity-100">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -639,7 +593,7 @@ export default function RequestsSent() {
                               </div>
                             </TableCell>
                           </motion.tr>
-                        ))
+                        )))
                       )}
                     </TableBody>
                   </Table>

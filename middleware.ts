@@ -191,6 +191,7 @@ export const config = {
     "/two-factor",
     "/passwordreset/:id/:userEmail*",
     "/client/validation-buttons/:path*",
+    "/client/validation-buttons/button-settings/:id*",
     "/client/requests-sent/:path*",
     "/client/documents-received/:path*",
     "/client/coverage/:path*",

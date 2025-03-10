@@ -1,7 +1,7 @@
 import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
-
+import { CookieService } from "./auth.service";
 import { refreshAuthService } from "./refreshAuth.service";
 
 ls.config.encrypt = true;
@@ -74,11 +74,12 @@ class TableService {
   }
 
   private getApiKey(): string {
-    return (ls.get("apikey") as string) || "";
+    return (CookieService.get("apikey") as string) || "";
   }
 
   private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token") as string;
+    console.log("CookieService.get('token')", CookieService.get("token"));
+    axios.defaults.headers.common["Authorization"] = CookieService.get("token") as string;
   }
 
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<TableResponse<T>> {
@@ -96,8 +97,9 @@ class TableService {
       };
     } catch (error: any) {
       // Handle token refresh for 401 errors
+      console.log("response from the api", error.response.data);
       if (
-        ls.get("refreshToken") &&
+        CookieService.get("refreshToken") &&
         (error.message === "Request failed with status code 401" || error.message === "Network Error") &&
         retryKey &&
         this.retryCount[retryKey] < this.MAX_RETRY_COUNT
@@ -124,9 +126,9 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "invite",
-      limit: params.offset || 0,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      offset: params.offset || 0,
+      requesterEmail: CookieService.get("email") as string,
+      requesterRole: CookieService.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -136,13 +138,13 @@ class TableService {
     });
 
     try {
-      const response = await this.makeRequest<any>(env.invite, data, "getRequested");
-      console.log("Received response from invite API:", response);
+      const response = await this.makeRequest<any>(env.requesteduser, data, "getRequested");
 
       // Ensure data property is properly structured even if API returns unexpected format
       if (response.success && response.data && !response.data.data && Array.isArray(response.data)) {
         response.data = { data: response.data, total: response.data.length };
       }
+      console.log("Received response from invite API:", response);
 
       return response;
     } catch (error) {
@@ -158,7 +160,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "pending",
-      limit: params.offset || 0,
+      offset: params.offset || 0,
       orgid: ls.get("orgid") as string,
       requesterEmail: ls.get("email") as string,
       requesterRole: ls.get("roles") as string,
@@ -177,7 +179,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "approved",
-      limit: params.offset || 0,
+      offset: params.offset || 0,
       orgid: ls.get("orgid") as string,
       requesterEmail: ls.get("email") as string,
       requesterRole: ls.get("roles") as string,
@@ -191,7 +193,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
-      limit: params.offset || 0,
+      offset: params.offset || 0,
       orgid: ls.get("orgid") as string,
       requesterEmail: ls.get("email") as string,
       requesterRole: ls.get("roles") as string,

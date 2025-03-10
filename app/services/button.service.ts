@@ -94,7 +94,7 @@ class ButtonService {
 
   async getButtons(): Promise<ButtonResponse<any>> {
     this.setupAxiosDefaults();
-    return this.makeRequest(env.invite, {});
+    return this.makeRequest(env.requesteduser, {});
   }
 
   async getButton(buttonId: string): Promise<ButtonResponse<any>> {

@@ -518,7 +518,6 @@ const authSlice = createSlice({
         state.loading = false;
         state.loginError = null;
         state.isTwoFactor = false;
-        state.twoFactorId = "";
 
         // Log the updated state
         console.log("Auth state after twoFactorLoginSuccess:", {

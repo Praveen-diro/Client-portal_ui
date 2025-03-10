@@ -26,6 +26,7 @@ import {
   setPasswordError,
   setResetLinkExpired,
   getCountries,
+  loginSandboxTwoFactor,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
 
@@ -901,9 +902,9 @@ class AuthService {
           data: res.data,
         };
       } else if (res.data.statusCode === 200) {
-        console.log("Two-factor authentication successful");
+        console.log("Two-factor authentication successful", res.data);
 
-        if (res.data.sandbox === false || res.data.sandbox === "1") {
+        if (res.data.doc.data.sandbox === false || res.data.doc.data.sandbox === "1") {
           console.log("live mode");
 
           // Clear two-factor cookies and set authenticated
@@ -951,7 +952,7 @@ class AuthService {
           CookieService.set("isAuthenticated", "true");
 
           // Dispatch login success action for sandbox
-          dispatchAction(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
+          dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: res.data }));
 
           sendLogs("Sandbox Login", "Sandbox logged in successfully", "services/auth.service.ts");
 
