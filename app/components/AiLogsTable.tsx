@@ -14,7 +14,7 @@ interface AiLogsTableProps {
 }
 
 const AiLogsTable: React.FC<AiLogsTableProps> = ({ sessionId }) => {
-  const { autoNavData, loading } = useAppSelector((state) => state.sessionReport);
+  const { AutoNavData: autoNavData, loading } = useAppSelector((state) => state.table);
 
   if (loading) {
     return (
@@ -68,7 +68,11 @@ const AiLogsTable: React.FC<AiLogsTableProps> = ({ sessionId }) => {
                     </a>
                   </div>
                 </TableCell>
-                <TableCell>{getUserTime(log.timestamp)}</TableCell>
+                <TableCell>
+                  {typeof log.timestamp === "string"
+                    ? getUserTime(new Date(log.timestamp).getTime())
+                    : getUserTime(log.timestamp)}
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                     Visited

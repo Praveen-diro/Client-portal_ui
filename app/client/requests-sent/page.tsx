@@ -38,12 +38,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
-import {
-  fetchSessionReport,
-  fetchAutoNavData,
-  submitFeedback,
-  resetFeedbackStatus,
-} from "@/app/store/features/sessionReportSlice";
+import { fetchSessionReport, fetchAutoNavData, submitFeedback, resetFeedbackStatus } from "@/app/store/features/tableSlice";
 import SessionReportTable from "@/app/components/SessionReportTable";
 import AiLogsTable from "@/app/components/AiLogsTable";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,10 +51,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { tableService } from "@/app/services/table.service";
 import { getUserTime } from "@/app/utils/timeUtils";
-
+import Loader from "@/components/ui/loader";
 // Define form schema for feedback
 const formSchema = z.object({
   comment: z.string().min(1, { message: "Comment is required" }),
+  rating: z.string().refine((value) => parseInt(value) >= 1 && parseInt(value) <= 5, {
+    message: "Rating must be between 1 and 5",
+  }),
 });
 
 // Type for request items
@@ -225,10 +223,22 @@ const getStatusColorFromStatus = (status: string): string => {
   }
 };
 
+// Define the NavLog interface to match what's needed in this component
+interface NavLog {
+  currentUrl: string;
+  timestamp?: string;
+  title?: string;
+}
+
 export default function RequestsSent() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const { autoNavData, loading, feedbackSubmitted, error: reduxError } = useAppSelector((state) => state.sessionReport);
+  const {
+    AutoNavData: autoNavData,
+    loading,
+    submitFeedalert: feedbackSubmitted,
+    error: reduxError,
+  } = useAppSelector((state) => state.table);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sessionModal, setSessionModal] = useState(false);
@@ -248,6 +258,7 @@ export default function RequestsSent() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       comment: "",
+      rating: "1",
     },
   });
 
@@ -261,6 +272,7 @@ export default function RequestsSent() {
       let response;
 
       if (search) {
+        // Debounced search using searchTable
         response = await tableService.searchTable(search, offset, itemsPerPage);
       } else {
         response = await tableService.getRequested({
@@ -336,9 +348,23 @@ export default function RequestsSent() {
       error: reduxError,
     });
 
-    // Fetch data with the current page
-    fetchRequests(currentPage, searchQuery);
-  }, [currentPage, searchQuery, autoNavData, loading, feedbackSubmitted, reduxError, currentPage]);
+    // Only fetch data if not triggered by search query change
+    if (!searchQuery) {
+      fetchRequests(currentPage);
+    }
+  }, [currentPage, autoNavData, loading, feedbackSubmitted, reduxError]);
+
+  // Separate effect for handling debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only search if query has 3 or more characters
+      if (searchQuery.trim().length >= 3) {
+        fetchRequests(1, searchQuery);
+      }
+    }, 800); // 800ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -370,6 +396,7 @@ export default function RequestsSent() {
   // Function to handle session detail view
   const handleViewSessionDetails = (sessionId: string) => {
     setSelectedSessionId(sessionId);
+    console.log("Dispatching session details for:", sessionId);
     dispatch(fetchSessionReport(sessionId));
     dispatch(fetchAutoNavData(sessionId));
     setSessionModal(true);
@@ -391,20 +418,35 @@ export default function RequestsSent() {
       email: "user@example.com", // Replace with actual user email
       sessionId: selectedSessionId,
       comment: values.comment,
-      source: "client portal",
+      rating: parseInt(values.rating),
     };
 
     dispatch(submitFeedback(feedbackData));
   };
 
   // Check if the auto nav data has URLs
-  const hasUrls = autoNavData && autoNavData.navLogs && autoNavData.navLogs.some((log) => log.currentUrl);
+  const hasUrls = autoNavData?.navLogs && autoNavData.navLogs.some((log: NavLog) => Boolean(log.currentUrl));
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page when searching
-    fetchRequests(1, searchQuery);
+    // Only search if query has 3 or more characters
+    if (searchQuery.trim().length >= 3) {
+      fetchRequests(1, searchQuery);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when search query changes
+
+    // If search input is cleared, reset to default table data
+    if (!value.trim()) {
+      fetchRequests(1);
+    }
+    // Don't need to add minimum character check here as it's handled in the debounced effect
   };
 
   // Handle pagination
@@ -424,7 +466,7 @@ export default function RequestsSent() {
           <div className="flex-1 relative">
             <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
             <div className="container mx-auto px-6 py-8">
-              <div className="grid gap-4 md:grid-cols-3">
+              {/* <div className="grid gap-4 md:grid-cols-3">
                 {stats.map((card, index) => (
                   <motion.div
                     key={card.title}
@@ -456,17 +498,17 @@ export default function RequestsSent() {
                     </Card>
                   </motion.div>
                 ))}
-              </div>
+              </div> */}
 
-              <div className="mt-6 mb-4">
+              <div className="mt-1 mb-4">
                 <form onSubmit={handleSearch} className="flex gap-2">
                   <Input
-                    placeholder="Search requests..."
+                    placeholder="Search requests... (minimum 3 characters)"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchInputChange}
                     className="max-w-md"
                   />
-                  <Button type="submit">
+                  <Button type="submit" disabled={searchQuery.trim().length < 3}>
                     <Search className="h-4 w-4 mr-2" />
                     Search
                   </Button>
@@ -505,14 +547,13 @@ export default function RequestsSent() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        // Loading state
-                        Array(5)
-                          .fill(0)
-                          .map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell colSpan={8} className="h-12 animate-pulse bg-gray-100 dark:bg-gray-800"></TableCell>
-                            </TableRow>
-                          ))
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center">
+                            <div className="flex justify-center items-center">
+                              <Loader />
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ) : error ? (
                         // Error state
                         <TableRow>

@@ -204,9 +204,9 @@ class TableService {
   }
 
   async getSessionReport(sessionid: string): Promise<TableResponse<any>> {
+    console.log("sessionid inside the session report", sessionid);
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      inviteid: sessionid,
     };
 
     return this.makeRequest(env.sessionstats, data, "getSessionReport");
@@ -214,8 +214,7 @@ class TableService {
 
   async getAutoNavData(sessionid: string): Promise<TableResponse<any>> {
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      sessionId: sessionid,
     };
 
     return this.makeRequest(env.getAutoNavData, data, "getAutoNavData");
@@ -229,7 +228,7 @@ class TableService {
       limit,
     };
 
-    return this.makeRequest(env.fulltextsearch, data, "searchTable");
+    return this.makeRequest(env.requesteduser, data, "searchTable");
   }
 
   async submitFeedback(data: FeedbackFormData): Promise<TableResponse<any>> {

@@ -35,8 +35,12 @@ export function PageHeader({ title, description }: PageHeaderProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ ...transitionConfig, delay: 0.1 }}
           >
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="pl-10 w-full" />
+            {title !== "Requests Sent" && (
+              <>
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="search" placeholder="Search..." className="pl-10 w-full" />
+              </>
+            )}
           </motion.div>
 
           <motion.div

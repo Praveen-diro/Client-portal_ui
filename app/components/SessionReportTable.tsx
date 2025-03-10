@@ -8,12 +8,33 @@ import { useAppSelector } from "@/app/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, XCircle } from "lucide-react";
 
+interface SessionEvent {
+  datetime: string;
+  device: string;
+  browser: string;
+  verified: string;
+  couldnotverify: string;
+  tryneedhelp: string;
+  sessionid: string;
+  status?: string;
+  timespend?: string;
+  details?: string;
+}
+
+interface SessionReport {
+  data: SessionEvent[];
+}
+
 interface SessionReportTableProps {
   sessionId: string;
 }
 
 const SessionReportTable: React.FC<SessionReportTableProps> = ({ sessionId }) => {
-  const { sessionReport, loading } = useAppSelector((state) => state.sessionReport);
+  const { session_report: sessionReport, loading } = useAppSelector((state) => ({
+    session_report: state.table.session_report as unknown as SessionReport,
+    loading: state.table.loading,
+  }));
+  console.log("sessionReport inside the session report table", sessionReport);
 
   if (loading) {
     return (
@@ -25,7 +46,7 @@ const SessionReportTable: React.FC<SessionReportTableProps> = ({ sessionId }) =>
     );
   }
 
-  if (!sessionReport || !sessionReport.data) {
+  if (!sessionReport || !sessionReport.data || sessionReport.data.length === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -37,8 +58,9 @@ const SessionReportTable: React.FC<SessionReportTableProps> = ({ sessionId }) =>
     );
   }
 
-  // Assuming sessionReport.data is an array of events
-  const events = Array.isArray(sessionReport.data) ? sessionReport.data : [];
+  // Extract events from the nested data structure
+  const events: SessionEvent[] = sessionReport.data;
+  console.log("events inside the session report table", events);
 
   return (
     <Card>
@@ -49,29 +71,25 @@ const SessionReportTable: React.FC<SessionReportTableProps> = ({ sessionId }) =>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Event</TableHead>
-              <TableHead>Details</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Timestamp</TableHead>
+              <TableHead>Date & time</TableHead>
+              <TableHead>Device & Browser</TableHead>
+              <TableHead>Time spent</TableHead>
+              <TableHead>Livefeedback</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {events.length > 0 ? (
               events.map((event, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{event.eventType || "Unknown"}</TableCell>
-                  <TableCell>{event.details || "-"}</TableCell>
+                  <TableCell className="font-medium">{event.datetime || "Unknown"}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      {event.status === "success" ? (
-                        <ArrowUpRight className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500" />
-                      )}
-                      {firstLetterCap(event.status) || "Unknown"}
-                    </div>
+                    {event?.device
+                      ?.replace("Mozilla/5.0", "")
+                      ?.replace("AppleWebKit/537.36 (KHTML, like Gecko)", "")
+                      ?.replace("Safari/537.36", "")}
                   </TableCell>
-                  <TableCell>{event.timestamp ? new Date(event.timestamp).toLocaleString() : "-"}</TableCell>
+                  <TableCell>{event.timespend}</TableCell>
+                  <TableCell>{event.couldnotverify ? "true" : "false"}</TableCell>
                 </TableRow>
               ))
             ) : (
