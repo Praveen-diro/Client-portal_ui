@@ -5,6 +5,8 @@ import authReducer from "./features/authSlice";
 import privacyReducer from "./features/privacySlice";
 import triggerReducer from "./features/triggerSlice";
 import tableReducer from "./features/tableSlice";
+import organizationReducer from "./features/organizationSlice";
+import billingReducer from "./features/billingSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
 // Create the root reducer separately so we can extract the RootState type
@@ -15,6 +17,9 @@ const rootReducer = combineReducers({
   privacy: privacyReducer,
   trigger: triggerReducer,
   table: tableReducer,
+  organization: organizationReducer,
+  billing: billingReducer,
+
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
@@ -73,6 +78,8 @@ if (
       "./features/privacySlice",
       "./features/triggerSlice",
       "./features/tableSlice",
+      "./features/organizationSlice",
+      "./features/billingSlice",
     ],
     () => {
       store.replaceReducer(rootReducer);

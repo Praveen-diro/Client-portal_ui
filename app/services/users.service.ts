@@ -3,6 +3,7 @@ import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { refreshAuthService } from "./refreshAuth.service";
 import { logService } from "./logs.service";
+import { CookieService } from "./auth.service";
 
 ls.config.encrypt = true;
 
@@ -14,7 +15,7 @@ export interface UserResponse<T> {
 }
 
 export interface UserFormData {
-  email: string;
+  emailId: string;
   password?: string;
   role?: string;
   [key: string]: any;
@@ -22,17 +23,22 @@ export interface UserFormData {
 
 class UsersService {
   private subscribers: ((data: any) => void)[] = [];
+  private retryCount: { [key: string]: number } = {};
+  private MAX_RETRY_COUNT = 3;
 
   constructor() {
     this.setupAxiosDefaults();
   }
 
   private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token");
+    const token = CookieService.get("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = token as string;
+    }
   }
 
   private getApiKey(): string {
-    return ls.get("apikey") || "";
+    return CookieService.get("apikey") as string;
   }
 
   private generateRandomPassword(): string {
@@ -50,6 +56,65 @@ class UsersService {
     return randomStr + rS + "@";
   }
 
+  private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
+    this.setupAxiosDefaults();
+
+    try {
+      const response = await axios.post(url, data);
+
+      if (retryKey) {
+        this.retryCount[retryKey] = 0;
+      }
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return this.handleApiError(error, url, data, retryKey);
+    }
+  }
+
+  private async handleApiError<T>(error: any, url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
+    // Handle token refresh for 401/403 errors
+    if (
+      CookieService.get("refreshToken") &&
+      (error.response?.status === 401 ||
+        error.response?.status === 403 ||
+        error.message === "Network Error" ||
+        error.message === "Request failed with status code 401") &&
+      retryKey &&
+      this.retryCount[retryKey] < this.MAX_RETRY_COUNT
+    ) {
+      console.log("Attempting to refresh token for:", retryKey, "- Attempt:", this.retryCount[retryKey] + 1);
+      this.retryCount[retryKey]++;
+
+      try {
+        await refreshAuthService.refreshAuth(async () => {
+          return { success: true };
+        }, false);
+
+        // Update axios defaults with new token
+        this.setupAxiosDefaults();
+
+        console.log("Token refreshed successfully, retrying request");
+        return this.makeRequest(url, data, retryKey);
+      } catch (refreshError) {
+        console.error("Failed to refresh token:", refreshError);
+      }
+    }
+
+    if (retryKey) {
+      this.retryCount[retryKey] = 0;
+    }
+
+    await logService.sendLogs(`API Request Failed: ${url}`, error.response || error.message, "users.service.ts");
+    return {
+      success: false,
+      error: error.response?.data || error.message || "An unknown error occurred",
+    };
+  }
+
   subscribe(callback: (data: any) => void): () => void {
     this.subscribers.push(callback);
     return () => {
@@ -62,128 +127,87 @@ class UsersService {
   }
 
   async addUser(formData: UserFormData): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      formData.password = this.generateRandomPassword();
+    formData.password = this.generateRandomPassword();
 
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.addWorker, formData);
-      }, false);
+    const response = await this.makeRequest(env.addWorker, formData, `addUser-${formData.emailId}`);
 
+    if (response.success) {
       await logService.sendLogs("addUser", "addUser success", "users.service.ts");
-      this.notifySubscribers({ type: "ADD_USER", data: response?.data });
+      this.notifySubscribers({ type: "ADD_USER", data: response.data });
       await this.getUsers(); // Refresh users list
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("addUser Failed", error.response, "users.service.ts");
-      return { success: false, error: error.response || error.message };
     }
+
+    return response;
   }
 
   async getUsers(): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      const json = { emailId: ls.get("email"), apiKey: this.getApiKey() };
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.getWorkersList, json);
-      }, false);
+    const json = { emailId: CookieService.get("email"), apiKey: this.getApiKey() };
+    const response = await this.makeRequest(env.getWorkersList, json, "getUsers");
 
-      if (response?.data?.error === true) {
-        await logService.sendLogs("getUsers Failed", response.data, "users.service.ts");
-        return { success: false, error: response.data };
-      }
-
-      await logService.sendLogs("getUsers", "getUsers success", "users.service.ts");
-      this.notifySubscribers({ type: "GET_USERS", data: response?.data });
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("getUsers Failed", error.message, "users.service.ts");
-      return { success: false, error: error.message };
+    // Check if response has error property using type assertion
+    const responseData = response.data as Record<string, any>;
+    if (response.success && responseData && responseData.error === true) {
+      return { success: false, error: responseData };
     }
+
+    this.notifySubscribers({ type: "GET_USERS", data: response.data });
+    return response;
   }
 
   async getUser(email: string): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      const json = { emailId: email, apiKey: this.getApiKey() };
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.getWorker, json);
-      }, false);
-
-      await logService.sendLogs("getUser", "getUser success", "users.service.ts");
-      this.notifySubscribers({ type: "GET_USER", data: response?.data });
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("getUser Failed", error.message, "users.service.ts");
-      return { success: false, error: error.message };
-    }
+    const json = { emailId: email, apiKey: this.getApiKey() };
+    return this.makeRequest(env.getWorker, json, `getUser-${email}`);
   }
 
   async updateUser(formData: UserFormData): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.updateWorker, formData);
-      }, false);
+    const response = await this.makeRequest(env.updateWorker, formData, `updateUser-${formData.email}`);
 
+    if (response.success) {
       await logService.sendLogs("updateUser", "updateUser success", "users.service.ts");
-      this.notifySubscribers({ type: "EDIT_USER", data: response?.data });
+      this.notifySubscribers({ type: "UPDATE_USER", data: response.data });
       await this.getUsers(); // Refresh users list
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("updateUser Failed", error.message, "users.service.ts");
-      return { success: false, error: error.message };
     }
+
+    return response;
   }
 
   async deleteUser(email: string): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      const json = {
-        apiKey: this.getApiKey(),
-        orgEmailId: ls.get("email"),
-        workerEmailId: email,
-      };
+    const json = { emailId: email, apiKey: this.getApiKey() };
 
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.deleteWorker, json);
-      }, false);
+    const response = await this.makeRequest(env.deleteWorker, json, `deleteUser-${email}`);
 
+    if (response.success) {
       await logService.sendLogs("deleteUser", "deleteUser success", "users.service.ts");
-      this.notifySubscribers({ type: "DELETE_USERS", data: response?.data });
+      this.notifySubscribers({ type: "DELETE_USER", data: { email } });
       await this.getUsers(); // Refresh users list
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("deleteUser Failed", error.message, "users.service.ts");
-      return { success: false, error: error.message };
     }
+
+    return response;
   }
 
   async transferOwnership(currentOwner: string, newOwner: string): Promise<UserResponse<any>> {
-    this.setupAxiosDefaults();
-    try {
-      const json = {
-        currentowner: currentOwner,
-        newowner: newOwner,
-      };
+    const json = {
+      currentOwner,
+      newOwner,
+      apiKey: this.getApiKey(),
+    };
 
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.ownerTransfer, json);
-      }, false);
+    const response = await this.makeRequest(env.ownerTransfer, json, `transferOwnership-${currentOwner}-${newOwner}`);
 
-      await logService.sendLogs("transferOwnership", "transferOwnership success", "users.service.ts");
-      this.notifySubscribers({ type: "TRANSFER_OWNERSHIP", data: response?.data });
+    if (response.success) {
+      await logService.sendLogs(
+        "transferOwnership",
+        `Ownership transferred from ${currentOwner} to ${newOwner}`,
+        "users.service.ts"
+      );
+      this.notifySubscribers({
+        type: "TRANSFER_OWNERSHIP",
+        data: { currentOwner, newOwner },
+      });
       await this.getUsers(); // Refresh users list
-
-      // Clear storage and redirect
-      localStorage.clear();
-      window.location.href = "/login";
-
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      await logService.sendLogs("transferOwnership Failed", error.message, "users.service.ts");
-      return { success: false, error: error.message };
     }
+
+    return response;
   }
 }
 
