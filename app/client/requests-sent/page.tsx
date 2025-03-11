@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Timer,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -268,7 +270,7 @@ export default function RequestsSent() {
     setError(null);
 
     try {
-      const offset = page - 1;
+      const offset = page - 1; // Calculate offset based on current page
       let response;
 
       if (search) {
@@ -290,13 +292,16 @@ export default function RequestsSent() {
       console.log("API Response data:", response.data);
 
       const mappedRequests = mapApiResponseToRequestItems(response.data);
-
       console.log("Mapped requests:", mappedRequests);
 
-      setRequests(mappedRequests);
+      // If we got less than itemsPerPage items, we're on the last page
+      const isLastPage = mappedRequests.length < itemsPerPage;
+      setTotalPages(isLastPage ? page : page + 1);
 
-      // Update stats based on data
-      const totalRequests = response.data?.total || mappedRequests.length;
+      setRequests(mappedRequests);
+      setCurrentPage(page);
+
+      // Update stats based on current page data
       const completedRequests = mappedRequests.filter(
         (req) =>
           req.statusColor === "green" ||
@@ -311,7 +316,7 @@ export default function RequestsSent() {
       setStats([
         {
           ...initialStatsCards[0],
-          value: totalRequests.toString(),
+          value: mappedRequests.length.toString(),
           trend: "",
         },
         {
@@ -325,11 +330,6 @@ export default function RequestsSent() {
           trend: "",
         },
       ]);
-
-      // Update pagination
-      const totalItems = response.data?.total || mappedRequests.length;
-      setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
-      setCurrentPage(page);
     } catch (err) {
       console.error("Error fetching requests:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -338,30 +338,18 @@ export default function RequestsSent() {
     }
   };
 
-  // Effect to fetch data on mount and when search or current page changes
+  // Effect to fetch initial data
   useEffect(() => {
-    // Debug Redux state - using the already retrieved state at component level
-    console.log("Redux sessionReport state:", {
-      autoNavData,
-      loading,
-      feedbackSubmitted,
-      error: reduxError,
-    });
+    fetchRequests(1);
+  }, []);
 
-    // Only fetch data if not triggered by search query change
-    if (!searchQuery) {
-      fetchRequests(currentPage);
-    }
-  }, [currentPage, autoNavData, loading, feedbackSubmitted, reduxError]);
-
-  // Separate effect for handling debounced search
+  // Effect for search
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Only search if query has 3 or more characters
       if (searchQuery.trim().length >= 3) {
         fetchRequests(1, searchQuery);
       }
-    }, 800); // 800ms delay
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -425,7 +413,7 @@ export default function RequestsSent() {
   };
 
   // Check if the auto nav data has URLs
-  const hasUrls = autoNavData?.navLogs && autoNavData.navLogs.some((log: NavLog) => Boolean(log.currentUrl));
+  const hasUrls = autoNavData?.baseUrl || autoNavData?.navLogs.some((log: NavLog) => Boolean(log.currentUrl));
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -501,18 +489,36 @@ export default function RequestsSent() {
               </div> */}
 
               <div className="mt-1 mb-4">
-                <form onSubmit={handleSearch} className="flex gap-2">
-                  <Input
-                    placeholder="Search requests... (minimum 3 characters)"
-                    value={searchQuery}
-                    onChange={handleSearchInputChange}
-                    className="max-w-md"
-                  />
-                  <Button type="submit" disabled={searchQuery.trim().length < 3}>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </form>
+                <div className="relative w-full max-w-sm">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <div className="relative">
+                    <Input
+                      placeholder="Search requests... (minimum 3 characters)"
+                      value={searchQuery}
+                      onChange={handleSearchInputChange}
+                      style={{ width: "-webkit-fill-available" }}
+                      className="w-[300px]  pr-8 py-2 h-10 bg-background border border-input rounded-md focus-visible:ring-1 focus-visible:ring-primary"
+                    />
+                    {searchQuery && (
+                      <div className="absolute inset-y-0 right-0 flex items-center mr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 hover:bg-transparent"
+                          onClick={() => {
+                            setSearchQuery("");
+                            fetchRequests(1);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <motion.div
@@ -524,7 +530,7 @@ export default function RequestsSent() {
                 }}
                 className="rounded-lg border bg-card mt-6"
               >
-                <div className="rounded-md">
+                <div className="rounded-md min-h-[400px]">
                   <Table>
                     <TableHeader>
                       <motion.tr
@@ -548,8 +554,8 @@ export default function RequestsSent() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="h-24 text-center">
-                            <div className="flex justify-center items-center">
+                          <TableCell colSpan={8} className="h-[300px] text-center">
+                            <div className="flex justify-center items-center h-full">
                               <Loader />
                             </div>
                           </TableCell>
@@ -565,7 +571,7 @@ export default function RequestsSent() {
                         // Empty state
                         <TableRow>
                           <TableCell colSpan={8} className="text-center">
-                            No requests found
+                            <h3 className="text-lg font-semibold">No requests found</h3>
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -649,58 +655,35 @@ export default function RequestsSent() {
                   }}
                   className="flex items-center justify-center py-4"
                 >
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        // Logic to show pagination numbers around current page
-                        let pageNumber;
-                        if (totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNumber = totalPages - 4 + i;
-                        } else {
-                          pageNumber = currentPage - 2 + i;
+                  <div className="inline-flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-full border px-3 py-1">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (currentPage > 1) {
+                          const newPage = currentPage - 1;
+                          fetchRequests(newPage, searchQuery);
                         }
-
-                        return (
-                          <PaginationItem key={pageNumber}>
-                            <PaginationLink
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handlePageChange(pageNumber);
-                              }}
-                              isActive={currentPage === pageNumber}
-                            >
-                              {pageNumber}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-
-                      {totalPages > 5 && currentPage < totalPages - 2 && (
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                      }}
+                      disabled={currentPage <= 1}
+                      className="h-8 rounded-full flex items-center gap-2"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>Previous</span>
+                    </Button>
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        const newPage = currentPage + 1;
+                        fetchRequests(newPage, searchQuery);
+                      }}
+                      disabled={requests.length < itemsPerPage}
+                      className="h-8 rounded-full flex items-center gap-2"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </motion.div>
               </motion.div>
             </div>
@@ -710,7 +693,7 @@ export default function RequestsSent() {
 
       {/* Session Details Modal */}
       <Dialog open={sessionModal} onOpenChange={setSessionModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-[1200px] w-full h-[800px] max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Session Details: {selectedSessionId}</DialogTitle>
             <DialogDescription>View detailed information about this session.</DialogDescription>
