@@ -2,7 +2,7 @@ import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { setAuthToken } from "../utils/tools";
-import { CookieService } from "./auth.service";
+import { cookies } from "./cookie.service";
 
 ls.config.encrypt = true;
 
@@ -15,7 +15,7 @@ export interface RefreshAuthResponse {
 class RefreshAuthService {
   private async handleRefreshToken(): Promise<RefreshAuthResponse> {
     console.log("handleRefreshToken");
-    const refreshToken = CookieService.get("refreshToken");
+    const refreshToken = cookies.get("refreshToken");
     if (!refreshToken) {
       return { success: false, message: "No refresh token found" };
     }
@@ -28,7 +28,7 @@ class RefreshAuthService {
       }
 
       if (response.headers.authorization) {
-        CookieService.set("token", response.headers.authorization);
+        cookies.set("token", response.headers.authorization);
         setAuthToken(response.headers.authorization);
         return {
           success: true,

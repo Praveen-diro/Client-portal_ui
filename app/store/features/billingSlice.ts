@@ -5,20 +5,20 @@ interface Transaction {
   [key: string]: any;
 }
 
+interface TransactionPayload {
+  data: Transaction | Transaction[];
+}
+
 interface BillingState {
   transaction: Transaction | null;
-  transactions: Transaction[];
+  transactions: { data: Transaction[] };
   loading: boolean;
   error: any;
 }
 
-interface TransactionPayload {
-  data: Transaction;
-}
-
 const initialState: BillingState = {
   transaction: null,
-  transactions: [],
+  transactions: { data: [] },
   loading: false,
   error: {},
 };
@@ -28,12 +28,13 @@ export const billingSlice = createSlice({
   initialState,
   reducers: {
     getTransaction: (state, action: PayloadAction<TransactionPayload>) => {
-      state.transaction = action.payload.data;
+      state.transaction = action.payload.data as Transaction;
       state.loading = false;
     },
 
     getTransactions: (state, action: PayloadAction<TransactionPayload>) => {
-      state.transaction = action.payload.data;
+      const transactionsData = action.payload.data;
+      state.transactions = Array.isArray(transactionsData) ? { data: transactionsData } : { data: [transactionsData] };
       state.loading = false;
     },
 

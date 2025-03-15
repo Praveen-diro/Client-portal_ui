@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, AlertTriangle, Check, Trash2, User } from "lucide-react";
+import { X, AlertTriangle, Check, Trash2, User, Loader2 } from "lucide-react";
 import { ReactNode, useState, useEffect } from "react";
 
 export interface ConfirmationModalProps {
@@ -48,6 +48,10 @@ export interface ConfirmationModalProps {
    * Type of confirmation - affects the color scheme
    */
   variant?: "delete" | "warning" | "info";
+  /**
+   * Whether the confirmation action is currently loading
+   */
+  isLoading?: boolean;
 }
 
 export function ConfirmationModal({
@@ -61,6 +65,7 @@ export function ConfirmationModal({
   confirmText = "Confirm",
   itemDetail,
   variant = "delete",
+  isLoading = false,
 }: ConfirmationModalProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [backdropVisible, setBackdropVisible] = useState(false);
@@ -128,11 +133,14 @@ export function ConfirmationModal({
   const colors = getColors();
 
   const handleConfirm = () => {
+    // Don't do anything if already loading
+    if (isLoading) return;
+
     setIsConfirming(true);
     setTimeout(() => {
       onConfirm();
       setIsConfirming(false);
-    }, 800);
+    }, 300); // Reduced the delay
   };
 
   // Default icon based on variant
@@ -165,7 +173,7 @@ export function ConfirmationModal({
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => {
-              if (e.target === e.currentTarget) onClose();
+              if (e.target === e.currentTarget && !isLoading) onClose();
             }}
           >
             <motion.div
@@ -219,7 +227,10 @@ export function ConfirmationModal({
                     <div className="absolute top-3 right-3">
                       <button
                         onClick={onClose}
-                        className="rounded-full p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                        disabled={isLoading}
+                        className={`rounded-full p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors ${
+                          isLoading ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <X className="h-5 w-5" />
                       </button>
@@ -244,21 +255,36 @@ export function ConfirmationModal({
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: isLoading ? 1 : 1.03 }}
+                        whileTap={{ scale: isLoading ? 1 : 0.97 }}
                         onClick={onClose}
-                        className="group px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all shadow-sm"
+                        disabled={isLoading}
+                        className={`group px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all shadow-sm ${
+                          isLoading ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         {cancelText}
                       </motion.button>
 
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: isLoading ? 1 : 1.03 }}
+                        whileTap={{ scale: isLoading ? 1 : 0.97 }}
                         onClick={handleConfirm}
-                        className={`relative px-4 py-2.5 rounded-xl bg-gradient-to-r ${colors.buttonGradient} text-white font-medium shadow-md hover:shadow-lg focus:outline-none focus:ring-2 ${colors.ring} focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all overflow-hidden`}
+                        disabled={isLoading || isConfirming}
+                        className={`relative px-4 py-2.5 rounded-xl bg-gradient-to-r ${
+                          colors.buttonGradient
+                        } text-white font-medium shadow-md hover:shadow-lg focus:outline-none focus:ring-2 ${
+                          colors.ring
+                        } focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all overflow-hidden ${
+                          isLoading ? "opacity-90 cursor-wait" : ""
+                        }`}
                       >
-                        {isConfirming ? (
+                        {isLoading ? (
+                          <span className="flex items-center justify-center">
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            {variant === "delete" ? "Deleting..." : "Processing..."}
+                          </span>
+                        ) : isConfirming ? (
                           <span className="flex items-center justify-center">
                             <Check className="h-5 w-5 mr-1" />
                             {variant === "delete" ? "Deleted" : "Confirmed"}

@@ -1,6 +1,7 @@
 import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
+import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { GlobalDebug } from "./remove-console.service";
 
@@ -36,15 +37,11 @@ export interface TableData {
 class ButtonService {
   constructor() {
     this.validateApiKey();
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
     return ls.get("apikey") || "";
-  }
-
-  private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token");
   }
 
   private validateApiKey(): void {
@@ -93,7 +90,6 @@ class ButtonService {
   }
 
   async getButtons(): Promise<ButtonResponse<any>> {
-    this.setupAxiosDefaults();
     return this.makeRequest(env.requesteduser, {});
   }
 

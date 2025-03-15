@@ -3,9 +3,33 @@ import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { refreshAuthService } from "./refreshAuth.service";
 import { logService } from "./logs.service";
-import { CookieService } from "./auth.service";
+import { cookies } from "./cookie.service";
+import { axiosService } from "./axios.service";
 
 ls.config.encrypt = true;
+
+// Global loading state for components to subscribe to
+let loadingSubscribers: ((isLoading: boolean) => void)[] = [];
+
+/**
+ * Subscribe to loading state changes across the application
+ * @param callback Function to call when loading state changes
+ * @returns Unsubscribe function
+ */
+export const subscribeToLoading = (callback: (isLoading: boolean) => void): (() => void) => {
+  loadingSubscribers.push(callback);
+  return () => {
+    loadingSubscribers = loadingSubscribers.filter((sub) => sub !== callback);
+  };
+};
+
+/**
+ * Update loading state and notify all subscribers
+ * @param isLoading Current loading state
+ */
+const setLoading = (isLoading: boolean) => {
+  loadingSubscribers.forEach((callback) => callback(isLoading));
+};
 
 export interface UserResponse<T> {
   success: boolean;
@@ -16,8 +40,16 @@ export interface UserResponse<T> {
 
 export interface UserFormData {
   emailId: string;
+  email?: string;
   password?: string;
   role?: string;
+  firstName?: string;
+  lastName?: string;
+  mobileNumber?: string;
+  apiKey?: string;
+  adminEmail?: string;
+  country?: string;
+  _id?: string;
   [key: string]: any;
 }
 
@@ -27,18 +59,11 @@ class UsersService {
   private MAX_RETRY_COUNT = 3;
 
   constructor() {
-    this.setupAxiosDefaults();
-  }
-
-  private setupAxiosDefaults(): void {
-    const token = CookieService.get("token");
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = token as string;
-    }
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
-    return CookieService.get("apikey") as string;
+    return cookies.get("apikey") as string;
   }
 
   private generateRandomPassword(): string {
@@ -57,20 +82,35 @@ class UsersService {
   }
 
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
+
+    // Use the global loading state function
+    setLoading(true);
 
     try {
-      const response = await axios.post(url, data);
+      // Only add apiKey if it's not already in the data
+      const requestData = data.apiKey ? data : { ...data, apiKey: this.getApiKey() };
+      const response = await axios.post(url, requestData);
 
       if (retryKey) {
         this.retryCount[retryKey] = 0;
       }
+
+      // Set loading state to false after getting the response
+      setLoading(false);
 
       return {
         success: true,
         data: response.data,
       };
     } catch (error: any) {
+      // Handle the error and set loading to false
+      if (retryKey) {
+        this.retryCount[retryKey] = 0;
+      }
+
+      setLoading(false);
+
       return this.handleApiError(error, url, data, retryKey);
     }
   }
@@ -78,7 +118,7 @@ class UsersService {
   private async handleApiError<T>(error: any, url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
     // Handle token refresh for 401/403 errors
     if (
-      CookieService.get("refreshToken") &&
+      cookies.get("refreshToken") &&
       (error.response?.status === 401 ||
         error.response?.status === 403 ||
         error.message === "Network Error" ||
@@ -95,7 +135,7 @@ class UsersService {
         }, false);
 
         // Update axios defaults with new token
-        this.setupAxiosDefaults();
+        axiosService.setupAxiosDefaults();
 
         console.log("Token refreshed successfully, retrying request");
         return this.makeRequest(url, data, retryKey);
@@ -104,11 +144,9 @@ class UsersService {
       }
     }
 
-    if (retryKey) {
-      this.retryCount[retryKey] = 0;
-    }
-
+    // Log the error, but don't set loading state again since we already did in makeRequest
     await logService.sendLogs(`API Request Failed: ${url}`, error.response || error.message, "users.service.ts");
+
     return {
       success: false,
       error: error.response?.data || error.message || "An unknown error occurred",
@@ -141,26 +179,67 @@ class UsersService {
   }
 
   async getUsers(): Promise<UserResponse<any>> {
-    const json = { emailId: CookieService.get("email"), apiKey: this.getApiKey() };
-    const response = await this.makeRequest(env.getWorkersList, json, "getUsers");
+    const json = { emailId: cookies.get("email") };
+    try {
+      const response = await this.makeRequest(env.getWorkersList, json, "getUsers");
 
-    // Check if response has error property using type assertion
-    const responseData = response.data as Record<string, any>;
-    if (response.success && responseData && responseData.error === true) {
-      return { success: false, error: responseData };
+      // Check if response has error property using type assertion
+      const responseData = response.data as Record<string, any>;
+      if (response.success && responseData && responseData.error === true) {
+        return { success: false, error: responseData };
+      }
+
+      // Ensure the response data has the proper format for the Redux store
+      if (response.success && !responseData.workers) {
+        // If the response is successful but doesn't have the expected format,
+        // transform it to match what the Redux store expects
+        const formattedData = {
+          workers: Array.isArray(responseData) ? responseData : [],
+          error: null,
+          ownerEmail: cookies.get("email") || "",
+        };
+        this.notifySubscribers({ type: "GET_USERS", data: formattedData });
+        return { success: true, data: formattedData };
+      }
+
+      this.notifySubscribers({ type: "GET_USERS", data: response.data });
+      return response;
+    } catch (error: any) {
+      // Log the error
+      await logService.sendLogs("getUsers Failed", error, "users.service.ts");
+
+      // Return a properly formatted error response that can be handled by the UI
+      const errorResponse = {
+        success: false,
+        error: error.message || "Failed to fetch users",
+        data: {
+          workers: [],
+          error: error.message || "Failed to fetch users",
+          ownerEmail: cookies.get("email") || "",
+        },
+      };
+
+      this.notifySubscribers({ type: "GET_USERS", data: errorResponse.data });
+      return errorResponse;
     }
-
-    this.notifySubscribers({ type: "GET_USERS", data: response.data });
-    return response;
   }
 
   async getUser(email: string): Promise<UserResponse<any>> {
-    const json = { emailId: email, apiKey: this.getApiKey() };
+    const json = { emailId: email };
     return this.makeRequest(env.getWorker, json, `getUser-${email}`);
   }
 
   async updateUser(formData: UserFormData): Promise<UserResponse<any>> {
-    const response = await this.makeRequest(env.updateWorker, formData, `updateUser-${formData.email}`);
+    // Ensure the data has the correct format
+    const updateData = {
+      ...formData,
+      // Use email from either formData.email or formData.emailId
+      email: formData.email || formData.emailId,
+    };
+
+    // Use a consistent identifier for logging
+    const emailIdentifier = updateData.email || updateData.emailId;
+    const response = await this.makeRequest(env.updateWorker, updateData, `updateUser-${emailIdentifier}`);
 
     if (response.success) {
       await logService.sendLogs("updateUser", "updateUser success", "users.service.ts");
@@ -172,24 +251,60 @@ class UsersService {
   }
 
   async deleteUser(email: string): Promise<UserResponse<any>> {
-    const json = { emailId: email, apiKey: this.getApiKey() };
+    const json = {
+      workerEmailId: email,
+      orgEmailId: cookies.get("email"),
+    };
 
-    const response = await this.makeRequest(env.deleteWorker, json, `deleteUser-${email}`);
+    // Notify subscribers about loading state - this will be picked up by components
+    this.notifySubscribers({ type: "DELETE_USER_LOADING", data: { loading: true, email } });
 
-    if (response.success) {
-      await logService.sendLogs("deleteUser", "deleteUser success", "users.service.ts");
-      this.notifySubscribers({ type: "DELETE_USER", data: { email } });
-      await this.getUsers(); // Refresh users list
+    try {
+      // makeRequest already handles setting loading state through axios interceptors
+      const response = await this.makeRequest(env.deleteWorker, json, `deleteUser-${email}`);
+
+      if (response.success) {
+        // Log successful deletion
+        await logService.sendLogs("deleteUser", "deleteUser success", "users.service.ts");
+
+        // Notify subscribers about successful deletion
+        this.notifySubscribers({ type: "DELETE_USER", data: { email, success: true } });
+
+        // Refresh the users list
+        await this.getUsers();
+      } else {
+        // Log failed deletion
+        await logService.sendLogs("deleteUser Failed", response.error, "users.service.ts");
+
+        // Notify subscribers about failed deletion
+        this.notifySubscribers({ type: "DELETE_USER", data: { email, success: false, error: response.error } });
+      }
+
+      return response;
+    } catch (error: any) {
+      // Log any unexpected errors
+      await logService.sendLogs("deleteUser Error", error?.message || error, "users.service.ts");
+
+      // Notify subscribers about the error
+      this.notifySubscribers({
+        type: "DELETE_USER",
+        data: { email, success: false, error: error?.message || "Unknown error occurred" },
+      });
+
+      return {
+        success: false,
+        error: error?.message || "Failed to delete user",
+      };
+    } finally {
+      // Always notify subscribers that loading is complete
+      this.notifySubscribers({ type: "DELETE_USER_LOADING", data: { loading: false, email } });
     }
-
-    return response;
   }
 
   async transferOwnership(currentOwner: string, newOwner: string): Promise<UserResponse<any>> {
     const json = {
       currentOwner,
       newOwner,
-      apiKey: this.getApiKey(),
     };
 
     const response = await this.makeRequest(env.ownerTransfer, json, `transferOwnership-${currentOwner}-${newOwner}`);

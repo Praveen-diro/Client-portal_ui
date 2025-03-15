@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
+import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 
 ls.config.encrypt = true;
@@ -14,11 +15,7 @@ export interface ReqDocResponse<T> {
 
 class ReqDocService {
   constructor() {
-    this.setupAxiosDefaults();
-  }
-
-  private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token");
+    axiosService.setupAxiosDefaults();
   }
 
   async getInviteLink(json: any): Promise<ReqDocResponse<any>> {

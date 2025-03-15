@@ -88,15 +88,20 @@ export const organizationSlice = createSlice({
     },
 
     setError: (state, action: PayloadAction<any>) => {
-      state.error = action.payload;
+      // Only set error if it's not empty
+      if (action.payload && (typeof action.payload === "string" || Object.keys(action.payload).length > 0)) {
+        state.error = action.payload;
+      } else {
+        state.error = null; // or state.error = {}; depending on your preference
+      }
       state.loading = false;
     },
 
     // Uncomment if you need updateOrg functionality
-    // updateOrg: (state, action: PayloadAction<{ data: Organization }>) => {
-    //   state.orgdetails = action.payload.data;
-    //   state.loading = false;
-    // }
+    updateOrg: (state, action: PayloadAction<{ data: Organization }>) => {
+      state.orgdetails = action.payload.data;
+      state.loading = false;
+    },
   },
 });
 

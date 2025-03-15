@@ -1,8 +1,10 @@
 import axios, { AxiosResponse } from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
+import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { logService } from "./logs.service";
+import Swal from "sweetalert2";
 
 ls.config.encrypt = true;
 
@@ -30,10 +32,11 @@ class ViewDocService {
   private subscribers: ((data: any) => void)[] = [];
 
   constructor() {
-    this.setupAxiosDefaults();
+    this.setupCustomAxiosDefaults();
   }
 
-  private setupAxiosDefaults(): void {
+  private setupCustomAxiosDefaults(): void {
+    // Custom implementation for viewdoc service that handles test mode
     if (ls.get("authMode") === "2") {
       axios.defaults.headers.common["Authorization"] = ls.get("tokenTest");
     } else {
@@ -53,7 +56,7 @@ class ViewDocService {
   }
 
   async getDownloadDocument(sessionId: string): Promise<ViewDocResponse<any>> {
-    this.setupAxiosDefaults();
+    this.setupCustomAxiosDefaults();
     try {
       const downloadJson: SessionIdPayload = { sessionid: sessionId };
 
@@ -80,7 +83,7 @@ class ViewDocService {
   }
 
   async getLastClickedDocument(id: string): Promise<ViewDocResponse<any>> {
-    this.setupAxiosDefaults();
+    this.setupCustomAxiosDefaults();
     try {
       const json: S3BucketIdPayload = { id };
       const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
@@ -95,7 +98,7 @@ class ViewDocService {
   }
 
   async approveDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
-    this.setupAxiosDefaults();
+    this.setupCustomAxiosDefaults();
     try {
       const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
         return await axios.post(env.verifykyc, json);
@@ -109,7 +112,7 @@ class ViewDocService {
   }
 
   async rejectDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
-    this.setupAxiosDefaults();
+    this.setupCustomAxiosDefaults();
     try {
       const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
         return await axios.post(env.verifykyc, json);

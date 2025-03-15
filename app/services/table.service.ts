@@ -3,6 +3,7 @@ import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { CookieService } from "./auth.service";
 import { refreshAuthService } from "./refreshAuth.service";
+import { axiosService } from "./axios.service";
 
 ls.config.encrypt = true;
 
@@ -70,21 +71,15 @@ class TableService {
   private readonly MAX_RETRY_COUNT = 5;
 
   constructor() {
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
     return (CookieService.get("apikey") as string) || "";
   }
 
-  private setupAxiosDefaults(): void {
-    console.log("CookieService.get('token')", CookieService.get("token"));
-    axios.defaults.headers.common["Authorization"] = CookieService.get("token") as string;
-  }
-
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<TableResponse<T>> {
     try {
-      this.setupAxiosDefaults();
       const response = await axios.post(url, data);
 
       if (retryKey) {

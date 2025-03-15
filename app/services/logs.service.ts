@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
+import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 
 ls.config.encrypt = true;
@@ -41,15 +42,11 @@ class LogService {
   private readonly LOGS_URL = "https://api2.diro.live/logs/logs";
 
   constructor() {
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
     return ls.get("apikey") || "";
-  }
-
-  private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token");
   }
 
   private async makeRequest<T>(url: string, data: any): Promise<LogResponse<T>> {
