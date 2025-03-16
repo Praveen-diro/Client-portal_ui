@@ -84,6 +84,10 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(-10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "fly-1": {
+          "0%": { transform: "translateY(0.1em)" },
+          "100%": { transform: "translateY(-0.1em)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -92,6 +96,7 @@ const config: Config = {
         "border-shine": "border-shine 8s cubic-bezier(0.4, 0, 0.2, 1) infinite",
         shimmer: "shimmer 2.5s linear infinite",
         fadeIn: "fadeIn 0.3s ease-in-out",
+        "fly-1": "fly-1 0.6s ease-in-out infinite alternate",
       },
     },
   },

@@ -5,17 +5,13 @@ import { env } from "../config/environment";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { cookies } from "./cookie.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
-export interface OrgResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-}
+export interface OrgResponse<T> extends ApiResponse<T> {}
 
 class OrgService {
-  private retryCount = 0;
   private readonly MAX_RETRY_COUNT = 3;
 
   constructor() {
@@ -27,34 +23,8 @@ class OrgService {
   }
 
   private async makeRequest<T>(url: string, data: any): Promise<OrgResponse<T>> {
-    try {
-      axiosService.setupAxiosDefaults();
-      const response = await axios.post(url, data);
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      // Handle token refresh for 401/403 errors
-      if (
-        cookies.get("refreshToken") &&
-        (error.response?.status === 401 || error.response?.status === 403) &&
-        this.retryCount < this.MAX_RETRY_COUNT
-      ) {
-        this.retryCount++;
-        try {
-          await refreshAuthService.refreshAuth(async () => {
-            return { success: true };
-          }, false);
-
-          // Retry the request after token refresh
-          return this.makeRequest(url, data);
-        } catch (refreshError) {
-          console.error("Failed to refresh token:", refreshError);
-          return { success: false, error: (refreshError as Error).message };
-        }
-      }
-
-      this.retryCount = 0;
-      return { success: false, error: error.message };
-    }
+    const requestData = { ...data, apikey: this.getApiKey() };
+    return apiService.makeRequest<T>(url, requestData, undefined, this.MAX_RETRY_COUNT);
   }
 
   async getOrg(): Promise<OrgResponse<any>> {
@@ -77,7 +47,7 @@ class OrgService {
 
   async uploadSecondLogo(file: File, btnId?: string): Promise<OrgResponse<any>> {
     axiosService.setupAxiosDefaults();
-    const id = btnId || ls.get("orgid");
+    const id = btnId || cookies.get("orgid");
     const url = `https://logo.diro.live/api/logo-upload/${id}`;
 
     try {
@@ -124,33 +94,15 @@ class OrgService {
   }
 
   async getBillingOrg(): Promise<OrgResponse<any>> {
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.orgaccount, {
-          apikey: this.getApiKey(),
-          email: cookies.get("email"),
-        });
-      }, false);
-
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      console.error("Failed to get billing org:", error);
-      return { success: false, error: error.message };
-    }
+    return apiService.makeRefreshAuthRequest(env.orgaccount, {
+      apikey: this.getApiKey(),
+      email: cookies.get("email"),
+    });
   }
 
   async updateOrg(formData: any): Promise<OrgResponse<any>> {
     axiosService.setupAxiosDefaults();
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.updateorganization, formData);
-      }, false);
-
-      return { success: true, data: response?.data };
-    } catch (error: any) {
-      console.error("Failed to update org:", error);
-      return { success: false, error: error.message };
-    }
+    return apiService.makeRefreshAuthRequest(env.updateorganization, formData);
   }
 }
 

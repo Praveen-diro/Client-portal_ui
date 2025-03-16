@@ -2,7 +2,7 @@ import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { refreshAuthService } from "./refreshAuth.service";
-
+import { cookies } from "./cookie.service";
 ls.config.encrypt = true;
 
 export interface BillingResponse<T> {
@@ -25,7 +25,7 @@ export interface RedirectResponse {
 
 class BillingService {
   private getApiKey(): string {
-    return ls.get("apikey") || "";
+    return cookies.get("apikey") || "";
   }
 
   private async makeRequest<T>(url: string, data: any): Promise<BillingResponse<T>> {
@@ -49,7 +49,7 @@ class BillingService {
 
   async getUrlTransactions(stripeid: string): Promise<BillingResponse<any>> {
     const params: TransactionParams = {
-      customerid: ls.get("stripeid") || stripeid,
+      customerid: cookies.get("stripeid") || stripeid,
     };
     return this.makeRequest(env.transactions, params);
   }

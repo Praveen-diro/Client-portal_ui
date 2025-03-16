@@ -3,15 +3,11 @@ import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
-export interface ReqDocResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-  loading?: boolean;
-}
+export interface ReqDocResponse<T> extends ApiResponse<T> {}
 
 class ReqDocService {
   constructor() {
@@ -19,67 +15,32 @@ class ReqDocService {
   }
 
   async getInviteLink(json: any): Promise<ReqDocResponse<any>> {
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.getverificationlink, json);
-      }, false);
-
-      return {
-        success: true,
-        data: response?.data,
-        loading: false,
-      };
-    } catch (error: any) {
-      console.error("Failed to get invite link:", error);
-      return {
-        success: false,
-        error: error.response || error.message,
-        loading: false,
-      };
-    }
+    const response = await apiService.makeRefreshAuthRequest(env.getverificationlink, json);
+    return {
+      ...response,
+      loading: false,
+    };
   }
 
   async getTestPreview(json: any): Promise<ReqDocResponse<any>> {
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.getverificationlink, json);
-      }, false);
+    const response = await apiService.makeRefreshAuthRequest(env.getverificationlink, json);
 
-      console.log("Verification link:", response?.data?.verificationlink);
-      return {
-        success: true,
-        data: response?.data,
-        loading: false,
-      };
-    } catch (error: any) {
-      console.error("Failed to get test preview:", error);
-      return {
-        success: false,
-        error: error.response || error.message,
-        loading: false,
-      };
+    if (response.data && typeof response.data === "object" && "verificationlink" in response.data) {
+      console.log("Verification link:", response.data.verificationlink);
     }
+
+    return {
+      ...response,
+      loading: false,
+    };
   }
 
   async sendRequest(json: any): Promise<ReqDocResponse<any>> {
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<any>>(async () => {
-        return await axios.post(env.sendsmsfororg, json);
-      }, false);
-
-      return {
-        success: true,
-        data: response?.data,
-        loading: false,
-      };
-    } catch (error: any) {
-      console.error("Failed to send request:", error);
-      return {
-        success: false,
-        error: error.response || error.message,
-        loading: false,
-      };
-    }
+    const response = await apiService.makeRefreshAuthRequest(env.sendsmsfororg, json);
+    return {
+      ...response,
+      loading: false,
+    };
   }
 }
 

@@ -4,18 +4,15 @@ import { env } from "../config/environment";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { GlobalDebug } from "./remove-console.service";
-
+import { cookies } from "./cookie.service";
+import { apiService, ApiResponse } from "./api.service";
 ls.config.encrypt = true;
 
 if (!env.consoleLog) {
   GlobalDebug(false);
 }
 
-export interface ButtonResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-}
+export interface ButtonResponse<T> extends ApiResponse<T> {}
 
 export interface CountryLinkData {
   cat: string;
@@ -41,7 +38,7 @@ class ButtonService {
   }
 
   private getApiKey(): string {
-    return ls.get("apikey") || "";
+    return cookies.get("apikey") || "";
   }
 
   private validateApiKey(): void {
@@ -65,28 +62,12 @@ class ButtonService {
   }
 
   private async makeRequest<T>(url: string, data: any): Promise<ButtonResponse<T>> {
-    try {
-      const response = await refreshAuthService.refreshAuth(async () => {
-        return await axios.post(url, { ...data, apikey: this.getApiKey() });
-      }, false);
-
-      return {
-        success: true,
-        data: response?.data,
-      };
-    } catch (error: any) {
-      console.error("Request failed:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    const requestData = { ...data, apikey: this.getApiKey() };
+    return apiService.makeRefreshAuthRequest<T>(url, requestData);
   }
 
   async logout(): Promise<void> {
-    ls.clear();
-    localStorage.clear();
-    sessionStorage.clear();
+    cookies.clearAll();
   }
 
   async getButtons(): Promise<ButtonResponse<any>> {

@@ -52,7 +52,7 @@ class RefreshAuthService {
 
       if (!refreshResult.success) {
         // Clear user session
-        ls.clear();
+        cookies.clearAll();
         if (reloadAfterRefresh) {
           window.location.reload();
         }

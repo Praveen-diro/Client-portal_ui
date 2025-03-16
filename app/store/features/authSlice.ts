@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { CookieService, cookies } from "../../services/cookie.service";
-import Cookies from "js-cookie";
+import { cookies } from "../../services/cookie.service";
 
 // Cookie options for security
 const cookieOptions = {
@@ -10,39 +9,12 @@ const cookieOptions = {
   path: "/",
 };
 
-// Cookie helper functions
-const cookieHelper = {
-  set(key: string, value: any) {
-    Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
-  },
-  get(key: string) {
-    const value = Cookies.get(key);
-    if (!value) return null;
-
-    // If it's not a JSON string, return as is
-    if (!value.startsWith("{") && !value.startsWith("[")) {
-      return value;
-    }
-
-    // Otherwise try to parse as JSON, but handle errors gracefully
-    try {
-      return JSON.parse(value);
-    } catch (e) {
-      console.error(`Error parsing cookie '${key}':`, e);
-      return value; // Return the raw string value if parsing fails
-    }
-  },
-  remove(key: string) {
-    Cookies.remove(key, { path: "/" });
-  },
-  clear() {
-    // Get all cookies and remove them one by one
-    const cookies = Cookies.get();
-    for (const cookie in cookies) {
-      Cookies.remove(cookie, { path: "/" });
-    }
-  },
+// Helper function to ensure token has Bearer prefix
+const ensureTokenHasBearer = (token: string): string => {
+  if (!token) return token;
+  return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
 };
+
 
 interface AuthState {
   user: any;
@@ -209,7 +181,8 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     refreshToken: (state, action: PayloadAction<any>) => {
-      cookies.set("token", action.payload.headers.authorization);
+      const token = ensureTokenHasBearer(action.payload.headers.authorization);
+      cookies.set("token", token);
       return { ...state, ...action.payload };
     },
     setAuthMode: (state, action: PayloadAction<number>) => {
@@ -236,8 +209,10 @@ const authSlice = createSlice({
       console.log("Updated state:", { countries: state.countries, user: state.user, loadingcountry: state.loadingcountry });
     },
     loginSandbox: (state, action: PayloadAction<any>) => {
+      console.log("loginSandbox reducer called with payload:", action.payload);
       cookies.set("authMode", "2");
       cookies.set("email", action.payload.email);
+      cookies.set("methodId", action.payload.payload.methodId);
       state.email = action.payload.email;
       state.isTwoFactor = true;
       state.isAuthenticated = false;
@@ -247,6 +222,7 @@ const authSlice = createSlice({
       state.method = action.payload.payload.method;
       state.authMode = 2;
       state.sandboxStatus = true;
+      state.methodId = action.payload.payload.methodId;
     },
     loginAuthenticated: (state, action: PayloadAction<any>) => {
       const sandbox = action.payload.payload.sandbox;
@@ -266,11 +242,11 @@ const authSlice = createSlice({
     loginSandboxTwoFactor: (state, action: PayloadAction<any>) => {
       const { doc } = action.payload.payload;
 
-      // Set tokens
-      cookies.set("token", doc.token || doc);
-      cookies.set("secrettoken", doc.sandbox.accesstoken);
-      cookies.set("tempsecret", "Bearer " + doc.dirotoken);
-      cookies.set("refreshToken", doc.refreshToken);
+      // Set tokens with Bearer prefix
+      cookies.set("token", ensureTokenHasBearer(doc.token || doc));
+      cookies.set("secrettoken", ensureTokenHasBearer(doc.sandbox?.accesstoken));
+      cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
+      cookies.set("refreshToken", ensureTokenHasBearer(doc.refreshToken));
 
       // Set API keys
       cookies.set("apikey", doc.sandbox.apikey);
@@ -311,11 +287,11 @@ const authSlice = createSlice({
       const { doc } = action.payload.payload;
       const sandbox = doc.data?.sandbox;
 
-      // Set tokens
-      cookies.set("token", action.payload.token);
-      cookies.set("secrettoken", "Bearer " + doc.dirotoken);
-      cookies.set("tempsecret", "Bearer " + doc.dirotoken);
-      cookies.set("refreshToken", action.payload.token);
+      // Set tokens with Bearer prefix
+      cookies.set("token", ensureTokenHasBearer(action.payload.token));
+      cookies.set("secrettoken", ensureTokenHasBearer(doc.dirotoken));
+      cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
+      cookies.set("refreshToken", ensureTokenHasBearer(action.payload.token));
 
       // Set API keys
       cookies.set("apikey", doc.apikey);
@@ -474,8 +450,9 @@ const authSlice = createSlice({
         // Set token from headers if available
         if (headers.authorization) {
           console.log("Setting token from headers:", headers.authorization);
-          cookies.set("token", headers.authorization);
-          state.token = headers.authorization;
+          const token = ensureTokenHasBearer(headers.authorization);
+          cookies.set("token", token);
+          state.token = token;
         }
 
         // Handle email
@@ -532,8 +509,9 @@ const authSlice = createSlice({
         console.error("Error in twoFactorLoginSuccess reducer:", error);
         // Even if there's an error, ensure user is authenticated if we have token
         if (action.payload.headers?.authorization) {
+          const token = ensureTokenHasBearer(action.payload.headers.authorization);
           state.isAuthenticated = true;
-          state.token = action.payload.headers.authorization;
+          state.token = token;
           state.apikey = action.payload.headers.authorization;
         }
       }

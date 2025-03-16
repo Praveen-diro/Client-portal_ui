@@ -1,5 +1,5 @@
 import axios from "axios";
-import { cookies } from "./cookie.service.ts";
+import { cookies } from "./cookie.service";
 
 class AxiosService {
   /**

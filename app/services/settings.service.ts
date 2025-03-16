@@ -1,5 +1,5 @@
 import ls from "localstorage-slim";
-
+import { cookies } from "./cookie.service";
 export type ThemeType = "light" | "dark";
 export type DirectionType = "ltr" | "rtl";
 export type PositionType = "fixed" | "absolute" | "relative";
@@ -37,13 +37,13 @@ class SettingsService {
       sidebarType: "full",
     };
 
-    const savedSettings = ls.get<SettingsState>(this.STORAGE_KEY);
+    const savedSettings = cookies.get<SettingsState>(this.STORAGE_KEY);
     this.state = savedSettings || defaultSettings;
   }
 
   private setState(newState: Partial<SettingsState>): void {
     this.state = { ...this.state, ...newState };
-    ls.set(this.STORAGE_KEY, this.state);
+    cookies.set(this.STORAGE_KEY, this.state);
     this.notifySubscribers();
   }
 

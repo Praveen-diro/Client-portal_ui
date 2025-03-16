@@ -5,6 +5,7 @@ import { refreshAuthService } from "./refreshAuth.service";
 import { logService } from "./logs.service";
 import { cookies } from "./cookie.service";
 import { axiosService } from "./axios.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
@@ -31,12 +32,12 @@ const setLoading = (isLoading: boolean) => {
   loadingSubscribers.forEach((callback) => callback(isLoading));
 };
 
-export interface UserResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-  loading?: boolean;
+// Make loadingSubscribers available globally for the apiService
+if (typeof window !== "undefined") {
+  (window as any).loadingSubscribers = loadingSubscribers;
 }
+
+export interface UserResponse<T> extends ApiResponse<T> {}
 
 export interface UserFormData {
   emailId: string;
@@ -63,6 +64,8 @@ class UsersService {
   }
 
   private getApiKey(): string {
+    const emailCookies= cookies.get("apikey")
+    console.log('email cookies',emailCookies)
     return cookies.get("apikey") as string;
   }
 
@@ -82,75 +85,10 @@ class UsersService {
   }
 
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
-    axiosService.setupAxiosDefaults();
+    // Only add apiKey if it's not already in the data
+    const requestData = data.apiKey ? data : { ...data, apiKey: this.getApiKey() };
 
-    // Use the global loading state function
-    setLoading(true);
-
-    try {
-      // Only add apiKey if it's not already in the data
-      const requestData = data.apiKey ? data : { ...data, apiKey: this.getApiKey() };
-      const response = await axios.post(url, requestData);
-
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      // Set loading state to false after getting the response
-      setLoading(false);
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      // Handle the error and set loading to false
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      setLoading(false);
-
-      return this.handleApiError(error, url, data, retryKey);
-    }
-  }
-
-  private async handleApiError<T>(error: any, url: string, data: any, retryKey?: string): Promise<UserResponse<T>> {
-    // Handle token refresh for 401/403 errors
-    if (
-      cookies.get("refreshToken") &&
-      (error.response?.status === 401 ||
-        error.response?.status === 403 ||
-        error.message === "Network Error" ||
-        error.message === "Request failed with status code 401") &&
-      retryKey &&
-      this.retryCount[retryKey] < this.MAX_RETRY_COUNT
-    ) {
-      console.log("Attempting to refresh token for:", retryKey, "- Attempt:", this.retryCount[retryKey] + 1);
-      this.retryCount[retryKey]++;
-
-      try {
-        await refreshAuthService.refreshAuth(async () => {
-          return { success: true };
-        }, false);
-
-        // Update axios defaults with new token
-        axiosService.setupAxiosDefaults();
-
-        console.log("Token refreshed successfully, retrying request");
-        return this.makeRequest(url, data, retryKey);
-      } catch (refreshError) {
-        console.error("Failed to refresh token:", refreshError);
-      }
-    }
-
-    // Log the error, but don't set loading state again since we already did in makeRequest
-    await logService.sendLogs(`API Request Failed: ${url}`, error.response || error.message, "users.service.ts");
-
-    return {
-      success: false,
-      error: error.response?.data || error.message || "An unknown error occurred",
-    };
+    return apiService.makeRequest<T>(url, requestData, retryKey, this.MAX_RETRY_COUNT, true, true);
   }
 
   subscribe(callback: (data: any) => void): () => void {

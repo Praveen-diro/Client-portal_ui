@@ -1,17 +1,13 @@
 import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
-import { CookieService } from "./auth.service";
-import { refreshAuthService } from "./refreshAuth.service";
 import { axiosService } from "./axios.service";
+import { cookies } from "./cookie.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
-export interface TableResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-}
+export interface TableResponse<T> extends ApiResponse<T> {}
 
 export interface PaginationParams {
   offset: number;
@@ -75,46 +71,14 @@ class TableService {
   }
 
   private getApiKey(): string {
-    return (CookieService.get("apikey") as string) || "";
+    return (cookies.get("apikey") as string) || "";
   }
 
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<TableResponse<T>> {
-    try {
-      const response = await axios.post(url, data);
+    // Add apiKey if not already in the data
+    const requestData = data.apikey ? data : { ...data, apikey: this.getApiKey() };
 
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      // Handle token refresh for 401 errors
-      console.log("response from the api", error.response.data);
-      if (
-        CookieService.get("refreshToken") &&
-        (error.message === "Request failed with status code 401" || error.message === "Network Error") &&
-        retryKey &&
-        this.retryCount[retryKey] < this.MAX_RETRY_COUNT
-      ) {
-        this.retryCount[retryKey]++;
-        await refreshAuthService.refreshAuth(async () => {
-          return { success: true };
-        }, false);
-        return this.makeRequest(url, data, retryKey);
-      }
-
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      return {
-        success: false,
-        error: error.message || "An unknown error occurred",
-      };
-    }
+    return apiService.makeRequest<T>(url, requestData, retryKey, this.MAX_RETRY_COUNT, false, true);
   }
 
   async getRequested(params: RequestPaginationParams = { offset: 0, limit: 10, status: "invite" }): Promise<TableResponse<any>> {
@@ -122,8 +86,8 @@ class TableService {
       apikey: this.getApiKey(),
       status: params.status || "invite",
       offset: params.offset || 0,
-      requesterEmail: CookieService.get("email") as string,
-      requesterRole: CookieService.get("roles") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -156,9 +120,9 @@ class TableService {
       apikey: this.getApiKey(),
       status: params.status || "pending",
       offset: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -175,9 +139,9 @@ class TableService {
       apikey: this.getApiKey(),
       status: params.status || "approved",
       offset: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -189,9 +153,9 @@ class TableService {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
       offset: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -233,7 +197,7 @@ class TableService {
       comment: data.feedback,
       rating: data.rating,
       source: "client portal",
-      email: ls.get("email") as string,
+      email: cookies.get("email") as string,
     };
 
     return this.makeRequest(env.feedbackUrl, requestData, "submitFeedback");
