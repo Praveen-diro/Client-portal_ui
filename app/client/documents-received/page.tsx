@@ -116,7 +116,8 @@ export default function DocumentsReceived() {
 
   // Add this function to filter documents based on status
   const getFilteredDocuments = (status: string) => {
-    if (status === "all") return documents;
+    // Commenting out the "all" case since we've removed that tab
+    // if (status === "all") return documents;
     return documents.filter((doc) => doc.status === status);
   };
 
@@ -145,7 +146,7 @@ export default function DocumentsReceived() {
         <div className="flex-1">
           <PageHeader title="Documents Received" description="View and manage received documents for verification" />
           <div className="container mx-auto px-6 py-8">
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* <div className="grid gap-4 md:grid-cols-3">
               <motion.div
                 initial={initialAnimation}
                 animate={{ opacity: 1, x: 0 }}
@@ -208,7 +209,7 @@ export default function DocumentsReceived() {
                   </CardContent>
                 </Card>
               </motion.div>
-            </div>
+            </div> */}
 
             <motion.div
               initial={initialAnimation}
@@ -219,10 +220,11 @@ export default function DocumentsReceived() {
               }}
               className="bg-card rounded-lg border shadow-sm mt-6"
             >
-              <Tabs defaultValue="all" className="p-4">
+              <Tabs defaultValue="pending" className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <TabsList>
-                    <TabsTrigger value="all">All Documents</TabsTrigger>
+                    {/* Commenting out the All Documents tab */}
+                    {/* <TabsTrigger value="all">All Documents</TabsTrigger> */}
                     <TabsTrigger value="pending">Pending</TabsTrigger>
                     <TabsTrigger value="approved">Approved</TabsTrigger>
                     <TabsTrigger value="rejected">Rejected</TabsTrigger>
@@ -230,7 +232,8 @@ export default function DocumentsReceived() {
                 </div>
 
                 {/* Replace the single TabsContent with multiple TabsContent components */}
-                {["all", "pending", "approved", "rejected"].map((tab) => (
+                {/* Commenting out the "all" tab from the array of tabs */}
+                {[/* "all", */ "pending", "approved", "rejected"].map((tab) => (
                   <TabsContent key={tab} value={tab} className="space-y-4">
                     <motion.div
                       className="rounded-md border"

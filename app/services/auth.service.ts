@@ -339,12 +339,6 @@ class AuthService {
     }
   }
 
-  async updateOrg(formData: any) {
-    // Simply return the axios call without the try/catch
-    // The error will propagate automatically to the caller
-    return await axios.post(env.updateorganization, formData);
-  }
-
   private isLoadingCountries = false;
 
   async getCountries() {

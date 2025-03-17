@@ -102,7 +102,7 @@ class OrgService {
 
   async updateOrg(formData: any): Promise<OrgResponse<any>> {
     axiosService.setupAxiosDefaults();
-    return apiService.makeRefreshAuthRequest(env.updateorganization, formData);
+    return apiService.makeRefreshAuthRequest(env.updateorganization, { ...formData, apikey: this.getApiKey() });
   }
 }
 

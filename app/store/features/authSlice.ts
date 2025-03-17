@@ -246,7 +246,7 @@ const authSlice = createSlice({
       cookies.set("token", ensureTokenHasBearer(doc.token || doc));
       cookies.set("secrettoken", ensureTokenHasBearer(doc.sandbox?.accesstoken));
       cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
-      cookies.set("refreshToken", ensureTokenHasBearer(doc.refreshToken));
+      cookies.set("refreshToken", doc.refreshToken);
 
       // Set API keys
       cookies.set("apikey", doc.sandbox.apikey);
@@ -291,7 +291,7 @@ const authSlice = createSlice({
       cookies.set("token", ensureTokenHasBearer(action.payload.token));
       cookies.set("secrettoken", ensureTokenHasBearer(doc.dirotoken));
       cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
-      cookies.set("refreshToken", ensureTokenHasBearer(action.payload.token));
+      cookies.set("refreshToken",action.payload.token);
 
       // Set API keys
       cookies.set("apikey", doc.apikey);

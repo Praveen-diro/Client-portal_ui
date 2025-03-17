@@ -83,6 +83,7 @@ export default function TwoFactorPage() {
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaLoaded = useRef(false);
+  const initialOtpSentRef = useRef(false);
   const [recaptchaInitializing, setRecaptchaInitializing] = useState(true);
   const [methodDescription, setMethodDescription] = useState<string>("Enter your authentication code");
   const [isMounted, setIsMounted] = useState(false);
@@ -108,22 +109,38 @@ export default function TwoFactorPage() {
     }
   }, [effectiveMethod, email]);
 
-  // Handle page refresh or unload
+  // Send OTP automatically when component mounts if method is Email
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Clear cookies when page is refreshed or closed
-      cookies.remove("twoFactorId");
-      cookies.remove("methodId");
-      cookies.remove("email");
-      cookies.remove("authMode");
-    };
+    // Only run this effect once using the ref
+    if (initialOtpSentRef.current) return;
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    // Only send OTP if method is Email and we have the required IDs
+    if (effectiveMethod === "Email" && twoFactorId && methodId) {
+      console.log("Auto-sending OTP on component mount");
+      initialOtpSentRef.current = true; // Mark as sent immediately to prevent duplicate calls
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, []);
+      // Get values from cookies if Redux state is missing them
+      const cookieTwoFactorId = twoFactorId || cookies.get("twoFactorId");
+      const cookieMethodId = methodId || cookies.get("methodId");
+
+      if (cookieTwoFactorId && cookieMethodId) {
+        // Call the service directly to avoid circular dependencies
+        authService
+          .sendLoginOtp(cookieTwoFactorId, cookieMethodId)
+          .then((success) => {
+            if (success) {
+              setCodeSent(true);
+              dispatch(sendLoginOtpSuccess());
+              console.log("Initial OTP sent successfully");
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to send initial OTP:", err);
+            dispatch(sendLoginOtpFailure(err instanceof Error ? err.message : "Failed to send verification code"));
+          });
+      }
+    }
+  }, [effectiveMethod, twoFactorId, methodId, dispatch]);
 
   // Pre-fetch reCAPTCHA token as soon as component loads
   useEffect(() => {
@@ -635,7 +652,7 @@ export default function TwoFactorPage() {
                                 size="small"
                                 variant="blue"
                                 className="group"
-                                successAnimation={showSuccessAnimation}
+                                successAnimation={!codeSent && showSuccessAnimation}
                               >
                                 {resendLoading ? "Sending..." : codeSent ? "Resend Code" : "Send Code"}
                               </FancyButton>

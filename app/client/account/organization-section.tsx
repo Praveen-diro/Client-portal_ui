@@ -18,6 +18,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+// Custom loader component
+import Loader from "@/components/ui/loader";
 
 // Color input component with validation and preview
 const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
@@ -132,7 +134,7 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
     // Create a synthetic event to pass to the parent's onChange handler
     const syntheticEvent = {
       target: {
-        id: "color",
+        id: "setcolor",
         value: color,
       },
     } as React.ChangeEvent<HTMLInputElement>;
@@ -334,14 +336,24 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="color">Color</Label>
+      <Label htmlFor="setcolor">Color</Label>
       <div className="flex gap-2 items-center">
         <Input
-          id="color"
+          id="setcolor"
           className="h-9 flex-1"
           placeholder="Enter color name or code"
           value={value}
-          onChange={(e) => handleColorChange(e.target.value)}
+          onChange={(e) => {
+            // Create a synthetic event with the correct id
+            const syntheticEvent = {
+              ...e,
+              target: {
+                ...e.target,
+                id: "setcolor",
+              },
+            };
+            onChange(syntheticEvent);
+          }}
         />
 
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -524,13 +536,13 @@ export function OrganizationSection() {
   const [formData, setFormData] = useState({
     name: "",
     displayname: "",
-    registrationNumber: "",
+    registrationnumber: "",
     organizationtype: "",
     website: "",
     country: "",
-    color: "",
+    setcolor: "",
     hmackey: "",
-    description: "",
+    invoicedescription: "",
   });
 
   // Fixed crop size
@@ -549,21 +561,34 @@ export function OrganizationSection() {
       setFormData({
         name: requestorg?.name || "",
         displayname: requestorg.displayname || "",
-        registrationNumber: requestorg.registrationNumber || "",
+        registrationnumber: requestorg.registrationnumber || "",
         organizationtype: requestorg.organizationtype || "",
         website: requestorg.website || "",
         country: requestorg.country || "",
-        color: requestorg.color || "",
+        setcolor: requestorg.color || "",
         hmackey: requestorg.hmackey || "",
-        description: requestorg.description || "",
+        invoicedescription: requestorg.invoicedescription || "",
       });
     }
   }, [requestorg]);
 
-  // Update logo source if organization data has a logo
+  // Update logo source if organization data has a baseimage
   useEffect(() => {
-    if (requestorg && requestorg.logo) {
-      setLogoSrc(requestorg.logo);
+    if (requestorg && requestorg.baseimage) {
+      // Check if the baseimage is already in base64 format
+      if (requestorg.baseimage.startsWith("data:image")) {
+        console.log("Organization logo is already in base64 format");
+        setLogoSrc(requestorg.baseimage);
+      } else {
+        console.log("Organization logo needs conversion to base64");
+        // We'll convert it when needed during form submission
+        setLogoSrc(requestorg.baseimage);
+
+        // Optionally, you can convert it immediately:
+        // ensureBase64Format(requestorg.baseimage).then(base64Image => {
+        //   setLogoSrc(base64Image);
+        // });
+      }
     }
   }, [requestorg]);
 
@@ -610,17 +635,55 @@ export function OrganizationSection() {
     }));
   };
 
+  // Function to verify and ensure base64 format
+  const ensureBase64Format = async (imageUrl: string): Promise<string> => {
+    // If already in base64 format, return as is
+    if (imageUrl.startsWith("data:image")) {
+      return imageUrl;
+    }
+
+    // If it's a URL, convert to base64
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result as string;
+            console.log("Converted URL to base64:", base64data.substring(0, 50) + "...");
+            resolve(base64data);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error("Error converting image to base64:", error);
+        return imageUrl; // Return original if conversion fails
+      }
+    }
+
+    // If not recognized format, return as is
+    return imageUrl;
+  };
+
   // Handle form submission
   const handleSaveProfile = async () => {
     dispatch(setLoading(true));
 
     try {
+      // Ensure the image is in base64 format
+      const baseImageData = await ensureBase64Format(logoSrc);
+
       // Prepare data for API
       const updateData = {
         ...formData,
-        logo: logoSrc,
+        baseimage: baseImageData, // Use the base64 image data
         // Add any other fields needed for the API
       };
+
+      console.log("Submitting form with base64 image:", baseImageData.substring(0, 50) + "...");
 
       const response = await orgService.updateOrg(updateData);
 
@@ -629,15 +692,11 @@ export function OrganizationSection() {
         if (response.data) {
           dispatch(getOrgItem(response.data));
         }
-        // Show success message or notification
-        alert("Organization profile updated successfully");
       } else {
         dispatch(setError(response.error || "Failed to update organization"));
-        alert("Failed to update organization profile");
       }
     } catch (error) {
       dispatch(setError(error));
-      alert("An error occurred while updating the profile");
     }
   };
 
@@ -694,7 +753,14 @@ export function OrganizationSection() {
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
-          setLogoSrc(e.target.result as string);
+          const base64String = e.target.result as string;
+          // Ensure it's a valid base64 data URL
+          if (base64String.startsWith("data:image")) {
+            setLogoSrc(base64String);
+            console.log("Image set as base64:", base64String.substring(0, 50) + "...");
+          } else {
+            console.error("Invalid base64 image format");
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -759,6 +825,14 @@ export function OrganizationSection() {
       position: { ...position },
       removeBackground,
     });
+
+    // Log the current logo source to verify it's in base64 format
+    if (logoSrc.startsWith("data:image")) {
+      console.log("Logo is already in base64 format:", logoSrc.substring(0, 50) + "...");
+    } else {
+      console.log("Logo is not in base64 format, will be converted during save:", logoSrc.substring(0, 50) + "...");
+    }
+
     setIsLogoEditorOpen(false);
   };
 
@@ -812,23 +886,20 @@ export function OrganizationSection() {
       initial={{ opacity: 0, x: 200 }}
       animate={{ opacity: 1, x: 0 }}
       transition={transitionConfig}
-      className="w-full space-y-8"
+      className="w-full space-y-8 max-w-6xl mx-auto px-4 sm:px-6"
     >
       <motion.div
         initial={{ opacity: 0, x: 200 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ ...transitionConfig, delay: 0.1 }}
-        className="flex justify-between items-center"
+        className="flex justify-between items-center py-4"
       >
         <h2 className="text-2xl font-semibold tracking-tight">Preferences</h2>
-        <Button variant="outline" size="sm" onClick={handleRefreshData} disabled={loading}>
-          {loading ? "Refreshing..." : "Refresh Data"}
-        </Button>
       </motion.div>
 
       {loading && (
         <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <Loader />
           <span className="ml-3">Loading organization data...</span>
         </div>
       )}
@@ -845,10 +916,10 @@ export function OrganizationSection() {
           initial={{ opacity: 0, x: 200 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ ...transitionConfig, delay: 0.1 }}
-          className="space-y-4"
+          className="space-y-6 bg-card rounded-lg p-6 shadow-sm border"
         >
           {/* Logo Section */}
-          <div className="flex items-start gap-8">
+          <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8 pb-6 border-b">
             <div className="w-[200px] h-[200px] bg-muted rounded-lg overflow-hidden relative">
               <div
                 className="absolute inset-0 w-full h-full flex items-center justify-center"
@@ -1002,10 +1073,15 @@ export function OrganizationSection() {
 
       {!loading && !hasError && (
         /* Organization Details */
-        <motion.div variants={formContainer} initial="hidden" animate="show" className="space-y-6">
-          <motion.div variants={formItem} className="space-y-4">
-            {/* <h3 className="text-base font-semibold">Organization</h3> */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+        <motion.div
+          variants={formContainer}
+          initial="hidden"
+          animate="show"
+          className="space-y-8 bg-card rounded-lg p-6 shadow-sm border mt-6"
+        >
+          <motion.div variants={formItem} className="space-y-6">
+            <h3 className="text-lg font-semibold border-b pb-3">Organization Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="name">Organization</Label>
                 <Input
@@ -1027,19 +1103,22 @@ export function OrganizationSection() {
                 />
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
-                <Label htmlFor="registrationNumber">Registration number</Label>
+                <Label htmlFor="registrationnumber">Registration number</Label>
                 <Input
-                  id="registrationNumber"
+                  id="registrationnumber"
                   className="h-9 w-full"
                   placeholder="Enter registration number"
-                  value={formData.registrationNumber}
+                  value={formData.registrationnumber}
                   onChange={handleInputChange}
                 />
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="organizationtype">Organization type</Label>
-                <Select value={formData.organizationtype} onValueChange={(value) => handleSelectChange("org_type", value)}>
-                  <SelectTrigger id="org_type" className="h-9 w-full">
+                <Select
+                  value={formData.organizationtype}
+                  onValueChange={(value) => handleSelectChange("organizationtype", value)}
+                >
+                  <SelectTrigger id="organizationtype" className="h-9 w-full">
                     <SelectValue placeholder="Select organization type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1074,10 +1153,11 @@ export function OrganizationSection() {
           </motion.div>
 
           {/* Color and HMAC Key Section */}
-          <motion.div variants={formItem} className="space-y-6">
+          <motion.div variants={formItem} className="space-y-6 pt-4 border-t">
+            <h3 className="text-lg font-semibold pt-2">Appearance & Security</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <motion.div variants={formItem} className="space-y-1.5">
-                <ColorInput value={formData.color} onChange={handleInputChange} />
+                <ColorInput value={formData.setcolor} onChange={handleInputChange} />
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="hmackey">HMAC Key</Label>
@@ -1104,22 +1184,29 @@ export function OrganizationSection() {
           </motion.div>
 
           {/* Billing Details */}
-          <motion.div variants={formItem} className="space-y-4">
-            <h3 className="text-base font-semibold">Billing details</h3>
+          <motion.div variants={formItem} className="space-y-6 pt-4 border-t">
+            <h3 className="text-lg font-semibold pt-2">Billing details</h3>
             <div className="w-full">
               <Textarea
-                id="description"
+                id="invoicedescription"
                 placeholder="Enter billing details"
-                className="min-h-[80px] resize-none w-full"
-                value={formData.description}
+                className="min-h-[120px] resize-none w-full"
+                value={formData.invoicedescription}
                 onChange={handleInputChange}
               />
             </div>
           </motion.div>
 
-          <motion.div variants={formItem} className="flex justify-end pt-4">
-            <Button size="sm" disabled={loading} onClick={handleSaveProfile}>
-              {loading ? "Saving..." : "Save profile"}
+          <motion.div variants={formItem} className="flex justify-end pt-6 mt-4 border-t">
+            <Button disabled={loading} onClick={handleSaveProfile} className="px-6 py-2">
+              {loading ? (
+                <div className="flex items-center">
+                  <Loader />
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                "Save profile"
+              )}
             </Button>
           </motion.div>
         </motion.div>
