@@ -141,7 +141,7 @@ export default function IntegrationsPage() {
                 <div className="grid grid-cols-12 border-b border-border">
                 <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
                     <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
-                      Categories
+                      Steps
                     </h2>
                   </div>
                   <div className="col-span-4 p-6 bg-white/50 dark:bg-gray-800/50 border-l border-border">
@@ -171,28 +171,28 @@ export default function IntegrationsPage() {
                       <div className="grid grid-cols-1 gap-4">
                         <motion.div
                           variants={boxVariants}
-                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group"
                         >
                           <motion.div
                             variants={boxVariants}
-                            className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer"
+                            className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => setActiveModal("setupOrganization")}
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup organization
                           </motion.div>
                         </motion.div>
                         
                         <motion.div
                           variants={boxVariants}
-                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group"
                         >
                           <motion.div
                             variants={boxVariants}
-                            className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer"
+                            className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => setActiveModal("setupVerificationButton")}
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup verification button
                           </motion.div>
                         </motion.div>
@@ -201,22 +201,22 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("verificationPrivacyModal")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer"
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Configure verification fields
                           </motion.li>
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer"
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Enable privacy
                           </motion.li>
                         </ul>
@@ -237,24 +237,22 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("copyLink")}
                       >
                         <ul className="space-y-3">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300"
-                            onClick={() => setActiveModal("copyLink")}
+                            className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Copy link (use as Iframe or new window)
                           </motion.li>
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300"
-                            onClick={() => setActiveModal("copyLink")}
+                            className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Add customer reference number
                           </motion.li>
                         </ul>
@@ -263,15 +261,15 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => setActiveModal("compareVerifyUserData")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer"
-                            onClick={() => setActiveModal("compareVerifyUserData")}
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Compare and verify user data
                           </motion.li>
                         </ul>
@@ -292,13 +290,12 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => setIsSetLogoOpen(true)}
                       >
-                        <ul className="space-y-3 text-gray-600 dark:text-gray-300"
-                            onClick={() => setIsSetLogoOpen(true)}
-                            >
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                        <ul className="space-y-3 text-gray-600 dark:text-gray-300">
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Set your logo
                           </motion.li>
                         </ul>
@@ -307,22 +304,19 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => setIsAdvanceConfigOpen(true)}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer"
-                            onClick={() => setIsAdvanceConfigOpen(true)}
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Advanced configurations
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3" 
-                            onClick={() => setIsAdvanceConfigOpen(true)}
-                            >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600" 
-                            ></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Verification progress status Window.postMessage()
                           </motion.li>
                         </ul>
@@ -344,32 +338,32 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("documentViaEmail")}
                       >
-                        <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-300">
-                          <div className="flex items-center gap-3 cursor-pointer">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                        <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/80 dark:hover:bg-gray-700/80 transition-all duration-300">
+                          <div className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Get document via email
                           </div>
 
                           <p className="font-medium text-gray-900 dark:text-white mb-2 mt-6">Enable automatic extraction of data:</p>
                           
                           <ul className="space-y-2 ml-4 text-gray-600 dark:text-gray-300">
-                            <motion.li variants={boxVariants} className="flex items-center gap-3">
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              <span className="text-blue-500 dark:text-blue-400">•</span>
                               Output to Google Sheet
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3">
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              <span className="text-blue-500 dark:text-blue-400">•</span>
                               Output to Zapier
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3">
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              <span className="text-blue-500 dark:text-blue-400">•</span>
                               Enable auto-extraction
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3">
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              <span className="text-blue-500 dark:text-blue-400">•</span>
                               If using high privacy mode
                             </motion.li>
                           </ul>
@@ -377,83 +371,75 @@ export default function IntegrationsPage() {
                       </motion.div>
                     </div>
 
-                    
-
-
-                    
-                    
-                    
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group"
                       >
                         <ul className="space-y-6 text-gray-600 dark:text-gray-300">
                           <motion.li
                             variants={boxVariants}
+                            className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/80 dark:hover:bg-gray-700/80 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 cursor-pointer"
                             onClick={() => setActiveModal("setupWebhook")}
-                            className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-300"
                           >
                             <div 
-                              className="flex items-center gap-3 cursor-pointer  transition-colors" 
-                              onClick={() => setActiveModal("setupWebhook")}
+                              className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
                             >
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                              <span className="text-blue-500 dark:text-blue-400">•</span>
                               Setup webhook (callback URL)
                             </div>
                               <p className="font-medium text-gray-900 dark:text-white mb-2 mt-6">Receive webhooks (View logs):</p>
                               <ul className="space-y-2 ml-4">
-                                <motion.li variants={boxVariants} className="flex items-center gap-3">
-                                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  <span className="text-blue-500 dark:text-blue-400">•</span>
                                   Engagement status (final)
                                 </motion.li>
-                                <motion.li variants={boxVariants} className="flex items-center gap-3">
-                                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  <span className="text-blue-500 dark:text-blue-400">•</span>
                                   Document submitted
                                 </motion.li>
-                                <motion.li variants={boxVariants} className="flex items-center gap-3">
-                                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  <span className="text-blue-500 dark:text-blue-400">•</span>
                                   Extracted JSON (Interim /Final)
                                 </motion.li>
-                                <motion.li variants={boxVariants} className="flex items-center gap-3">
-                                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  <span className="text-blue-500 dark:text-blue-400">•</span>
                                   JSON failure
                                 </motion.li>
                               </ul>
                           </motion.li>
                           
-
                           <motion.li
                             variants={boxVariants}
-                            className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-300"
+                            className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/80 dark:hover:bg-gray-700/80 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 cursor-pointer"
                           >
                             <div>
                               <p className="font-medium text-gray-900 dark:text-white mb-2">APIs to retrieve data</p>
                               <ul className="space-y-3">
-                                <motion.li variants={boxVariants} className="flex items-center gap-3">
-                                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  <span className="text-blue-500 dark:text-blue-400">•</span>
                                   View API keys and secret token
                                 </motion.li>
                                 <motion.li variants={boxVariants} className="mt-3">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                                  <div className="flex items-center gap-3 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <span className="text-blue-500 dark:text-blue-400">•</span>
                                     <p className="font-medium">Get native original (MHTML / PDF / other types)</p>
                                   </div>
                                   <ul className="space-y-2 ml-7">
-                                    <motion.li variants={boxVariants} className="flex items-center gap-2">
-                                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
+                                    <motion.li variants={boxVariants} className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                      <span className="text-indigo-400 dark:text-indigo-300">•</span>
                                       Get certified PDF
                                     </motion.li>
-                                    <motion.li variants={boxVariants} className="flex items-center gap-2">
-                                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
+                                    <motion.li variants={boxVariants} className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                      <span className="text-indigo-400 dark:text-indigo-300">•</span>
                                       Get session data
                                     </motion.li>
-                                    <motion.li variants={boxVariants} className="flex items-center gap-2">
-                                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
+                                    <motion.li variants={boxVariants} className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                      <span className="text-indigo-400 dark:text-indigo-300">•</span>
                                       Get extracted JSON
                                     </motion.li>
-                                    <motion.li variants={boxVariants} className="flex items-center gap-2">
-                                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
+                                    <motion.li variants={boxVariants} className="flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                      <span className="text-indigo-400 dark:text-indigo-300">•</span>
                                       Download postman templates ⤓
                                     </motion.li>
                                   </ul>
@@ -479,15 +465,15 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => setActiveModal("autoDeleteData")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer dark:hover:text-blue-400 transition-colors"
-                            onClick={() => setActiveModal("autoDeleteData")}
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Auto delete data
                           </motion.li>
                         </ul>
@@ -496,11 +482,11 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Delete data API
                           </motion.li>
                         </ul>
@@ -521,16 +507,16 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("beforeLive")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Testing
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Activating production
                           </motion.li>
                         </ul>
@@ -539,16 +525,16 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("setupUserPermissions")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup user and permissions
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Creating a Landing page
                           </motion.li>
                         </ul>
@@ -569,51 +555,49 @@ export default function IntegrationsPage() {
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setIsDocumentsModalOpen(true)}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Interaction flow overview
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Sample certified pdf
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Sample uncertified original
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Data dictionary
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <span className="text-blue-500 dark:text-blue-400">•</span>
                             Iframe Integration guide
                           </motion.li>
                         </ul>
                       </motion.div>
                     </div>
 
-
-
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 group"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => setActiveModal('hmac')}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
-                            className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
-                            onClick={() => setActiveModal('hmac')}
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 p-2 rounded-lg transition-colors"
                           >
-                            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+                           
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">HMAC for Secure Communication</p>
-                              <p>Authenticate and secure data using HMAC</p>
+                              <h3 className="font-medium text-gray-900 dark:text-white mb-2">HMAC for Secure Communication</h3>
+                              <span className="text-blue-500 dark:text-blue-400">•</span> Authenticate and secure data using HMAC
                             </div>
                           </motion.li>
                           <motion.li variants={boxVariants} className="flex items-center gap-3"></motion.li>

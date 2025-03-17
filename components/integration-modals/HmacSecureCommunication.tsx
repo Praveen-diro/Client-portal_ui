@@ -213,13 +213,13 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                   HMAC Secure Communication
                 </h2>
                 <div className="flex items-center gap-2">
-                  <button 
+                  {/* <button 
                     onClick={toggleMaximize}
                     className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
                     aria-label={isMaximized ? "Restore window" : "Maximize window"}
                   >
                     {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                  </button>
+                  </button> */}
                   <button 
                     onClick={onClose}
                     className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Maximize2, Minimize2, Clock, Shield, AlertTriangle } from "lucide-react";
+import { X, Shield, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface AutoDeleteDataProps {
@@ -11,7 +11,6 @@ interface AutoDeleteDataProps {
 }
 
 export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps) {
-  const [isMaximized, setIsMaximized] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,10 +48,6 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
-
-  const toggleMaximize = () => {
-    setIsMaximized(!isMaximized);
-  };
 
   // Animation variants
   const overlayVariants = {
@@ -133,11 +128,7 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
         >
           {/* Modal */}
           <motion.div 
-            className={`overflow-hidden ${
-              isMaximized 
-                ? 'fixed inset-0 p-0 m-0 bg-white dark:bg-gray-800' 
-                : 'relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-[95%] sm:w-[90%] md:max-w-3xl'
-            }`}
+            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-[95%] sm:w-[90%] md:max-w-3xl overflow-hidden border border-gray-200 dark:border-gray-700"
             variants={modalVariants}
             initial="hidden"
             animate="visible"
@@ -148,7 +139,7 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={isMaximized ? "h-screen flex flex-col" : "max-h-[90vh] flex flex-col"}>
+            <div className="max-h-[90vh] flex flex-col">
               {/* Header */}
               <div className="sticky top-0 z-10 flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
                 <h2 
@@ -158,28 +149,19 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
                   <Shield className="text-blue-500" size={20} />
                   Auto delete data
                 </h2>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={toggleMaximize}
-                    className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label={isMaximized ? "Restore window" : "Maximize window"}
-                  >
-                    {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                  </button>
-                  <button 
-                    onClick={onClose}
-                    className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Close modal"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+                <button 
+                  onClick={onClose}
+                  className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X size={18} />
+                </button>
               </div>
               
               {/* Content Area */}
               <div className="flex-1 overflow-y-auto">
                 <motion.div 
-                  className={`p-6 ${isMaximized ? 'max-w-4xl mx-auto' : ''}`}
+                  className="p-6"
                   variants={contentVariants}
                   initial="hidden"
                   animate="visible"
