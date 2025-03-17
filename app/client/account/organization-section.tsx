@@ -15,11 +15,14 @@ import { orgService } from "@/app/services/org.service";
 import { getOrgItem, setLoading, setError } from "@/app/store/features/organizationSlice";
 import { authService } from "@/app/services/auth.service";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-// Custom loader component
 import Loader from "@/components/ui/loader";
+
+// Custom styles to hide the default close button
+const customDialogStyles = `
+  [data-no-close-button] button[class*="absolute"][class*="right-"][class*="top-"] {
+    display: none !important;
+  }
+`;
 
 // Color input component with validation and preview
 const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
@@ -525,7 +528,21 @@ export function OrganizationSection() {
   );
   const [scale, setScale] = useState(1);
   const [removeBackground, setRemoveBackground] = useState(false);
+  const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Apply custom styles to hide the close button
+  useEffect(() => {
+    // Create style element
+    const styleElement = document.createElement("style");
+    styleElement.innerHTML = customDialogStyles;
+    document.head.appendChild(styleElement);
+
+    // Cleanup on unmount
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   // New state for dragging position
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -771,7 +788,41 @@ export function OrganizationSection() {
     fileInputRef.current?.click();
   };
 
-  const handleToggleBackground = () => {
+  const handleToggleBackground = async () => {
+    // If we're turning on background removal
+    if (!removeBackground) {
+      try {
+        setIsRemovingBackground(true);
+        dispatch(setLoading(true));
+
+        // Convert base64 string to a File object
+        const fetchRes = await fetch(logoSrc);
+        const blob = await fetchRes.blob();
+
+        // Create a File from the Blob
+        const fileName = "logo_image.png";
+        const fileType = blob.type || "image/png";
+        const logoFile = new File([blob], fileName, { type: fileType });
+
+        // Call the removeBackground service
+        const response = await orgService.removeBackground(logoFile);
+
+        if (response.success && response.data) {
+          // Update the logo source with the new background-removed image
+          setLogoSrc(response.data as string);
+          console.log("Background removed successfully");
+        } else {
+          console.error("Failed to remove background:", response.error);
+        }
+      } catch (error) {
+        console.error("Error removing background:", error);
+      } finally {
+        setIsRemovingBackground(false);
+        dispatch(setLoading(false));
+      }
+    }
+
+    // Toggle the removeBackground state
     setRemoveBackground(!removeBackground);
   };
 
@@ -962,17 +1013,21 @@ export function OrganizationSection() {
 
       {/* Logo Editor Dialog */}
       <Dialog open={isLogoEditorOpen} onOpenChange={setIsLogoEditorOpen}>
-        <DialogContent className="sm:max-w-3xl p-0 overflow-hidden border-border bg-background" onWheel={handleZoom}>
-          <div className="absolute right-4 top-4 z-10">
+        <DialogContent
+          className="sm:max-w-3xl p-0 overflow-hidden border-border bg-background"
+          onWheel={handleZoom}
+          data-no-close-button
+        >
+          <div className="absolute right-1 top-1 z-10">
             <Button variant="ghost" size="icon" onClick={() => setIsLogoEditorOpen(false)} className="h-6 w-6 rounded-full">
-              <X className="h-4 w-4" />
+              <X className="h-6 w-6" />
             </Button>
           </div>
 
           <div className="flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <Button onClick={handleOpenFileInput} variant="outline" className="flex gap-2 h-9 px-4 transition-all">
-                <span>Upload new</span>
+                <span>Upload new logo</span>
               </Button>
               <input
                 type="file"
@@ -985,8 +1040,20 @@ export function OrganizationSection() {
                 onClick={handleToggleBackground}
                 variant={removeBackground ? "default" : "outline"}
                 className="h-9 px-4 transition-all"
+                disabled={isRemovingBackground}
               >
-                {removeBackground ? "Restore background" : "Remove background"}
+                {isRemovingBackground ? (
+                  <>
+                    <span className="mr-2 inline-block">
+                      <Loader />
+                    </span>
+                    Removing background...
+                  </>
+                ) : removeBackground ? (
+                  "Restore background"
+                ) : (
+                  "Remove background"
+                )}
               </Button>
             </div>
 

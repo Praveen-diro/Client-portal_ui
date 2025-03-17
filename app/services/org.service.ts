@@ -71,12 +71,21 @@ class OrgService {
   async removeBackground(file: File): Promise<OrgResponse<any>> {
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const response = await axios({
+      formData.append("image_file", file);
+
+      // Create a custom axios instance without the Authorization header
+      const axiosInstance = axios.create();
+      // Clear any default headers that might be set
+      delete axiosInstance.defaults.headers.common["Authorization"];
+
+      const response = await axiosInstance({
         method: "post",
-        url: "https://logo.diro.live/api/remove-background",
+        url: env.removebg,
         data: formData,
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "x-api-key": env.removeBgApiKey,
+        },
         responseType: "blob",
       });
 

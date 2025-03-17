@@ -1,8 +1,8 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, ArrowRight, Maximize2 } from "lucide-react";
+import { X, ArrowRight, Maximize2, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import preview1 from "@/public/assets/images/preview-img1.png";
 import preview2 from "@/public/assets/images/preview-img2.png";
 import preview3 from "@/public/assets/images/preview-img3.png";
@@ -30,22 +30,26 @@ interface PreviewStepsProps {
 export function PreviewSteps({ isOpen, onClose, logoSrc }: PreviewStepsProps) {
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Reset step when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+    }
+  }, [isOpen]);
+
   const steps = [
     {
       number: "1",
-      title: "Login at your bank",
       image: preview1.src,
       description: "Securely connect to your banking portal",
     },
     {
       number: "2",
-      title: "Download statement",
       image: preview2.src,
       description: "Get your latest bank statement",
     },
     {
       number: "3",
-      title: "Review and submit",
       image: preview3.src,
       description: "Verify and confirm your information",
     },
@@ -71,34 +75,44 @@ export function PreviewSteps({ isOpen, onClose, logoSrc }: PreviewStepsProps) {
       </style>
 
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-background max-h-[90vh]">
+        <DialogContent data-no-close-button className="sm:max-w-2xl p-0 overflow-hidden bg-background max-h-[90vh]">
           <div className="flex flex-col h-full">
-            {/* Custom Header with Lock Icon */}
-
-            {/* Steps Navigation */}
-            <div className="flex justify-center items-center p-4 border-b">
+            {/* Steps Navigation - Enhanced UI */}
+            <div className="flex justify-center items-center p-6 border-b bg-[#0f172a] text-white">
               <div className="w-full max-w-md flex justify-between items-center relative">
-                <div className="absolute top-4 left-[2.25rem] right-[2.25rem] h-0.5 bg-muted-foreground/20" />
+                {/* Progress line */}
+                <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-700 -translate-y-1/2" />
+
+                {/* Completed progress line */}
+                <div
+                  className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 transition-all duration-300 ease-in-out"
+                  style={{
+                    width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
+                  }}
+                />
+
                 {steps.map((step, index) => (
                   <div
                     key={index}
-                    className={`flex flex-col items-center z-10 cursor-pointer ${
-                      currentStep === index + 1 ? "opacity-100" : "opacity-70"
-                    }`}
+                    className="flex flex-col items-center z-10 cursor-pointer"
                     onClick={() => setCurrentStep(index + 1)}
                   >
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        currentStep === index + 1
-                          ? "bg-primary text-primary-foreground"
-                          : currentStep > index + 1
-                          ? "bg-primary/80 text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`
+                        w-12 h-12 rounded-full flex items-center justify-center 
+                        transition-all duration-300 ease-in-out
+                        border-2 shadow-sm text-lg font-medium
+                        ${
+                          currentStep === index + 1
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : currentStep > index + 1
+                            ? "bg-primary/90 text-primary-foreground border-primary"
+                            : "bg-[#1e293b] text-white border-gray-700 hover:border-gray-500"
+                        }
+                      `}
                     >
-                      {step.number}
+                      {currentStep > index + 1 ? <Check className="h-5 w-5" /> : step.number}
                     </div>
-                    <span className="text-xs mt-1">{step.title}</span>
                   </div>
                 ))}
               </div>
@@ -109,18 +123,15 @@ export function PreviewSteps({ isOpen, onClose, logoSrc }: PreviewStepsProps) {
               <div className="space-y-4 h-full">
                 <motion.div
                   key={currentStep}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                   className="h-full flex flex-col"
                 >
-                  {/* <h3 className="font-medium text-lg mb-2">{steps[currentStep - 1].title}</h3>
-                  <p className="text-muted-foreground mb-4">{steps[currentStep - 1].description}</p> */}
-
                   <div className="relative rounded-lg overflow-hidden border border-border w-full h-[400px] md:h-[500px] flex-grow">
                     <img
                       src={steps[currentStep - 1].image}
-                      alt={steps[currentStep - 1].title}
                       className={`w-full h-full ${
                         currentStep === 1 ? "object-contain" : currentStep === 3 ? "object-cover" : ""
                       }`}
@@ -157,7 +168,6 @@ export function PreviewSteps({ isOpen, onClose, logoSrc }: PreviewStepsProps) {
                             }}
                             src={logoSrc}
                           />
-                          <X className="text-white h-6 w-6" />
                         </div>
                       </>
                     )}
@@ -203,14 +213,19 @@ export function PreviewSteps({ isOpen, onClose, logoSrc }: PreviewStepsProps) {
               <div className="text-sm text-muted-foreground">Powered by diro</div>
               <div className="flex gap-2">
                 {currentStep > 1 && (
-                  <Button onClick={handlePrev} variant="outline">
-                    Prev
+                  <Button onClick={handlePrev} variant="outline" size="sm">
+                    Previous
                   </Button>
                 )}
                 {currentStep < steps.length ? (
-                  <Button onClick={handleNext}>Next</Button>
+                  <Button onClick={handleNext} size="sm" className="gap-1">
+                    Next
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
                 ) : (
-                  <Button onClick={onClose}>Close</Button>
+                  <Button onClick={onClose} size="sm">
+                    Close
+                  </Button>
                 )}
               </div>
             </div>
