@@ -10,7 +10,7 @@ interface DeleteDataApiProps {
 }
 
 export default function DeleteDataApi({ isOpen, onClose }: DeleteDataApiProps) {
-  const [apiKey, setApiKey] = useState("sk_live_Abcd1234Efgh5678Ijkl9012");
+  const [apiKey, setApiKey] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   
   const handleCopy = (text: string, type: string) => {
