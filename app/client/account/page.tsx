@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersSection } from "./users-section";
@@ -8,6 +8,9 @@ import { BillingSection } from "./billing-section";
 import { OrganizationSection } from "./organization-section";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
+import { orgService } from "@/app/services/org.service";
+import { useAppDispatch } from "@/app/store/hooks";
+import { getOrgItem, setLoading, setError } from "@/app/store/features/organizationSlice";
 
 const tabContent = {
   users: UsersSection,
@@ -35,13 +38,53 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState("users");
   const [direction, setDirection] = useState(0);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const dispatch = useAppDispatch();
+  const [orgDataFetched, setOrgDataFetched] = useState(false);
+
+  // Fetch organization data only once when switching to the organization tab
+  const fetchOrgData = React.useCallback(async () => {
+    if (orgDataFetched) return;
+
+    console.log("Fetching organization data from page.tsx...");
+    dispatch(setLoading(true));
+    try {
+      const response = await orgService.getOrg();
+      if (response.success && response.data) {
+        dispatch(getOrgItem(response.data));
+      } else {
+        dispatch(setError(response.error || "Failed to fetch organization data"));
+      }
+      setOrgDataFetched(true);
+    } catch (error) {
+      console.error("Error fetching organization data:", error);
+      dispatch(setError(error));
+    }
+  }, [dispatch, orgDataFetched]);
+
+  // Call fetchOrgData when the component mounts if the active tab is "organization"
+  useEffect(() => {
+    if (activeTab === "organization") {
+      fetchOrgData();
+    }
+  }, [activeTab, fetchOrgData]);
 
   const handleTabChange = (newTab: string) => {
     const tabOrder = Object.keys(tabContent);
     const oldIndex = tabOrder.indexOf(activeTab);
     const newIndex = tabOrder.indexOf(newTab);
     setDirection(newIndex > oldIndex ? 1 : -1);
+
+    // Reset orgDataFetched when navigating away from the Organization tab
+    if (activeTab === "organization" && newTab !== "organization") {
+      setOrgDataFetched(false);
+    }
+
     setActiveTab(newTab);
+
+    // Call fetchOrgData only when switching to the organization tab
+    if (newTab === "organization") {
+      fetchOrgData();
+    }
   };
 
   const transitionConfig = {
@@ -58,7 +101,7 @@ export default function AccountPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
-        <Sidebar expanded={sidebarExpanded} onExpandedChange={setSidebarExpanded} />
+        <Sidebar onExpandedChange={setSidebarExpanded} />
       </div>
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex flex-col h-full mb-4">

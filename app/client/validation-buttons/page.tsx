@@ -112,54 +112,54 @@ export default function ValidationButtons() {
   const trigger = useSelector((state: RootState) => state.trigger);
 
   // Add a debug effect to check Redux state on mount
-  useEffect(() => {
-    console.log("ValidationButtons page - Redux auth state:", {
-      isAuthenticated: auth.isAuthenticated,
-      email: auth.email,
-      roles: auth.roles,
-      token: auth.token ? "exists" : "missing",
-      apikey: auth.apikey ? "exists" : "missing",
-    });
+  // useEffect(() => {
+  //   console.log("ValidationButtons page - Redux auth state:", {
+  //     isAuthenticated: auth.isAuthenticated,
+  //     email: auth.email,
+  //     roles: auth.roles,
+  //     token: auth.token ? "exists" : "missing",
+  //     apikey: auth.apikey ? "exists" : "missing",
+  //   });
 
-    // Log all Redux slices to verify they're loaded
-    console.log("ValidationButtons page - Redux slices:", {
-      auth: !!auth,
-      user: !!user,
-      buttonSettings: !!buttonSettings,
-      privacy: !!privacy,
-      trigger: !!trigger,
-    });
+  //   // Log all Redux slices to verify they're loaded
+  //   console.log("ValidationButtons page - Redux slices:", {
+  //     auth: !!auth,
+  //     user: !!user,
+  //     buttonSettings: !!buttonSettings,
+  //     privacy: !!privacy,
+  //     trigger: !!trigger,
+  //   });
 
-    // Check cookies directly as well
-    console.log("ValidationButtons page - Cookies:", {
-      token: Cookies.get("token") ? "exists" : "missing",
-      apikey: Cookies.get("apikey") ? "exists" : "missing",
-      email: Cookies.get("email"),
-      roles: Cookies.get("roles"),
-    });
+  //   // Check cookies directly as well
+  //   console.log("ValidationButtons page - Cookies:", {
+  //     token: Cookies.get("token") ? "exists" : "missing",
+  //     apikey: Cookies.get("apikey") ? "exists" : "missing",
+  //     email: Cookies.get("email"),
+  //     roles: Cookies.get("roles"),
+  //   });
 
-    // Force connection with Redux DevTools for this specific page
-    if (typeof window !== "undefined") {
-      // Force Redux store to be accessible to DevTools
-      // @ts-ignore
-      if (!window.__REDUX_STORE__) {
-        // @ts-ignore
-        window.__REDUX_STORE__ = store;
-      }
+  //   // Force connection with Redux DevTools for this specific page
+  //   if (typeof window !== "undefined") {
+  //     // Force Redux store to be accessible to DevTools
+  //     // @ts-ignore
+  //     if (!window.__REDUX_STORE__) {
+  //       // @ts-ignore
+  //       window.__REDUX_STORE__ = store;
+  //     }
 
-      // Force DevTools connection
-      // @ts-ignore
-      if (window.__REDUX_DEVTOOLS_EXTENSION__) {
-        try {
-          // @ts-ignore
-          window.__REDUX_DEVTOOLS_EXTENSION__.connect();
-          console.log("Redux DevTools connection refreshed for validation-buttons page");
-        } catch (err) {
-          console.error("Failed to connect to Redux DevTools:", err);
-        }
-      }
-    }
-  }, [auth, user, buttonSettings, privacy, trigger]);
+  //     // Force DevTools connection
+  //     // @ts-ignore
+  //     if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+  //       try {
+  //         // @ts-ignore
+  //         window.__REDUX_DEVTOOLS_EXTENSION__.connect();
+  //         console.log("Redux DevTools connection refreshed for validation-buttons page");
+  //       } catch (err) {
+  //         console.error("Failed to connect to Redux DevTools:", err);
+  //       }
+  //     }
+  //   }
+  // }, [auth, user, buttonSettings, privacy, trigger]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -195,7 +195,7 @@ export default function ValidationButtons() {
   };
 
   const handleEditButton = (buttonId: number) => {
-    router.push(`/validation-buttons/button-settings/${buttonId}`);
+    router.push(`/client/validation-buttons/button-settings/${buttonId}`);
   };
 
   return (

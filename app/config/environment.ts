@@ -158,7 +158,7 @@ interface Environment {
   request_demo: string;
   getbtndata: string;
   banklist: string;
-  invite: string;
+  requesteduser: string;
   getplan: string;
   chargecard: string;
   striperedirect: string;
@@ -275,7 +275,7 @@ const stage2: Environment = {
   request_demo: "https://buttons.diro.live/",
   getbtndata: baseurl.stage2baseurl + "boards-2.0/getbutton",
   banklist: baseurl.stage2baseurl + "IdMaster-2.0/banklinkscategorywise",
-  invite: baseurl.stage2baseurl + "organization-2.0/requesteduser",
+  requesteduser: baseurl.stage2baseurl + "organization-2.0/requesteduser",
   getplan: baseurl.stage2baseurl + "Account-2.0/getplan",
   chargecard: baseurl.stage2baseurl + "Account-2.0/chargecard",
   striperedirect: baseurl.stage2baseurl + "Account-2.0/redirect",
@@ -452,7 +452,7 @@ const stage1: Environment = {
   request_demo: "https://stage1buttons.diro.live/",
   getbtndata: baseurl.stage1baseurl + "boards-2.0/getbutton",
   banklist: baseurl.stage1baseurl + "IdMaster-2.0/banklinkscategorywise",
-  invite: baseurl.stage1baseurl + "organization-2.0/requesteduser",
+  requesteduser: baseurl.stage1baseurl + "organization-2.0/requesteduser",
   getplan: baseurl.stage1baseurl + "Account-2.0/getplan",
   chargecard: baseurl.stage1baseurl + "Account-2.0/chargecard",
   striperedirect: baseurl.stage1baseurl + "Account-2.0/redirect",
@@ -628,7 +628,7 @@ const prodeu: Environment = {
   request_demo: "https://diro.io/buttons/",
   getbtndata: baseurl.prodbaseurl + "boards-2.0/getbutton",
   banklist: baseurl.prodbaseurl + "IdMaster-2.0/banklinkscategorywise",
-  invite: baseurl.prodbaseurl + "organization-2.0/requesteduser",
+  requesteduser: baseurl.prodbaseurl + "organization-2.0/requesteduser",
   getplan: baseurl.prodbaseurl + "Account-2.0/getplan",
   chargecard: baseurl.prodbaseurl + "Account-2.0/chargecard",
   striperedirect: baseurl.prodbaseurl + "Account-2.0/redirect",

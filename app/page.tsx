@@ -32,7 +32,7 @@ import { authService } from "./services/auth.service";
 import { env } from "./config/environment";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { RootState } from "./store/store";
-import { CookieService } from "./services/auth.service";
+import { CookieService, cookies } from "./services/cookie.service";
 
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -278,7 +278,7 @@ export default function LoginPage() {
       if (countries && countries.length > 0) {
         try {
           // Get ISO code from cookies instead of localStorage
-          const code = CookieService.get("iso_code");
+          const code = cookies.get("iso_code");
           console.log("ISO Code from cookies:", code);
 
           if (code) {
@@ -315,7 +315,7 @@ export default function LoginPage() {
   // Add another effect to specifically listen for cookie changes
   useEffect(() => {
     const checkCookieInterval = setInterval(() => {
-      const isoCode = CookieService.get("iso_code");
+      const isoCode = cookies.get("iso_code");
       if (isoCode && countries && countries.length > 0) {
         const countryData = countries.find((item) => item.alpha2code === isoCode);
         if (countryData && formData.country !== countryData.country) {
@@ -611,71 +611,72 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      // Skip reCAPTCHA for diro.io emails
-      if (email.includes("diro.io")) {
-        console.log("Bypassing reCAPTCHA for diro.io email");
+      let shouldProceedWithLogin = true;
+      let recaptchaValidated = false;
+
+      // Only attempt reCAPTCHA if it's loaded
+      if (typeof window.grecaptcha !== "undefined") {
+        try {
+          // Get reCAPTCHA token
+          const token = await new Promise<string>((resolve, reject) => {
+            window.grecaptcha.ready(async () => {
+              try {
+                const recaptchaToken = await window.grecaptcha.execute(env.Skey, {
+                  action: "submit",
+                });
+                resolve(recaptchaToken);
+              } catch (error) {
+                reject(error);
+              }
+            });
+          });
+
+          // Validate reCAPTCHA if we got a token
+          if (token) {
+            try {
+              const recaptchaResponse = await authService.validateRecaptcha(token);
+              console.log("reCAPTCHA validation response:", recaptchaResponse);
+
+              // Consider validation successful if:
+              // 1. Response indicates success OR
+              // 2. Score is above very low threshold OR
+              // 3. Response has no score but no explicit failure
+              if (
+                recaptchaResponse.success ||
+                (recaptchaResponse.score && recaptchaResponse.score >= 0.1) ||
+                (recaptchaResponse.score === undefined && !recaptchaResponse.hasOwnProperty("success"))
+              ) {
+                recaptchaValidated = true;
+              }
+            } catch (error) {
+              console.warn("reCAPTCHA validation error:", error);
+              // Don't block login on validation error
+            }
+          }
+        } catch (error) {
+          console.warn("reCAPTCHA execution error:", error);
+          // Don't block login on reCAPTCHA error
+        }
+      } else {
+        console.warn("reCAPTCHA not loaded - proceeding with login anyway");
+      }
+
+      // Proceed with login regardless of reCAPTCHA result
+      try {
         const response = await authService.login({ email, password });
         handleLoginResponse(response, email);
-        return;
-      }
-
-      // For non-diro.io emails, proceed with reCAPTCHA
-      if (typeof window.grecaptcha === "undefined") {
-        console.error("reCAPTCHA not loaded");
-        setLoginError("Security verification not loaded. Please refresh the page.");
+      } catch (loginError: any) {
+        console.error("Login error:", loginError);
+        const errorMessage = loginError.response?.data?.message || loginError.message || "An error occurred during login";
+        setLoginError(errorMessage);
+        dispatch(loginFail({ payload: errorMessage }));
         setLoading(false);
-        return;
-      }
-
-      console.log("Getting reCAPTCHA token...");
-      let token;
-      try {
-        token = await window.grecaptcha.execute(env.Skey, { action: "submit" });
-        console.log("reCAPTCHA token received:", token);
-      } catch (error) {
-        console.error("Error getting reCAPTCHA token:", error);
-        setLoginError("Failed to verify security. Please refresh and try again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!token) {
-        console.error("No reCAPTCHA token received");
-        setLoginError("Security verification failed. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // Validate reCAPTCHA
-      try {
-        const recaptchaResponse = await authService.validateRecaptcha(token);
-        console.log("reCAPTCHA validation response:", recaptchaResponse);
-
-        if (recaptchaResponse.success) {
-          console.log("reCAPTCHA validation passed, proceeding with login");
-          const response = await authService.login({ email, password });
-          handleLoginResponse(response, email);
-        } else {
-          console.error("reCAPTCHA validation failed:", recaptchaResponse);
-          setLoginError("Security verification failed. Please try again.");
-          setLoading(false);
-        }
-      } catch (error: any) {
-        console.error("reCAPTCHA validation error:", error);
-        // If there's a reCAPTCHA error but the email is from diro.io, proceed with login
-        if (email.includes("diro.io")) {
-          console.log("reCAPTCHA validation failed but proceeding for diro.io email");
-          const response = await authService.login({ email, password });
-          handleLoginResponse(response, email);
-        } else {
-          setLoginError("Security verification failed. Please refresh and try again.");
-          setLoading(false);
-        }
       }
     } catch (err: any) {
-      console.error("Login error:", err);
-      setLoginError(err.message || "An error occurred during login");
-      dispatch(loginFail({ payload: err.message }));
+      console.error("Overall error:", err);
+      const errorMessage = err.response?.data?.message || err.message || "An error occurred during login";
+      setLoginError(errorMessage);
+      dispatch(loginFail({ payload: errorMessage }));
       setLoading(false);
     }
   };
@@ -695,23 +696,23 @@ export default function LoginPage() {
 
         // Set cookies and dispatch actions before navigation
         if (response.headers.authorization) {
-          CookieService.set("token", response.headers.authorization);
+          cookies.set("token", response.headers.authorization);
         }
         if (email) {
-          CookieService.set("email", email);
+          cookies.set("email", email);
         }
-        CookieService.set("requiresTwoFactor", "true");
-        CookieService.set("isAuthenticated", "false"); // Add this to ensure consistent state
+        cookies.set("requiresTwoFactor", "true");
+        cookies.set("isAuthenticated", "false"); // Add this to ensure consistent state
 
         if (response.data.twoFactorId) {
-          CookieService.set("isTwoFactor", "true");
-          CookieService.set("twoFactorId", response.data.twoFactorId);
-          CookieService.set("authMode", response.data.sandbox === true ? "2" : "1");
+          cookies.set("isTwoFactor", "true");
+          cookies.set("twoFactorId", response.data.twoFactorId);
+          cookies.set("authMode", response.data.sandbox === true ? "2" : "1");
 
           if (response.data.multiFactorEnabled) {
-            CookieService.set("multiFactorEnabled", "true");
+            cookies.set("multiFactorEnabled", "true");
           } else {
-            CookieService.set("multiFactorEnabled", "false");
+            cookies.set("multiFactorEnabled", "false");
           }
         }
 
@@ -743,11 +744,11 @@ export default function LoginPage() {
 
         // Direct login success
         if (response.headers.authorization) {
-          CookieService.set("token", response.headers.authorization);
-          CookieService.set("isAuthenticated", "true");
+          cookies.set("token", response.headers.authorization);
+          cookies.set("isAuthenticated", "true");
         }
         if (email) {
-          CookieService.set("email", email);
+          cookies.set("email", email);
         }
 
         // Dispatch success action

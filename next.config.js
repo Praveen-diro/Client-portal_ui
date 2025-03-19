@@ -2,6 +2,15 @@
 const nextConfig = {
     poweredByHeader: false,
     compress: true,
+    // Server external packages configuration
+    serverExternalPackages: [],
+    // Add experimental features to support Next.js 15
+    experimental: {
+        // Enable modern optimization features
+        optimizeCss: true,
+        // Improve module resolution
+        optimizePackageImports: ['react-day-picker', 'date-fns', '@react-pdf-viewer/core']
+    },
     async rewrites() {
         return {
             beforeFiles: [

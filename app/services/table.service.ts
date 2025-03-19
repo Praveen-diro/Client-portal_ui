@@ -1,16 +1,13 @@
 import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
-
-import { refreshAuthService } from "./refreshAuth.service";
+import { axiosService } from "./axios.service";
+import { cookies } from "./cookie.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
-export interface TableResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-}
+export interface TableResponse<T> extends ApiResponse<T> {}
 
 export interface PaginationParams {
   offset: number;
@@ -70,63 +67,27 @@ class TableService {
   private readonly MAX_RETRY_COUNT = 5;
 
   constructor() {
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
-    return (ls.get("apikey") as string) || "";
-  }
-
-  private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token") as string;
+    return (cookies.get("apikey") as string) || "";
   }
 
   private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<TableResponse<T>> {
-    try {
-      this.setupAxiosDefaults();
-      const response = await axios.post(url, data);
+    // Add apiKey if not already in the data
+    const requestData = data.apikey ? data : { ...data, apikey: this.getApiKey() };
 
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      // Handle token refresh for 401 errors
-      if (
-        ls.get("refreshToken") &&
-        (error.message === "Request failed with status code 401" || error.message === "Network Error") &&
-        retryKey &&
-        this.retryCount[retryKey] < this.MAX_RETRY_COUNT
-      ) {
-        this.retryCount[retryKey]++;
-        await refreshAuthService.refreshAuth(async () => {
-          return { success: true };
-        }, false);
-        return this.makeRequest(url, data, retryKey);
-      }
-
-      if (retryKey) {
-        this.retryCount[retryKey] = 0;
-      }
-
-      return {
-        success: false,
-        error: error.message || "An unknown error occurred",
-      };
-    }
+    return apiService.makeRequest<T>(url, requestData, retryKey, this.MAX_RETRY_COUNT, false, true);
   }
 
   async getRequested(params: RequestPaginationParams = { offset: 0, limit: 10, status: "invite" }): Promise<TableResponse<any>> {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "invite",
-      limit: params.offset || 0,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      offset: params.offset || 0,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -136,13 +97,13 @@ class TableService {
     });
 
     try {
-      const response = await this.makeRequest<any>(env.invite, data, "getRequested");
-      console.log("Received response from invite API:", response);
+      const response = await this.makeRequest<any>(env.requesteduser, data, "getRequested");
 
       // Ensure data property is properly structured even if API returns unexpected format
       if (response.success && response.data && !response.data.data && Array.isArray(response.data)) {
         response.data = { data: response.data, total: response.data.length };
       }
+      console.log("Received response from invite API:", response);
 
       return response;
     } catch (error) {
@@ -158,10 +119,10 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "pending",
-      limit: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      offset: params.offset || 0,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -177,10 +138,10 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "approved",
-      limit: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      offset: params.offset || 0,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -191,10 +152,10 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
-      limit: params.offset || 0,
-      orgid: ls.get("orgid") as string,
-      requesterEmail: ls.get("email") as string,
-      requesterRole: ls.get("roles") as string,
+      offset: params.offset || 0,
+      orgid: cookies.get("orgid") as string,
+      requesterEmail: cookies.get("email") as string,
+      requesterRole: cookies.get("roles") as string,
       numberOfRecords: params.limit || 10,
     };
 
@@ -202,9 +163,9 @@ class TableService {
   }
 
   async getSessionReport(sessionid: string): Promise<TableResponse<any>> {
+    console.log("sessionid inside the session report", sessionid);
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      inviteid: sessionid,
     };
 
     return this.makeRequest(env.sessionstats, data, "getSessionReport");
@@ -212,8 +173,7 @@ class TableService {
 
   async getAutoNavData(sessionid: string): Promise<TableResponse<any>> {
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      sessionId: sessionid,
     };
 
     return this.makeRequest(env.getAutoNavData, data, "getAutoNavData");
@@ -227,7 +187,7 @@ class TableService {
       limit,
     };
 
-    return this.makeRequest(env.fulltextsearch, data, "searchTable");
+    return this.makeRequest(env.requesteduser, data, "searchTable");
   }
 
   async submitFeedback(data: FeedbackFormData): Promise<TableResponse<any>> {
@@ -237,7 +197,7 @@ class TableService {
       comment: data.feedback,
       rating: data.rating,
       source: "client portal",
-      email: ls.get("email") as string,
+      email: cookies.get("email") as string,
     };
 
     return this.makeRequest(env.feedbackUrl, requestData, "submitFeedback");

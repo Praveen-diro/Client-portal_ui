@@ -35,26 +35,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   };
 
   // Debug effect to log Redux state and cookies
-  useEffect(() => {
-    if (!mounted) return;
+  // useEffect(() => {
+  //   if (!mounted) return;
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log("Client layout - Redux auth state:", {
-        isAuthenticated: auth.isAuthenticated,
-        email: auth.email,
-        roles: auth.roles,
-        token: auth.token ? "exists" : "missing",
-        apikey: auth.apikey ? "exists" : "missing",
-      });
+  //   if (process.env.NODE_ENV !== "production") {
+  //     console.log("Client layout - Redux auth state:", {
+  //       isAuthenticated: auth.isAuthenticated,
+  //       email: auth.email,
+  //       roles: auth.roles,
+  //       token: auth.token ? "exists" : "missing",
+  //       apikey: auth.apikey ? "exists" : "missing",
+  //     });
 
-      console.log("Client layout - Cookies:", {
-        token: Cookies.get("token") ? "exists" : "missing",
-        apikey: Cookies.get("apikey") ? "exists" : "missing",
-        email: Cookies.get("email"),
-        roles: Cookies.get("roles"),
-      });
-    }
-  }, [auth, mounted]);
+  //     console.log("Client layout - Cookies:", {
+  //       token: Cookies.get("token") ? "exists" : "missing",
+  //       apikey: Cookies.get("apikey") ? "exists" : "missing",
+  //       email: Cookies.get("email"),
+  //       roles: Cookies.get("roles"),
+  //     });
+  //   }
+  // }, [auth, mounted]);
 
   // Always render the children on the server, then handle conditional rendering on the client after hydration
   return (
@@ -64,7 +64,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <div className="flex-1 overflow-auto">
           {children}
 
-          {/* Debug component - only in development */}
+          {/* Debug component - only in development
           {mounted && process.env.NODE_ENV !== "production" && auth.isAuthenticated && (
             <div className="fixed bottom-4 right-4 bg-white/90 dark:bg-black/70 p-3 rounded shadow-lg text-xs max-w-xs z-50 overflow-auto max-h-48">
               <h4 className="font-bold mb-1">Redux Auth State:</h4>
@@ -82,7 +82,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 )}
               </pre>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </>

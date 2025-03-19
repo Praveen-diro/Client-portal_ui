@@ -2,6 +2,7 @@ import axios from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { setAuthToken } from "../utils/tools";
+import { cookies } from "./cookie.service";
 
 ls.config.encrypt = true;
 
@@ -13,7 +14,8 @@ export interface RefreshAuthResponse {
 
 class RefreshAuthService {
   private async handleRefreshToken(): Promise<RefreshAuthResponse> {
-    const refreshToken = ls.get("refreshToken");
+    console.log("handleRefreshToken");
+    const refreshToken = cookies.get("refreshToken");
     if (!refreshToken) {
       return { success: false, message: "No refresh token found" };
     }
@@ -26,7 +28,7 @@ class RefreshAuthService {
       }
 
       if (response.headers.authorization) {
-        ls.set("token", response.headers.authorization);
+        cookies.set("token", response.headers.authorization);
         setAuthToken(response.headers.authorization);
         return {
           success: true,
@@ -50,7 +52,7 @@ class RefreshAuthService {
 
       if (!refreshResult.success) {
         // Clear user session
-        ls.clear();
+        cookies.clearAll();
         if (reloadAfterRefresh) {
           window.location.reload();
         }

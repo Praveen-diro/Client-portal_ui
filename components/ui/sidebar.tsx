@@ -149,7 +149,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               onClick={item.onClick}
               className="group relative flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-muted hover:text-sidebar-muted-foreground"
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              {mounted ? <item.icon className="h-5 w-5 shrink-0" /> : <div className="h-5 w-5 shrink-0" />}
               <AnimatePresence>
                 {isExpanded && (
                   <motion.span

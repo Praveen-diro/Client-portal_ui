@@ -11,6 +11,8 @@ const protectedRoutes = [
   "/client/account",
   "/client/report-issue",
   "/client",
+  "/pdf",
+  "/pdf-example",
 ];
 
 // Login page route
@@ -191,6 +193,7 @@ export const config = {
     "/two-factor",
     "/passwordreset/:id/:userEmail*",
     "/client/validation-buttons/:path*",
+    "/client/validation-buttons/button-settings/:id*",
     "/client/requests-sent/:path*",
     "/client/documents-received/:path*",
     "/client/coverage/:path*",
@@ -199,5 +202,7 @@ export const config = {
     "/client/report-issue/:path*",
     "/authentication/:path*",
     "/client/:path*",
+    "/pdf/:path*",
+    "/pdf-example/:path*",
   ],
 };

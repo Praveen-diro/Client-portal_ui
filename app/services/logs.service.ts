@@ -1,15 +1,14 @@
 import axios, { AxiosResponse } from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
+import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
+import { cookies } from "./cookie.service";
+import { apiService, ApiResponse } from "./api.service";
 
 ls.config.encrypt = true;
 
-export interface LogResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: any;
-}
+export interface LogResponse<T> extends ApiResponse<T> {}
 
 export interface LogParams {
   offset: number;
@@ -41,45 +40,16 @@ class LogService {
   private readonly LOGS_URL = "https://api2.diro.live/logs/logs";
 
   constructor() {
-    this.setupAxiosDefaults();
+    axiosService.setupAxiosDefaults();
   }
 
   private getApiKey(): string {
-    return ls.get("apikey") || "";
-  }
-
-  private setupAxiosDefaults(): void {
-    axios.defaults.headers.common["Authorization"] = ls.get("token");
+    return cookies.get("apikey") || "";
   }
 
   private async makeRequest<T>(url: string, data: any): Promise<LogResponse<T>> {
-    try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<T>>(async () => {
-        return await axios.post<T>(url, { ...data, apikey: this.getApiKey() });
-      }, false);
-
-      if (!response?.data || response?.status === 204) {
-        return {
-          success: false,
-          error: {
-            error: "No logs found",
-            timestamp: new Date().toISOString(),
-            errorCode: response?.status || 204,
-          },
-        };
-      }
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      console.error("Request failed:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    const requestData = { ...data, apikey: this.getApiKey() };
+    return apiService.makeRefreshAuthRequest<T>(url, requestData);
   }
 
   async getLogs(params: Partial<LogParams> = {}): Promise<LogResponse<any>> {
@@ -101,7 +71,7 @@ class LogService {
       level,
       facility,
       app_name: "client-portal",
-      user: ls.get("email"),
+      user: cookies.get("email"),
       _ENV: env.env,
     };
 

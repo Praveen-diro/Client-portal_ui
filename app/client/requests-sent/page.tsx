@@ -15,22 +15,14 @@ import {
   RefreshCw,
   Timer,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -38,12 +30,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
-import {
-  fetchSessionReport,
-  fetchAutoNavData,
-  submitFeedback,
-  resetFeedbackStatus,
-} from "@/app/store/features/sessionReportSlice";
+import { fetchSessionReport, fetchAutoNavData, submitFeedback, resetFeedbackStatus } from "@/app/store/features/tableSlice";
 import SessionReportTable from "@/app/components/SessionReportTable";
 import AiLogsTable from "@/app/components/AiLogsTable";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,10 +43,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { tableService } from "@/app/services/table.service";
 import { getUserTime } from "@/app/utils/timeUtils";
-
+import Loader from "@/components/ui/loader";
 // Define form schema for feedback
 const formSchema = z.object({
   comment: z.string().min(1, { message: "Comment is required" }),
+  rating: z.string().refine((value) => parseInt(value) >= 1 && parseInt(value) <= 5, {
+    message: "Rating must be between 1 and 5",
+  }),
 });
 
 // Type for request items
@@ -86,86 +76,35 @@ interface StatsCard {
 }
 
 // Mock requests data - will be replaced with API data
-const initialRequests = [
-  {
-    sessionId: "US-zsXuEe",
-    button: "Download address",
-    site: "sample.diro.me",
-    initiatedOn: "23 Hours ago",
-    finalStatus: "Tried download / submit",
-    exitReason: "",
-    trackId: "",
-    statusColor: "yellow",
-  },
-  {
-    sessionId: "US-VXbYiZ",
-    button: "Bank download green",
-    site: "canarabank.com",
-    initiatedOn: "23 Hours ago",
-    finalStatus: "Abandon",
-    exitReason: "User left",
-    trackId: "",
-    statusColor: "red",
-  },
-  {
-    sessionId: "US-XWDHz2",
-    button: "Download address",
-    site: "sample.diro.me",
-    initiatedOn: "24 Hours ago",
-    finalStatus: "In Progress",
-    exitReason: "",
-    trackId: "",
-    statusColor: "blue",
-  },
-  {
-    sessionId: "US-ygs5iX",
-    button: "Download address",
-    site: "testing99.diro.me",
-    initiatedOn: "4 Days ago",
-    finalStatus: "Started",
-    exitReason: "",
-    trackId: "143",
-    statusColor: "blue",
-  },
-  {
-    sessionId: "US-NDufyc",
-    button: "Download address",
-    site: "utility5.diro.me",
-    initiatedOn: "4 Days ago",
-    finalStatus: "Done, now in Review",
-    exitReason: "",
-    trackId: "14141",
-    statusColor: "green",
-  },
-];
+const initialRequests: RequestItem[] = [];
 
 // Initial stats cards data
 const initialStatsCards: StatsCard[] = [
   {
     title: "Total Requests",
-    value: "5",
+    value: "0",
     description: "In the last 7 days",
     icon: Clock,
     color: "blue",
-    trend: "+12% from last week",
+    trend: "",
     trendUp: true,
   },
   {
     title: "Completed Requests",
-    value: "1",
+    value: "0",
     description: "In review",
     icon: CheckCircle2,
     color: "green",
-    trend: "On track",
+    trend: "",
     trendUp: true,
   },
   {
     title: "Abandoned Requests",
-    value: "1",
+    value: "0",
     description: "Require attention",
     icon: AlertCircle,
     color: "red",
-    trend: "-5% from last week",
+    trend: "",
     trendUp: false,
   },
 ];
@@ -238,16 +177,16 @@ const mapApiResponseToRequestItems = (apiData: any): RequestItem[] => {
   console.log("Data array to map:", dataArray);
 
   return dataArray.map((item: any) => {
-    const status = item.status || "Unknown";
+    const status = item.sessionstats?.[0].finalindicatorstatus || "Not available";
     console.log("Mapping item:", item);
 
     return {
-      sessionId: item.sessionId || item.session_id || item.id || "Unknown",
-      button: item.button || item.buttonName || item.button_name || "Unknown",
-      site: item.site || item.siteName || item.website || item.site_name || "Unknown",
-      initiatedOn: item.timestamp ? getUserTime(item.timestamp) : "Unknown",
+      sessionId: item.sessionId || item.session_id || item.usertoken || "Unknown",
+      button: item.button || item.buttonname || item.button_name || "Unknown",
+      site: item.site || item.sessionstats?.[0]?.site || item.website || item.site_name || "Not available",
+      initiatedOn: item.crtime ? getUserTime(item.crtime) : "",
       finalStatus: status,
-      exitReason: item.exitReason || item.reason || item.exit_reason || "",
+      exitReason: item.sessionstats?.[0]?.finalExitstatus || item.reason || item.exit_reason || "",
       trackId: item.trackId || item.track_id || "",
       statusColor: getStatusColorFromStatus(status),
     };
@@ -276,10 +215,22 @@ const getStatusColorFromStatus = (status: string): string => {
   }
 };
 
+// Define the NavLog interface to match what's needed in this component
+interface NavLog {
+  currentUrl: string;
+  timestamp?: string;
+  title?: string;
+}
+
 export default function RequestsSent() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const { autoNavData, loading, feedbackSubmitted, error: reduxError } = useAppSelector((state) => state.sessionReport);
+  const {
+    AutoNavData: autoNavData,
+    loading,
+    submitFeedalert: feedbackSubmitted,
+    error: reduxError,
+  } = useAppSelector((state) => state.table);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sessionModal, setSessionModal] = useState(false);
@@ -299,6 +250,7 @@ export default function RequestsSent() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       comment: "",
+      rating: "1",
     },
   });
 
@@ -308,10 +260,11 @@ export default function RequestsSent() {
     setError(null);
 
     try {
-      const offset = (page - 1) * itemsPerPage;
+      const offset = page - 1; // Calculate offset based on current page
       let response;
 
       if (search) {
+        // Debounced search using searchTable
         response = await tableService.searchTable(search, offset, itemsPerPage);
       } else {
         response = await tableService.getRequested({
@@ -331,10 +284,14 @@ export default function RequestsSent() {
       const mappedRequests = mapApiResponseToRequestItems(response.data);
       console.log("Mapped requests:", mappedRequests);
 
-      setRequests(mappedRequests);
+      // If we got less than itemsPerPage items, we're on the last page
+      const isLastPage = mappedRequests.length < itemsPerPage;
+      setTotalPages(isLastPage ? page : page + 1);
 
-      // Update stats based on data
-      const totalRequests = response.data?.total || mappedRequests.length;
+      setRequests(mappedRequests);
+      setCurrentPage(page);
+
+      // Update stats based on current page data
       const completedRequests = mappedRequests.filter(
         (req) =>
           req.statusColor === "green" ||
@@ -349,25 +306,20 @@ export default function RequestsSent() {
       setStats([
         {
           ...initialStatsCards[0],
-          value: totalRequests.toString(),
-          trend: totalRequests > 0 ? "+12% from last week" : "No recent activity",
+          value: mappedRequests.length.toString(),
+          trend: "",
         },
         {
           ...initialStatsCards[1],
           value: completedRequests.toString(),
-          trend: completedRequests > 0 ? "On track" : "No completed requests",
+          trend: "",
         },
         {
           ...initialStatsCards[2],
           value: abandonedRequests.toString(),
-          trend: abandonedRequests > 0 ? `${abandonedRequests} need attention` : "No abandoned requests",
+          trend: "",
         },
       ]);
-
-      // Update pagination
-      const totalItems = response.data?.total || mappedRequests.length;
-      setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
-      setCurrentPage(page);
     } catch (err) {
       console.error("Error fetching requests:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -376,18 +328,21 @@ export default function RequestsSent() {
     }
   };
 
-  // Effect to fetch data on mount and when page or search changes
+  // Effect to fetch initial data
   useEffect(() => {
-    // Debug Redux state - using the already retrieved state at component level
-    console.log("Redux sessionReport state:", {
-      autoNavData,
-      loading,
-      feedbackSubmitted,
-      error: reduxError,
-    });
+    fetchRequests(1);
+  }, []);
 
-    fetchRequests(currentPage, searchQuery);
-  }, [currentPage, searchQuery, autoNavData, loading, feedbackSubmitted, reduxError]);
+  // Effect for search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 3) {
+        fetchRequests(1, searchQuery);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -419,6 +374,7 @@ export default function RequestsSent() {
   // Function to handle session detail view
   const handleViewSessionDetails = (sessionId: string) => {
     setSelectedSessionId(sessionId);
+    console.log("Dispatching session details for:", sessionId);
     dispatch(fetchSessionReport(sessionId));
     dispatch(fetchAutoNavData(sessionId));
     setSessionModal(true);
@@ -440,20 +396,35 @@ export default function RequestsSent() {
       email: "user@example.com", // Replace with actual user email
       sessionId: selectedSessionId,
       comment: values.comment,
-      source: "client portal",
+      rating: parseInt(values.rating),
     };
 
     dispatch(submitFeedback(feedbackData));
   };
 
   // Check if the auto nav data has URLs
-  const hasUrls = autoNavData && autoNavData.navLogs && autoNavData.navLogs.some((log) => log.currentUrl);
+  const hasUrls = autoNavData?.baseUrl || autoNavData?.navLogs.some((log: NavLog) => Boolean(log.currentUrl));
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page when searching
-    fetchRequests(1, searchQuery);
+    // Only search if query has 3 or more characters
+    if (searchQuery.trim().length >= 3) {
+      fetchRequests(1, searchQuery);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when search query changes
+
+    // If search input is cleared, reset to default table data
+    if (!value.trim()) {
+      fetchRequests(1);
+    }
+    // Don't need to add minimum character check here as it's handled in the debounced effect
   };
 
   // Handle pagination
@@ -473,7 +444,7 @@ export default function RequestsSent() {
           <div className="flex-1 relative">
             <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
             <div className="container mx-auto px-6 py-8">
-              <div className="grid gap-4 md:grid-cols-3">
+              {/* <div className="grid gap-4 md:grid-cols-3">
                 {stats.map((card, index) => (
                   <motion.div
                     key={card.title}
@@ -492,32 +463,52 @@ export default function RequestsSent() {
                       <CardContent>
                         <div className="text-2xl font-bold">{card.value}</div>
                         <p className="text-xs text-muted-foreground">{card.description}</p>
-                        <div
-                          className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}
-                        >
-                          {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                          {card.trend}
-                        </div>
+                        {card.trend && (
+                          <div
+                            className={`flex items-center gap-1 mt-2 text-xs ${card.trendUp ? "text-green-500" : "text-red-500"}`}
+                          >
+                            {card.trendUp ? <ArrowUpRight className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                            {card.trend}
+                          </div>
+                        )}
                         <div className={`absolute bottom-0 left-0 h-1 w-full bg-${card.color}-500/20`} />
                       </CardContent>
                     </Card>
                   </motion.div>
                 ))}
-              </div>
+              </div> */}
 
-              <div className="mt-6 mb-4">
-                <form onSubmit={handleSearch} className="flex gap-2">
-                  <Input
-                    placeholder="Search requests..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="max-w-md"
-                  />
-                  <Button type="submit">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </form>
+              <div className="mt-1 mb-4">
+                <div className="relative w-full max-w-sm">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <div className="relative">
+                    <Input
+                      placeholder="Search requests... (minimum 3 characters)"
+                      value={searchQuery}
+                      onChange={handleSearchInputChange}
+                      style={{ width: "-webkit-fill-available" }}
+                      className="w-[300px]  pr-8 py-2 h-10 bg-background border border-input rounded-md focus-visible:ring-1 focus-visible:ring-primary"
+                    />
+                    {searchQuery && (
+                      <div className="absolute inset-y-0 right-0 flex items-center mr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 hover:bg-transparent"
+                          onClick={() => {
+                            setSearchQuery("");
+                            fetchRequests(1);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <motion.div
@@ -529,7 +520,7 @@ export default function RequestsSent() {
                 }}
                 className="rounded-lg border bg-card mt-6"
               >
-                <div className="rounded-md">
+                <div className="rounded-md min-h-[400px]">
                   <Table>
                     <TableHeader>
                       <motion.tr
@@ -552,14 +543,13 @@ export default function RequestsSent() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        // Loading state
-                        Array(5)
-                          .fill(0)
-                          .map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell colSpan={8} className="h-12 animate-pulse bg-gray-100 dark:bg-gray-800"></TableCell>
-                            </TableRow>
-                          ))
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-[300px] text-center">
+                            <div className="flex justify-center items-center h-full">
+                              <Loader />
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ) : error ? (
                         // Error state
                         <TableRow>
@@ -571,10 +561,11 @@ export default function RequestsSent() {
                         // Empty state
                         <TableRow>
                           <TableCell colSpan={8} className="text-center">
-                            No requests found
+                            <h3 className="text-lg font-semibold">No requests found</h3>
                           </TableCell>
                         </TableRow>
                       ) : (
+                        (console.log(requests, "here is the request-sent"),
                         // Populated state
                         requests.map((request, index) => (
                           <motion.tr
@@ -585,7 +576,7 @@ export default function RequestsSent() {
                               ...transitionConfig,
                               delay: 0.5 + index * 0.05,
                             }}
-                            className="group"
+                            className="group cursor-pointer relative overflow-hidden hover:bg-gray-100/80 dark:hover:bg-gray-700/30 border-l-0 hover:border-l-4 border-l-transparent hover:border-primary"
                           >
                             <TableCell className="font-medium">
                               <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
@@ -621,7 +612,7 @@ export default function RequestsSent() {
                               <div className="flex items-center justify-end">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <Button variant="ghost" size="icon" className=" group-hover:opacity-100">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -639,7 +630,7 @@ export default function RequestsSent() {
                               </div>
                             </TableCell>
                           </motion.tr>
-                        ))
+                        )))
                       )}
                     </TableBody>
                   </Table>
@@ -654,58 +645,35 @@ export default function RequestsSent() {
                   }}
                   className="flex items-center justify-center py-4"
                 >
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        // Logic to show pagination numbers around current page
-                        let pageNumber;
-                        if (totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNumber = totalPages - 4 + i;
-                        } else {
-                          pageNumber = currentPage - 2 + i;
+                  <div className="inline-flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-full border px-3 py-1">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        if (currentPage > 1) {
+                          const newPage = currentPage - 1;
+                          fetchRequests(newPage, searchQuery);
                         }
-
-                        return (
-                          <PaginationItem key={pageNumber}>
-                            <PaginationLink
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handlePageChange(pageNumber);
-                              }}
-                              isActive={currentPage === pageNumber}
-                            >
-                              {pageNumber}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-
-                      {totalPages > 5 && currentPage < totalPages - 2 && (
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                      }}
+                      disabled={currentPage <= 1}
+                      className="h-8 rounded-full flex items-center gap-2"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>Previous</span>
+                    </Button>
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        const newPage = currentPage + 1;
+                        fetchRequests(newPage, searchQuery);
+                      }}
+                      disabled={requests.length < itemsPerPage}
+                      className="h-8 rounded-full flex items-center gap-2"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </motion.div>
               </motion.div>
             </div>
@@ -715,7 +683,7 @@ export default function RequestsSent() {
 
       {/* Session Details Modal */}
       <Dialog open={sessionModal} onOpenChange={setSessionModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-[1200px] w-full h-[800px] max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Session Details: {selectedSessionId}</DialogTitle>
             <DialogDescription>View detailed information about this session.</DialogDescription>

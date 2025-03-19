@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../config/environment";
-import Cookies from "js-cookie";
+import { cookies } from "./cookie.service";
 // Import Redux actions and store
 import { store } from "../store/store";
 import {
@@ -26,6 +26,7 @@ import {
   setPasswordError,
   setResetLinkExpired,
   getCountries,
+  loginSandboxTwoFactor,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
 
@@ -65,63 +66,10 @@ const cookieOptions = {
   path: "/",
 };
 
-// Make CookieService a properly exported object
-export const CookieService = {
-  set(key: string, value: any) {
-    try {
-      Cookies.set(key, typeof value === "object" ? JSON.stringify(value) : String(value), cookieOptions);
-      console.log(`Cookie set: ${key}=${typeof value === "object" ? JSON.stringify(value) : value}`);
-    } catch (error) {
-      console.error(`Error setting cookie ${key}:`, error);
-    }
-  },
-
-  get(key: string) {
-    try {
-      const cookieValue = Cookies.get(key);
-      // Debug log for geolocation cookie specifically
-      if (key === "iso_code") {
-        console.log(`Retrieving iso_code cookie: ${cookieValue || "not found"}`);
-
-        // Fallback to direct document.cookie check for iso_code
-        if (!cookieValue && typeof document !== "undefined") {
-          const rawCookies = document.cookie;
-          console.log(`All cookies: ${rawCookies}`);
-          const match = new RegExp(`${key}=([^;]+)`).exec(rawCookies);
-          if (match) {
-            const directValue = match[1];
-            console.log(`Found iso_code directly in document.cookie: ${directValue}`);
-            return directValue;
-          }
-        }
-      }
-
-      return cookieValue || null;
-    } catch (error) {
-      console.error(`Error getting cookie ${key}:`, error);
-      return null;
-    }
-  },
-
-  remove(key: string) {
-    try {
-      Cookies.remove(key, cookieOptions);
-    } catch (error) {
-      console.error(`Error removing cookie ${key}:`, error);
-    }
-  },
-
-  clear() {
-    try {
-      // Get all cookies and remove them one by one
-      const cookies = Cookies.get();
-      for (const cookie in cookies) {
-        Cookies.remove(cookie, { path: "/" });
-      }
-    } catch (error) {
-      console.error("Error clearing cookies:", error);
-    }
-  },
+// Helper function to ensure token has Bearer prefix
+const ensureTokenHasBearer = (token: string): string => {
+  if (!token) return token;
+  return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
 };
 
 export interface LoginCredentials {
@@ -254,13 +202,84 @@ class AuthService {
     }
   }
 
+  // Helper method to handle successful login with two-factor auth
+  private handleTwoFactorLogin(response: AxiosResponse, credentials: LoginCredentials, isSandbox: boolean): void {
+    // Store token if available
+    if (response.headers.authorization) {
+      cookies.set("token", response.headers.authorization);
+    }
+
+    // Store email if available
+    if (credentials.email) {
+      cookies.set("email", credentials.email);
+    }
+
+    // Set two-factor authentication cookies
+    if (response.data.twoFactorId) {
+      cookies.set("isTwoFactor", "true");
+      cookies.set("twoFactorId", response.data.twoFactorId);
+      cookies.set("authMode", isSandbox ? "2" : "1");
+      cookies.set("methodId", response.data.methodId);
+
+      // Set multiFactorEnabled cookie
+      const multiFactorEnabled = response.data.multiFactorEnabled !== undefined ? response.data.multiFactorEnabled : false;
+      cookies.set("multiFactorEnabled", multiFactorEnabled ? "true" : "false");
+    }
+
+    // Dispatch appropriate action based on sandbox status
+    if (isSandbox) {
+      dispatchAction(
+        loginSandbox({
+          headers: response.headers,
+          payload: response.data,
+          email: credentials.email,
+        })
+      );
+    } else {
+      dispatchAction(
+        loginAuthenticated({
+          headers: response.headers,
+          payload: response.data,
+          email: credentials.email,
+        })
+      );
+    }
+  }
+
+  // Helper method to handle direct login success
+  private handleDirectLoginSuccess(response: AxiosResponse, credentials: LoginCredentials): void {
+    // Store authentication token in cookie
+    if (response.headers.authorization) {
+      cookies.set("token", response.headers.authorization);
+      cookies.set("isAuthenticated", "true");
+    }
+
+    if (credentials.email) {
+      cookies.set("email", credentials.email);
+    }
+
+    // Dispatch login success action
+    dispatchAction(loginSuccess({ headers: response.headers, payload: response.data }));
+  }
+
+  // Helper method to handle login failure
+  private handleLoginFailure(error: any): void {
+    if (error.response?.status === 403) {
+      dispatchAction(loginFail({ payload: error.response?.data?.message }));
+    } else {
+      dispatchAction(
+        loginFail({
+          payload: error.response?.data || { message: "Login request failed" },
+        })
+      );
+    }
+  }
+
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     dispatchAction(setLoading(true));
 
     try {
-      console.log("Making login API request...");
       const idempotencyKey = uuidv4();
-
       const response = await axios.post(env.login, credentials, {
         headers: {
           "Content-Type": "application/json",
@@ -269,106 +288,20 @@ class AuthService {
         withCredentials: true,
       });
 
-      // Process the response and dispatch appropriate Redux actions
+      // Handle different response scenarios
       if (response.data.error === true) {
-        console.log("login failed");
-        // Dispatch login failure to Redux
         dispatchAction(loginFail({ payload: response.data }));
       } else if (response.data.statusCode === 242) {
-        console.log("login passed");
-        if (response.data.sandbox === false || response.data.sandbox === "1") {
-          // Store user data in cookies if needed
-          if (response.headers.authorization) {
-            CookieService.set("token", response.headers.authorization);
-          }
-          if (credentials.email) {
-            CookieService.set("email", credentials.email);
-          }
-
-          // Set two-factor authentication cookies
-          if (response.data.twoFactorId) {
-            CookieService.set("isTwoFactor", "true");
-            CookieService.set("twoFactorId", response.data.twoFactorId);
-            CookieService.set("authMode", response.data.sandbox === true ? "2" : "1");
-
-            // Ensure multiFactorEnabled is set with the correct value
-            if (response.data.multiFactorEnabled !== undefined) {
-              console.log("Setting multiFactorEnabled cookie:", response.data.multiFactorEnabled);
-              CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled ? "true" : "false");
-            } else {
-              console.log("multiFactorEnabled not found in response, defaulting to false");
-              CookieService.set("multiFactorEnabled", "false");
-            }
-          }
-
-          // Dispatch login authenticated action
-          dispatchAction(
-            loginAuthenticated({
-              headers: response.headers,
-              payload: response.data,
-              email: credentials.email,
-            })
-          );
-        } else {
-          // Store user data in cookies for sandbox mode
-          if (response.headers.authorization) {
-            CookieService.set("token", response.headers.authorization);
-          }
-          if (credentials.email) {
-            CookieService.set("email", credentials.email);
-          }
-
-          // Set two-factor authentication cookies for sandbox
-          if (response.data.twoFactorId) {
-            CookieService.set("isTwoFactor", "true");
-            CookieService.set("twoFactorId", response.data.twoFactorId);
-            CookieService.set("authMode", "2");
-
-            // Ensure multiFactorEnabled is set with the correct value
-            if (response.data.multiFactorEnabled !== undefined) {
-              console.log("Setting multiFactorEnabled cookie (sandbox):", response.data.multiFactorEnabled);
-              CookieService.set("multiFactorEnabled", response.data.multiFactorEnabled ? "true" : "false");
-            } else {
-              console.log("multiFactorEnabled not found in response (sandbox), defaulting to false");
-              CookieService.set("multiFactorEnabled", "false");
-            }
-          }
-
-          // Dispatch sandbox login action
-          dispatchAction(
-            loginSandbox({
-              headers: response.headers,
-              payload: response.data,
-              email: credentials.email,
-            })
-          );
-        }
+        const isSandbox = !(response.data.sandbox === false || response.data.sandbox === "1");
+        this.handleTwoFactorLogin(response, credentials, isSandbox);
       } else if (response.data.statusCode === 200) {
-        console.log("Direct login success");
-
-        // Store authentication token in cookie
-        if (response.headers.authorization) {
-          CookieService.set("token", response.headers.authorization);
-          CookieService.set("isAuthenticated", "true");
-        }
-        if (credentials.email) {
-          CookieService.set("email", credentials.email);
-        }
-
-        // Dispatch login success action
-        dispatchAction(loginSuccess({ headers: response.headers, payload: response.data }));
+        this.handleDirectLoginSuccess(response, credentials);
       }
 
       return response;
     } catch (error: any) {
       console.error("Login failed with error:", error.response?.data?.message, error.response?.status);
-      // Dispatch login failure action
-      if (error.response?.status === 403) {
-        console.log("login catch block 403");
-        dispatchAction(loginFail({ payload: error.response?.data?.message }));
-      } else {
-        dispatchAction(loginFail({ payload: error.response?.data || { message: "Login request failed" } }));
-      }
+      this.handleLoginFailure(error);
       throw error;
     }
   }
@@ -406,15 +339,6 @@ class AuthService {
     }
   }
 
-  async updateOrg(formData: any) {
-    try {
-      const response = await axios.post(env.updateorganization, formData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   private isLoadingCountries = false;
 
   async getCountries() {
@@ -444,7 +368,7 @@ class AuthService {
       await this.blacklistToken();
 
       // Expire refresh token
-      const email = CookieService.get("email");
+      const email = cookies.get("email");
       await axios.delete(env.expireRefreshtoken, {
         headers: {
           "Content-Type": "application/json",
@@ -453,7 +377,7 @@ class AuthService {
       });
 
       // Clear cookies
-      CookieService.clear();
+      cookies.clearAll();
 
       // Dispatch logout action to Redux
       dispatchAction(logoutAction());
@@ -468,7 +392,7 @@ class AuthService {
   }
 
   private async blacklistToken() {
-    const token = CookieService.get("token");
+    const token = cookies.get("token");
     if (!token) {
       console.warn("No token found to blacklist.");
       return;
@@ -649,17 +573,34 @@ class AuthService {
    * @returns A promise that resolves to a boolean indicating success or failure
    */
   async sendLoginOtp(twoFactorId: string, methodId: string): Promise<boolean> {
+    console.log("Auth service: sendLoginOtp called with", { twoFactorId, methodId });
+
+    if (!twoFactorId) {
+      console.error("Auth service: Missing twoFactorId parameter");
+      return false;
+    }
+
+    // Default methodId to "email" if not provided
+    const effectiveMethodId = methodId || "email";
+
     const body = {
       twoFactorId,
-      methodId,
+      methodId: effectiveMethodId,
     };
 
     try {
+      console.log("Auth service: Sending request to", env.sendLoginOtp);
+      console.log("Auth service: Request body", body);
+
       const response = await axios.post(env.sendLoginOtp, body);
-      console.log("otp sent!!!");
+      console.log("Auth service: OTP sent successfully!", response.status);
       return true;
-    } catch (error) {
-      console.error("Error sending login OTP:", error);
+    } catch (error: any) {
+      console.error("Auth service: Error sending login OTP:", error.message);
+      if (error.response) {
+        console.error("Auth service: Response data:", error.response.data);
+        console.error("Auth service: Response status:", error.response.status);
+      }
       return false;
     }
   }
@@ -869,7 +810,7 @@ class AuthService {
 
     const requestBody = {
       ...body,
-      authMode: CookieService.get("authMode") || 1,
+      authMode: cookies.get("authMode") || 1,
     };
 
     const config = {
@@ -882,11 +823,7 @@ class AuthService {
       console.log("calling an api");
       const res = await axios.post(env.twoFactorLogin, requestBody, config);
 
-      console.log("res **** " + JSON.stringify(res));
-      console.log("res login data " + res.data);
-      console.log("res login " + res.data.error);
-      console.log("res header " + JSON.stringify(res.headers));
-      console.log(res.data.statusCode, "status code");
+      console.log("Full API response:", JSON.stringify(res.data));
 
       if (res.data.message === "Invalid otp!") {
         console.log("error block of the twofa enable");
@@ -901,29 +838,29 @@ class AuthService {
           data: res.data,
         };
       } else if (res.data.statusCode === 200) {
-        console.log("Two-factor authentication successful");
+        console.log("Two-factor authentication successful", res.data);
 
-        if (res.data.sandbox === false || res.data.sandbox === "1") {
+        if (res.data.doc.data.sandbox === false || res.data.doc.data.sandbox === "1") {
           console.log("live mode");
 
           // Clear two-factor cookies and set authenticated
-          CookieService.remove("isTwoFactor");
-          CookieService.remove("twoFactorId");
-          CookieService.set("isAuthenticated", "true");
+          cookies.remove("isTwoFactor");
+          cookies.remove("twoFactorId");
+          cookies.set("isAuthenticated", "true");
 
           // Create session
           if (res.headers.authorization) {
-            CookieService.set("token", res.headers.authorization);
+            cookies.set("token", res.headers.authorization);
           }
-          CookieService.set("apikey", res.data.doc.apikey);
-          CookieService.set("refreshToken", res.data.doc.refreshToken);
+          cookies.set("apikey", res.data.doc.apikey);
+          cookies.set("refreshToken", res.data.doc.refreshToken);
 
           // Set organization data
           if (res.data.doc.orgid) {
-            CookieService.set("orgid", res.data.doc.orgid);
+            cookies.set("orgid", res.data.doc.orgid);
           }
           if (res.data.doc.roles) {
-            CookieService.set("roles", res.data.doc.roles[0]);
+            cookies.set("roles", res.data.doc.roles[0]);
           }
 
           // Dispatch login success action for live mode
@@ -945,13 +882,29 @@ class AuthService {
           console.log("sandbox");
 
           // Explicitly ensure all two-factor flags are cleared
-          CookieService.remove("isTwoFactor");
-          CookieService.remove("twoFactorId");
-          CookieService.remove("requiresTwoFactor");
-          CookieService.set("isAuthenticated", "true");
+          cookies.remove("isTwoFactor");
+          cookies.remove("twoFactorId");
+          cookies.remove("requiresTwoFactor");
+          cookies.set("isAuthenticated", "true");
 
-          // Dispatch login success action for sandbox
-          dispatchAction(twoFactorLoginSuccess({ headers: res.headers, payload: res.data }));
+          // Check if the expected properties exist before dispatching
+          if (!res.data.doc || !res.data.doc.accesstoken) {
+            console.error("Missing expected properties in response:", res.data);
+            // Create a modified payload with default values for missing properties
+            const modifiedPayload = {
+              ...res.data,
+              doc: {
+                ...(res.data.doc || {}),
+                accesstoken: res.headers.authorization || "",
+              },
+            };
+
+            // Dispatch with the modified payload
+            dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: modifiedPayload }));
+          } else {
+            // Dispatch with the original payload
+            dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: res.data }));
+          }
 
           sendLogs("Sandbox Login", "Sandbox logged in successfully", "services/auth.service.ts");
 
