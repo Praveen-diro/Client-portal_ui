@@ -15,8 +15,8 @@ interface SessionIdPayload {
   sessionid: string;
 }
 
-interface S3BucketIdPayload {
-  id: string;
+interface lastLinkClickedPayload {
+  sessionid: string;
 }
 
 interface VerifyKycPayload {
@@ -26,18 +26,18 @@ interface VerifyKycPayload {
 class ViewDocService {
   private subscribers: ((data: any) => void)[] = [];
 
-  constructor() {
-    this.setupCustomAxiosDefaults();
-  }
+  // constructor() {
+  //   this.setupCustomAxiosDefaults();
+  // }
 
-  private setupCustomAxiosDefaults(): void {
-    // Custom implementation for viewdoc service that handles test mode
-    if (cookies.get("authMode") === "2") {
-      axios.defaults.headers.common["Authorization"] = cookies.get("tokenTest");
-    } else {
-      axios.defaults.headers.common["Authorization"] = cookies.get("token");
-    }
-  }
+  // private setupCustomAxiosDefaults(): void {
+  //   // Custom implementation for viewdoc service that handles test mode
+  //   if (cookies.get("authMode") === "2") {
+  //     axios.defaults.headers.common["Authorization"] = cookies.get("tokenTest");
+  //   } else {
+  //     axios.defaults.headers.common["Authorization"] = cookies.get("token");
+  //   }
+  // }
 
   subscribe(callback: (data: any) => void): () => void {
     this.subscribers.push(callback);
@@ -51,7 +51,7 @@ class ViewDocService {
   }
 
   async getDownloadDocument(sessionId: string): Promise<ViewDocResponse<any>> {
-    this.setupCustomAxiosDefaults();
+    // this.setupCustomAxiosDefaults();
     const downloadJson: SessionIdPayload = { sessionid: sessionId };
 
     try {
@@ -80,17 +80,17 @@ class ViewDocService {
     }
   }
 
-  async getLastClickedDocument(id: string): Promise<ViewDocResponse<any>> {
-    this.setupCustomAxiosDefaults();
-    const json: S3BucketIdPayload = { id };
+  async getLastClickedDocument(sessionid: string): Promise<ViewDocResponse<any>> {
+    // this.setupCustomAxiosDefaults();
+    const json: lastLinkClickedPayload = { sessionid };
 
-    const response = await apiService.makeRefreshAuthRequest(env.getS3bucket, json);
+    const response = await apiService.makeRefreshAuthRequest(env.get_lastclicked_link, json);
     this.notifySubscribers({ type: "S3_BUCKET_DATA", data: response.data });
     return response;
   }
 
   async approveDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
-    this.setupCustomAxiosDefaults();
+    // this.setupCustomAxiosDefaults();
 
     const response = await apiService.makeRefreshAuthRequest(env.verifykyc, json);
     this.notifySubscribers({ type: "GET_APPROVE_DATA", data: response.data });
@@ -98,7 +98,7 @@ class ViewDocService {
   }
 
   async rejectDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
-    this.setupCustomAxiosDefaults();
+    // this.setupCustomAxiosDefaults();
 
     const response = await apiService.makeRefreshAuthRequest(env.verifykyc, json);
     this.notifySubscribers({ type: "GET_REJECT_DATA", data: response.data });

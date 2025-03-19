@@ -1,78 +1,45 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock, CheckCircle, XCircle, Search, Eye, MoreVertical, FileText } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
 
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
+import { tableService } from "@/app/services/table.service";
 
-// Sample data
-const documents = [
-  {
-    id: 1,
-    name: "Bank Statement - March 2024",
-    button: "New Buttondfsa",
-    type: "Bank",
-    source: "diro.me",
-    sessionId: "DD-WyJ91S-test",
-    status: "pending",
-    dateReceived: "2024-03-08",
-    trackId: "JSON-001",
-  },
-  {
-    id: 2,
-    name: "Proof of Address",
-    button: "Address Verification",
-    type: "Address",
-    source: "diro.me",
-    sessionId: "DD-WyJ92S-test",
-    status: "approved",
-    dateReceived: "2024-03-07",
-    trackId: "JSON-002",
-  },
-  {
-    id: 3,
-    name: "Utility Bill",
-    button: "Bill Verification",
-    type: "Address",
-    source: "diro.me",
-    sessionId: "DD-WyJ93S-test",
-    status: "rejected",
-    dateReceived: "2024-03-06",
-    trackId: "JSON-003",
-  },
-  {
-    id: 4,
-    name: "Credit Card Statement",
-    button: "Bank Statement",
-    type: "Bank",
-    source: "diro.me",
-    sessionId: "DD-WyJ94S-test",
-    status: "pending",
-    dateReceived: "2024-03-05",
-    trackId: "JSON-004",
-  },
-];
+// Import our new tab components
+import PendingDocuments from "./components/PendingDocuments";
+import ApprovedDocuments from "./components/ApprovedDocuments";
+import RejectedDocuments from "./components/RejectedDocuments";
 
-const stats = {
-  pending: 10,
-  approved: 25,
-  rejected: 5,
+// Initial stats
+const initialStats = {
+  pending: 0,
+  approved: 0,
+  rejected: 0,
 };
 
 export default function DocumentsReceived() {
   const pathname = usePathname();
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("pending");
+
+  // Stats state
+  const [stats, setStats] = useState(initialStats);
+
+  // Get count data from Redux store for the stats
+  const pendingDocuments = useSelector((state: any) => state.table.pendings);
+  const approvedDocuments = useSelector((state: any) => state.table.approved);
+  const rejectedDocuments = useSelector((state: any) => state.table.rejects);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -83,15 +50,37 @@ export default function DocumentsReceived() {
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  const initialAnimation = shouldAnimate ? { opacity: 0, x: 200 } : { opacity: 1, x: 0 };
+  // Effect to fetch stats
+  useEffect(() => {
+    fetchStats();
+  }, [pendingDocuments, approvedDocuments, rejectedDocuments]);
 
-  const headerTransitionConfig = {
-    type: "spring",
-    stiffness: 50,
-    damping: 30,
-    restDelta: 0.001,
-    mass: 1,
+  // Fetch stats for all tabs
+  const fetchStats = async () => {
+    try {
+      // In a real implementation, you would make an API call to get accurate stats
+      // For now, we'll update based on redux state or use default values
+
+      const pendingCount = pendingDocuments?.data?.length || 10;
+      const approvedCount = approvedDocuments?.data?.length || 25;
+      const rejectedCount = rejectedDocuments?.data?.length || 5;
+
+      setStats({
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
   };
+
+  // Handle tab change
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
+  const initialAnimation = shouldAnimate ? { opacity: 0, x: 200 } : { opacity: 1, x: 0 };
 
   const transitionConfig = {
     type: "spring",
@@ -101,52 +90,16 @@ export default function DocumentsReceived() {
     mass: 0.5,
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "approved":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "rejected":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
-
-  // Add this function to filter documents based on status
-  const getFilteredDocuments = (status: string) => {
-    // Commenting out the "all" case since we've removed that tab
-    // if (status === "all") return documents;
-    return documents.filter((doc) => doc.status === status);
-  };
-
-  // Update the tableAnimation config
-  const tableAnimation = {
-    hidden: { opacity: 0, x: 200 },
-    visible: (index: number) => ({
-      opacity: 1,
-      x: 0,
-      transition: {
-        delay: 0.5 + index * 0.05,
-        type: "spring",
-        stiffness: 70,
-        damping: 25,
-        mass: 0.5,
-      },
-    }),
-  };
-
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
-        <Sidebar expanded={sidebarExpanded} onExpandedChange={setSidebarExpanded} />
+        <Sidebar onExpandedChange={setSidebarExpanded} />
       </div>
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex-1">
           <PageHeader title="Documents Received" description="View and manage received documents for verification" />
           <div className="container mx-auto px-6 py-8">
-            {/* <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               <motion.div
                 initial={initialAnimation}
                 animate={{ opacity: 1, x: 0 }}
@@ -209,7 +162,7 @@ export default function DocumentsReceived() {
                   </CardContent>
                 </Card>
               </motion.div>
-            </div> */}
+            </div>
 
             <motion.div
               initial={initialAnimation}
@@ -220,104 +173,94 @@ export default function DocumentsReceived() {
               }}
               className="bg-card rounded-lg border shadow-sm mt-6"
             >
-              <Tabs defaultValue="pending" className="p-4">
+              <Tabs defaultValue="pending" className="p-4" onValueChange={handleTabChange}>
                 <div className="flex items-center justify-between mb-4">
                   <TabsList>
-                    {/* Commenting out the All Documents tab */}
-                    {/* <TabsTrigger value="all">All Documents</TabsTrigger> */}
                     <TabsTrigger value="pending">Pending</TabsTrigger>
                     <TabsTrigger value="approved">Approved</TabsTrigger>
                     <TabsTrigger value="rejected">Rejected</TabsTrigger>
                   </TabsList>
+
+                  <div className="relative max-w-xs ml-4 mr-2">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <div className="relative">
+                      <Input
+                        placeholder="Search documents... (min 3 chars)"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-[300px] pr-8 py-2 h-10 bg-background border border-input rounded-md focus-visible:ring-1 focus-visible:ring-primary"
+                      />
+                      {searchQuery && (
+                        <div className="absolute inset-y-0 right-0 flex items-center mr-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 hover:bg-transparent"
+                            onClick={() => {
+                              setSearchQuery("");
+                            }}
+                          >
+                            <XCircle className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Replace the single TabsContent with multiple TabsContent components */}
-                {/* Commenting out the "all" tab from the array of tabs */}
-                {[/* "all", */ "pending", "approved", "rejected"].map((tab) => (
-                  <TabsContent key={tab} value={tab} className="space-y-4">
-                    <motion.div
-                      className="rounded-md border"
-                      initial={{ opacity: 0, x: 200 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 70,
-                        damping: 25,
-                        mass: 0.5,
-                        delay: 0.3,
-                      }}
-                    >
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Document</TableHead>
-                            <TableHead>Button</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Source</TableHead>
-                            <TableHead>Session ID</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Date Received</TableHead>
-                            <TableHead>Track ID</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFilteredDocuments(tab).map((doc, index) => (
-                            <motion.tr
-                              key={doc.id}
-                              custom={index}
-                              initial="hidden"
-                              animate="visible"
-                              variants={tableAnimation}
-                              className="group"
-                            >
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-blue-500" />
-                                  <span className="font-medium">{doc.name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>{doc.button}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{doc.type}</Badge>
-                              </TableCell>
-                              <TableCell>{doc.source}</TableCell>
-                              <TableCell>
-                                <code className="rounded bg-muted px-2 py-1 text-sm">{doc.sessionId}</code>
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={getStatusColor(doc.status)}>
-                                  {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{doc.dateReceived}</TableCell>
-                              <TableCell>{doc.trackId}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button variant="ghost" size="icon">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem>View Details</DropdownMenuItem>
-                                      <DropdownMenuItem>Download</DropdownMenuItem>
-                                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableCell>
-                            </motion.tr>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </motion.div>
-                  </TabsContent>
-                ))}
+                <TabsContent value="pending" className="space-y-4">
+                  <motion.div
+                    className="rounded-md border"
+                    initial={{ opacity: 0, x: 200 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 70,
+                      damping: 25,
+                      mass: 0.5,
+                      delay: 0.3,
+                    }}
+                  >
+                    <PendingDocuments isActive={activeTab === "pending"} searchQuery={searchQuery} />
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="approved" className="space-y-4">
+                  <motion.div
+                    className="rounded-md border"
+                    initial={{ opacity: 0, x: 200 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 70,
+                      damping: 25,
+                      mass: 0.5,
+                      delay: 0.3,
+                    }}
+                  >
+                    <ApprovedDocuments isActive={activeTab === "approved"} searchQuery={searchQuery} />
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="rejected" className="space-y-4">
+                  <motion.div
+                    className="rounded-md border"
+                    initial={{ opacity: 0, x: 200 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 70,
+                      damping: 25,
+                      mass: 0.5,
+                      delay: 0.3,
+                    }}
+                  >
+                    <RejectedDocuments isActive={activeTab === "rejected"} searchQuery={searchQuery} />
+                  </motion.div>
+                </TabsContent>
               </Tabs>
             </motion.div>
           </div>

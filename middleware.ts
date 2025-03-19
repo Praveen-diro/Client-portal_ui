@@ -11,6 +11,8 @@ const protectedRoutes = [
   "/client/account",
   "/client/report-issue",
   "/client",
+  "/pdf",
+  "/pdf-example",
 ];
 
 // Login page route
@@ -200,5 +202,7 @@ export const config = {
     "/client/report-issue/:path*",
     "/authentication/:path*",
     "/client/:path*",
+    "/pdf/:path*",
+    "/pdf-example/:path*",
   ],
 };
