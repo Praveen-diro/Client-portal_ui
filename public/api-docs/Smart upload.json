@@ -1,0 +1,186 @@
+{
+  "paths": {
+    "${environment.varificationSwaggerLink}/smartFeedback": {
+      "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Smart upload"],
+        "parameters": [
+          {
+            "in": "",
+            "name": "Note",
+            "description": "1.buttonid must be of type \"upload method\".\n              2.The keys in warn_cases must correspond to the field labels present in the verification fields.<br>3.If warn_cases contains the same keys with identical values for buttonid, and the document is not deposited successfully (SmartUpload API), the same session ID will be generated, leading to the PDF being overwritten for that session.</b>"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Requestfeedback"
+              }
+            }
+          }
+        },
+        "summary": "To get feedback for the smart uploaded document (step 1).",
+        "description": "<h1>Get feedback for an uploaded document</h1>This API is used to check for the presence of critical fields like name, account number, and address, and to validate the category as selected in the button settings. It then creates a docid to be consumed by the Smart Upload API.",
+        "operationId": "get smart feedback",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/FeedbackResponse" },
+                    { "$ref": "#/components/schemas/FeedbackResponse1" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/Feedback_Response1" },
+                    { "$ref": "#/components/schemas/Feedback_Response2" },
+                    { "$ref": "#/components/schemas/ButtonType_Response3" },
+                    { "$ref": "#/components/schemas/Feedback_Response4" },
+                    { "$ref": "#/components/schemas/Feedback_Response5" },
+                    { "$ref": "#/components/schemas/Feedback_Response6" }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/MissingAPIKey_Response" },
+                    { "$ref": "#/components/schemas/APIKeyInvalid_Response" }
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayloadToo_Large"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/InternalServerError_Response" },
+                    { "$ref": "#/components/schemas/InternalServerError_Response1" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "${environment.varificationSwaggerLink}/smartUpload": {
+      "post": {
+        "tags": ["Smart upload"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "To deposit a document for smart upload (step 2).",
+        "description": "<h1>Deposit a document for verification in the case of the upload method</h1> <br> This API is used to upload a document for further verification using the docid generated from the Smart Feedback API.",
+        "operationId": "smartUpload",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "",
+            "name": "Note",
+            "description": "1.Consume the docid generated from the SmartUpload API.<br>2.docid must be of type \"upload method\".</b>"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSmartUpload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/UploadedDocumentResponse" },
+                    { "$ref": "#/components/schemas/UploadedDocumentResponse1" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/InvalidSessionIdResponse" },
+                    { "$ref": "#/components/schemas/InvalidSessionIdResponse1" },
+                    { "$ref": "#/components/schemas/ButtonType_Response3" }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/MissingAPIKeyResponse" },
+                    { "$ref": "#/components/schemas/APIKeyInvalid_Response" },
+                    { "$ref": "#/components/schemas/InvalidToken" }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError_Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

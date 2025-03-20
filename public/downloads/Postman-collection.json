@@ -1,0 +1,820 @@
+{
+	"info": {
+		"_postman_id": "75908fe6-6ab1-4d6a-91d1-ee96cc9e175b",
+		"name": "Postman Collection diro APIs",
+		"description": "1\\. Traverse to “[Developers&gt;&gt; API reference](https://client.diro.io/client/developers/api-reference)” section, copy “Secret access  \ntoken”\n\n<img src=\"https://content.pstmn.io/5d1be33f-c260-4a91-b59d-3a84f2b74324/aW1hZ2VfMS5wbmc=\">\n\n2\\. In postman header section against field authorization and add value copied from  \n“secret access token” taken from DIRO client portal\n\n<img src=\"https://content.pstmn.io/21b11fcd-42e9-49d8-ba45-25a16c4c65a1/aW1hZ2VfMi5wbmc=\">",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28747383"
+	},
+	"item": [
+		{
+			"name": "get-verification-link",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var schema={\r",
+							"    \"type\": \"object\",\r",
+							"    \"default\": {},\r",
+							"    \"title\": \"Root Schema\",\r",
+							"    \"required\": [\r",
+							"        \"msg\",\r",
+							"        \"error\",\r",
+							"        \"verificationlink\"\r",
+							"    ],\r",
+							"    \"properties\": {\r",
+							"        \"msg\": {\r",
+							"            \"type\": \"string\",\r",
+							"            \"default\": \"\",\r",
+							"            \"title\": \"The msg Schema\",\r",
+							"            \"examples\": [\r",
+							"                \"Success\"\r",
+							"            ]\r",
+							"        },\r",
+							"        \"error\": {\r",
+							"            \"type\": \"boolean\",\r",
+							"            \"default\": false,\r",
+							"            \"title\": \"The error Schema\",\r",
+							"            \"examples\": [\r",
+							"                false\r",
+							"            ]\r",
+							"        },\r",
+							"        \"verificationlink\": {\r",
+							"            \"type\": \"string\",\r",
+							"            \"default\": \"\",\r",
+							"            \"title\": \"The verificationlink Schema\",\r",
+							"            \"examples\": [\r",
+							"                \"https://session.diro.io/server/#/client/MQBnAG15c3Fs/direct/IN-Dtpz8p\"\r",
+							"            ]\r",
+							"        }\r",
+							"    },\r",
+							"    \"examples\": [{\r",
+							"        \"msg\": \"Success\",\r",
+							"        \"error\": false,\r",
+							"        \"verificationlink\": \"https://session.diro.io/server/#/client/MQBnAG15c3Fs/direct/IN-Dtpz8p\"\r",
+							"    }]\r",
+							"};\r",
+							"pm.test('Schema is valid', function () {\r",
+							"    pm.response.to.have.jsonSchema(schema);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"buttonid\": \"O.US-dummyid\",\r\n  \"user_info\": {\r\n    \"firstname\": \"string\",\r\n    \"email\": \"your-email@diro.io\",\r\n    \"mobile\": \"string\",\r\n    \"mcc\": \"string\",\r\n    \"dob\": \"string\",\r\n    \"zipcode\": \"string\",\r\n    \"lastname\": \"string\"\r\n  },\r\n  \"warn_case\": [\r\n    {\r\n      \"hinttext\": \"Jane\",\r\n      \"proceed\": false,\r\n      \"present\": false,\r\n      \"keyword\": \"\",\r\n      \"type\": \"text\",\r\n      \"message\": \"First name\",\r\n      \"hovertext\": \"profile\"\r\n    },\r\n    {\r\n      \"hinttext\": \"Smith\",\r\n      \"proceed\": false,\r\n      \"present\": false,\r\n      \"keyword\": \"\",\r\n      \"type\": \"text\",\r\n      \"message\": \"Last name\",\r\n      \"hovertext\": \"profile\"\r\n    },\r\n    {\r\n      \"hinttext\": \"9999\",\r\n      \"proceed\": false,\r\n      \"present\": false,\r\n      \"keyword\": \"\",\r\n      \"type\": \"text\",\r\n      \"message\": \"ZIP code\",\r\n      \"hovertext\": \"profile\"\r\n    }\r\n  ],\r\n  \"apikey\": \"your-api-key\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v3/get-verification-link",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v3",
+						"get-verification-link"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "download-original-pdf-cert",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"apikey\": \"your-api-key\",\r\n  \"docid\": \"US-dummyid\",\r\n  \"downloadrequired\": true\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v2/download-original-pdf-cert",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v2",
+						"download-original-pdf-cert"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "download-native-originals",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var schema={\r",
+							"    \"type\": \"object\",\r",
+							"    \"default\": {},\r",
+							"    \"required\": [\r",
+							"        \"msg\",\r",
+							"        \"data\",\r",
+							"        \"error\"\r",
+							"    ],\r",
+							"    \"properties\": {\r",
+							"        \"msg\": {\r",
+							"            \"title\": \"The msg Schema\",\r",
+							"            \"type\": \"string\",\r",
+							"            \"default\": \"\",\r",
+							"            \"examples\": [\r",
+							"                \"Successful\"\r",
+							"            ]\r",
+							"        },\r",
+							"        \"data\": {\r",
+							"            \"title\": \"The data Schema\",\r",
+							"            \"type\": \"string\",\r",
+							"            \"default\": \"\",\r",
+							"            \"examples\": [\r",
+							"                \"UEsDBBQACAgIAKFCm1YAAAAAAAAAAAAAAABHAAAAZGlybzE2ODI1ODM2NjI2NzNkNTFjMzZiMS0wZWI2LWNjODAtYWE3ZS04YjdhMjExY2EwOGUtMTY4MTgyMjkzNjg5My5wZGbNVt1u2zYUvhegdzg3AWIgpShaoqSiKJBfbN3SBImxYUhzwViUzUImDYmKk77kLvYG7YvsUIrt1HYLdeuKCUF8ziH5feQhz0fuXZ6cvQjJ0Pf2Pn768y/f870QKJi797736pXvBaPHuYTgWFhRmgn6F40tlZY1MOx2hYFLMUFv2HmvX/ue1Hk73PfYDqTleAwcm0ZboJujhjtGtSSrIQytX1Reww1Ejhd4+/8WNqGiL0C1064kQj3NO7iStWmqMa6k7XpmsK2zQsha9A47uKzM+FpaSNcLDs5lrsSReYAbilEeMkLxgyTrjNt24toiXw3xrkTF63lC8KvUEzuFkCYRuG61raSYuWy+8b2jke85EgrVpJsdpSyBUYEgCRkmMdIyRliK/KPc9/bhEK7VbF5KwJ2GM4XGAEZIdTrq0DqMkLYYPCMsxqE8TQmn6RJjNFU14J+AeibKEnI5MxrnJawyGsg8L6BwyC96YfOIJDRaYr9vaguFqaCpJSgNdirhN1XZRpRwLsdTodW4BttYUylR1gTOTSXBygdL4FDnMHNuH9qYkSRmS9oNgD5uHxKWkjRa5e2b4L/k9qENOUkz/tW1HWH+9OQAPrivD3kfXhqRLFpt5b9eau88x1haWcb65bkPHho0/eH7FmPNhsOv79uGe3ovdesTcJqidCNzwCKco6yhJhNC1rwoMEvxWGsN//9pYrJLE5MdmsgT/j0kcVMQ2T+QREz0eJX/ojKzbgdCAn9gJr6rpiSc8Jj/cE35XKY7gIvpAUzNAu5aMQH7OG9/3PVQ26YoUGYaC9pYEPWyE1oLYcdTZ3+7Ts+FwmOXV4//uabwiJKUrg5Jp5cE2vvmAK++UlmLh+UZ6AivKjyw2Ihk7T3m1irL8jnfziJMl4f7JnCnMBgh3u3zDtmOKnUFiM51c2db30VDDLwVM9fqzCNRy7ZOg59keS+tGguMnuqxyV36g9+VPtS1WgY2ay6kn9Ee47Tx2oX9K3Ev4d3+1Nr5yyBYLBZEy/vKaIE1MAsqbH03GHRCkDdjiSPedu1wIms10fVgiYbvhRNhJeyfvGSUcjrEXUhYyvhgcy4PlSxcYYe4Lrr68HjEwxiKdSzEVLUteh3LhluxMEq2Yoyxrdgwo5uxMN7uF/LtfixiW7wsivlWLMaX3Srme/iOQhWqnpJ+rT7IdtHBlcE6Cp/E+GddGGj350kpnQqKynZpYkkY4RN+7/TizPf+BlBLBwgIm8KimwMAANQLAABQSwECFAAUAAgICAChQptWCJvCopsDAADUCwAARwAAAAAAAAAAAAAAAAAAAAAAZGlybzE2ODI1ODM2NjI2NzNkNTFjMzZiMS0wZWI2LWNjODAtYWE3ZS04YjdhMjExY2EwOGUtMTY4MTgyMjkzNjg5My5wZGZQSwUGAAAAAAEAAQB1AAAAEAQAAAAA\"\r",
+							"            ]\r",
+							"        },\r",
+							"        \"error\": {\r",
+							"            \"title\": \"The error Schema\",\r",
+							"            \"type\": \"boolean\",\r",
+							"            \"default\": false,\r",
+							"            \"examples\": [\r",
+							"                false\r",
+							"            ]\r",
+							"        }\r",
+							"    },\r",
+							"    \"examples\": [{\r",
+							"        \"msg\": \"Successful\",\r",
+							"        \"data\": \"UEsDBBQACAgIAKFCm1YAAAAAAAAAAAAAAABHAAAAZGlybzE2ODI1ODM2NjI2NzNkNTFjMzZiMS0wZWI2LWNjODAtYWE3ZS04YjdhMjExY2EwOGUtMTY4MTgyMjkzNjg5My5wZGbNVt1u2zYUvhegdzg3AWIgpShaoqSiKJBfbN3SBImxYUhzwViUzUImDYmKk77kLvYG7YvsUIrt1HYLdeuKCUF8ziH5feQhz0fuXZ6cvQjJ0Pf2Pn768y/f870QKJi797736pXvBaPHuYTgWFhRmgn6F40tlZY1MOx2hYFLMUFv2HmvX/ue1Hk73PfYDqTleAwcm0ZboJujhjtGtSSrIQytX1Reww1Ejhd4+/8WNqGiL0C1064kQj3NO7iStWmqMa6k7XpmsK2zQsha9A47uKzM+FpaSNcLDs5lrsSReYAbilEeMkLxgyTrjNt24toiXw3xrkTF63lC8KvUEzuFkCYRuG61raSYuWy+8b2jke85EgrVpJsdpSyBUYEgCRkmMdIyRliK/KPc9/bhEK7VbF5KwJ2GM4XGAEZIdTrq0DqMkLYYPCMsxqE8TQmn6RJjNFU14J+AeibKEnI5MxrnJawyGsg8L6BwyC96YfOIJDRaYr9vaguFqaCpJSgNdirhN1XZRpRwLsdTodW4BttYUylR1gTOTSXBygdL4FDnMHNuH9qYkSRmS9oNgD5uHxKWkjRa5e2b4L/k9qENOUkz/tW1HWH+9OQAPrivD3kfXhqRLFpt5b9eau88x1haWcb65bkPHho0/eH7FmPNhsOv79uGe3ovdesTcJqidCNzwCKco6yhJhNC1rwoMEvxWGsN//9pYrJLE5MdmsgT/j0kcVMQ2T+QREz0eJX/ojKzbgdCAn9gJr6rpiSc8Jj/cE35XKY7gIvpAUzNAu5aMQH7OG9/3PVQ26YoUGYaC9pYEPWyE1oLYcdTZ3+7Ts+FwmOXV4//uabwiJKUrg5Jp5cE2vvmAK++UlmLh+UZ6AivKjyw2Ihk7T3m1irL8jnfziJMl4f7JnCnMBgh3u3zDtmOKnUFiM51c2db30VDDLwVM9fqzCNRy7ZOg59keS+tGguMnuqxyV36g9+VPtS1WgY2ay6kn9Ee47Tx2oX9K3Ev4d3+1Nr5yyBYLBZEy/vKaIE1MAsqbH03GHRCkDdjiSPedu1wIms10fVgiYbvhRNhJeyfvGSUcjrEXUhYyvhgcy4PlSxcYYe4Lrr68HjEwxiKdSzEVLUteh3LhluxMEq2Yoyxrdgwo5uxMN7uF/LtfixiW7wsivlWLMaX3Srme/iOQhWqnpJ+rT7IdtHBlcE6Cp/E+GddGGj350kpnQqKynZpYkkY4RN+7/TizPf+BlBLBwgIm8KimwMAANQLAABQSwECFAAUAAgICAChQptWCJvCopsDAADUCwAARwAAAAAAAAAAAAAAAAAAAAAAZGlybzE2ODI1ODM2NjI2NzNkNTFjMzZiMS0wZWI2LWNjODAtYWE3ZS04YjdhMjExY2EwOGUtMTY4MTgyMjkzNjg5My5wZGZQSwUGAAAAAAEAAQB1AAAAEAQAAAAA\",\r",
+							"        \"error\": false\r",
+							"    }]\r",
+							"};\r",
+							"pm.test('Schema is valid', function () {\r",
+							"    pm.response.to.have.jsonSchema(schema);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"apikey\": \"your-api-key\",\r\n  \"docid\": \"US-dummyid\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v2/download-native-originals",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v2",
+						"download-native-originals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pdf-to-json",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var schema={\r",
+							"    \"type\": \"object\",\r",
+							"    \"default\": {},\r",
+							"    \"required\": [\r",
+							"        \"data\",\r",
+							"        \"message\"\r",
+							"    ],\r",
+							"    \"properties\": {\r",
+							"        \"data\": {\r",
+							"            \"title\": \"The data Schema\",\r",
+							"            \"type\": \"array\",\r",
+							"            \"default\": [],\r",
+							"            \"items\": {\r",
+							"                \"title\": \"A Schema\",\r",
+							"                \"type\": \"object\",\r",
+							"                \"default\": {},\r",
+							"                \"required\": [\r",
+							"                    \"type\",\r",
+							"                    \"values\"\r",
+							"                ],\r",
+							"                \"properties\": {\r",
+							"                    \"type\": {\r",
+							"                        \"title\": \"The type Schema\",\r",
+							"                        \"type\": \"string\",\r",
+							"                        \"default\": \"\",\r",
+							"                        \"examples\": [\r",
+							"                            \"date\"\r",
+							"                        ]\r",
+							"                    },\r",
+							"                    \"values\": {\r",
+							"                        \"title\": \"The values Schema\",\r",
+							"                        \"type\": \"array\",\r",
+							"                        \"default\": [],\r",
+							"                        \"items\": {\r",
+							"                            \"title\": \"A Schema\",\r",
+							"                            \"type\": \"object\",\r",
+							"                            \"default\": {},\r",
+							"                            \"required\": [\r",
+							"                                \"date\",\r",
+							"                                \"requested\"\r",
+							"                            ],\r",
+							"                            \"properties\": {\r",
+							"                                \"date\": {\r",
+							"                                    \"title\": \"The date Schema\",\r",
+							"                                    \"type\": \"string\",\r",
+							"                                    \"default\": \"\",\r",
+							"                                    \"examples\": [\r",
+							"                                        \"97-0Z-0Z\"\r",
+							"                                    ]\r",
+							"                                },\r",
+							"                                \"requested\": {\r",
+							"                                    \"title\": \"The requested Schema\",\r",
+							"                                    \"type\": \"string\",\r",
+							"                                    \"default\": \"\",\r",
+							"                                    \"examples\": [\r",
+							"                                        \"\"\r",
+							"                                    ]\r",
+							"                                }\r",
+							"                            },\r",
+							"                            \"examples\": [{\r",
+							"                                \"date\": \"97-0Z-0Z\",\r",
+							"                                \"requested\": \"\"\r",
+							"                            }]\r",
+							"                        },\r",
+							"                        \"examples\": [\r",
+							"                            [{\r",
+							"                                \"date\": \"97-0Z-0Z\",\r",
+							"                                \"requested\": \"\"\r",
+							"                            }]\r",
+							"                        ]\r",
+							"                    }\r",
+							"                },\r",
+							"                \"examples\": [{\r",
+							"                    \"type\": \"date\",\r",
+							"                    \"values\": [{\r",
+							"                        \"date\": \"97-0Z-0Z\",\r",
+							"                        \"requested\": \"\"\r",
+							"                    }]\r",
+							"                }]\r",
+							"            },\r",
+							"            \"examples\": [\r",
+							"                [{\r",
+							"                    \"type\": \"date\",\r",
+							"                    \"values\": [{\r",
+							"                        \"date\": \"97-0Z-0Z\",\r",
+							"                        \"requested\": \"\"\r",
+							"                    }]\r",
+							"                }]\r",
+							"            ]\r",
+							"        },\r",
+							"        \"message\": {\r",
+							"            \"title\": \"The message Schema\",\r",
+							"            \"type\": \"string\",\r",
+							"            \"default\": \"\",\r",
+							"            \"examples\": [\r",
+							"                \"Success!\"\r",
+							"            ]\r",
+							"        }\r",
+							"    },\r",
+							"    \"examples\": [{\r",
+							"        \"data\": [{\r",
+							"            \"type\": \"date\",\r",
+							"            \"values\": [{\r",
+							"                \"date\": \"97-0Z-0Z\",\r",
+							"                \"requested\": \"\"\r",
+							"            }]\r",
+							"        }],\r",
+							"        \"message\": \"Success!\"\r",
+							"    }]\r",
+							"};\r",
+							"pm.test('Schema is valid', function () {\r",
+							"    pm.response.to.have.jsonSchema(schema);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"docid\": \"US-dummyid\",\r\n  \"apikey\": \"your-api-key\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v3/pdf-to-json",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v3",
+						"pdf-to-json"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "session-info",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"var schema={\r",
+							"    \"type\": \"object\",\r",
+							"    \"default\": {},\r",
+							"    \"required\": [\r",
+							"        \"ssl_certificate\",\r",
+							"        \"result\",\r",
+							"        \"error\",\r",
+							"        \"device\"\r",
+							"    ],\r",
+							"    \"properties\": {\r",
+							"        \"ssl_certificate\": {\r",
+							"            \"title\": \"The ssl_certificate Schema\",\r",
+							"            \"type\": \"object\",\r",
+							"            \"default\": {},\r",
+							"            \"required\": [],\r",
+							"            \"properties\": {},\r",
+							"            \"examples\": [{}]\r",
+							"        },\r",
+							"        \"result\": {\r",
+							"            \"title\": \"The result Schema\",\r",
+							"            \"type\": \"object\",\r",
+							"            \"default\": {},\r",
+							"            \"required\": [\r",
+							"                \"updated_on\",\r",
+							"                \"orignalsource\",\r",
+							"                \"category\",\r",
+							"                \"status\"\r",
+							"            ],\r",
+							"            \"properties\": {\r",
+							"                \"updated_on\": {\r",
+							"                    \"title\": \"The updated_on Schema\",\r",
+							"                    \"type\": \"string\",\r",
+							"                    \"default\": \"\",\r",
+							"                    \"examples\": [\r",
+							"                        \"2023-04-27T07:53:34\"\r",
+							"                    ]\r",
+							"                },\r",
+							"                \"orignalsource\": {\r",
+							"                    \"title\": \"The orignalsource Schema\",\r",
+							"                    \"type\": \"object\",\r",
+							"                    \"default\": {},\r",
+							"                    \"required\": [\r",
+							"                        \"Date:\",\r",
+							"                        \"Reference:\",\r",
+							"                        \"Website:\",\r",
+							"                        \"Language:\",\r",
+							"                        \"Time:\",\r",
+							"                        \"Pages:\",\r",
+							"                        \"File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf\"\r",
+							"                    ],\r",
+							"                    \"properties\": {\r",
+							"                        \"Date:\": {\r",
+							"                            \"title\": \"The Date: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"18 Apr 2023\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"Reference:\": {\r",
+							"                            \"title\": \"The Reference: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"Website:\": {\r",
+							"                            \"title\": \"The Website: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"nmp-g3-enligne.credit-agricole.fr (SSL unverified)\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"Language:\": {\r",
+							"                            \"title\": \"The Language: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"en\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"Time:\": {\r",
+							"                            \"title\": \"The Time: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"12.39 PM\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"Pages:\": {\r",
+							"                            \"title\": \"The Pages: Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"\"\r",
+							"                            ]\r",
+							"                        },\r",
+							"                        \"File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf\": {\r",
+							"                            \"title\": \"The File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf Schema\",\r",
+							"                            \"type\": \"string\",\r",
+							"                            \"default\": \"\",\r",
+							"                            \"examples\": [\r",
+							"                                \"8decc8571946d4cd70a024949e033a2a2a54377fe9f1c1b944c20f9ee11a9e51\"\r",
+							"                            ]\r",
+							"                        }\r",
+							"                    },\r",
+							"                    \"examples\": [{\r",
+							"                        \"Date:\": \"18 Apr 2023\",\r",
+							"                        \"Reference:\": \"d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e\",\r",
+							"                        \"Website:\": \"nmp-g3-enligne.credit-agricole.fr (SSL unverified)\",\r",
+							"                        \"Language:\": \"en\",\r",
+							"                        \"Time:\": \"12.39 PM\",\r",
+							"                        \"Pages:\": \"\",\r",
+							"                        \"File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf\": \"8decc8571946d4cd70a024949e033a2a2a54377fe9f1c1b944c20f9ee11a9e51\"\r",
+							"                    }]\r",
+							"                },\r",
+							"                \"category\": {\r",
+							"                    \"title\": \"The category Schema\",\r",
+							"                    \"type\": \"string\",\r",
+							"                    \"default\": \"\",\r",
+							"                    \"examples\": [\r",
+							"                        \"address\"\r",
+							"                    ]\r",
+							"                },\r",
+							"                \"status\": {\r",
+							"                    \"title\": \"The status Schema\",\r",
+							"                    \"type\": \"string\",\r",
+							"                    \"default\": \"\",\r",
+							"                    \"examples\": [\r",
+							"                        \"pending\"\r",
+							"                    ]\r",
+							"                }\r",
+							"            },\r",
+							"            \"examples\": [{\r",
+							"                \"updated_on\": \"2023-04-27T07:53:34\",\r",
+							"                \"orignalsource\": {\r",
+							"                    \"Date:\": \"18 Apr 2023\",\r",
+							"                    \"Reference:\": \"d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e\",\r",
+							"                    \"Website:\": \"nmp-g3-enligne.credit-agricole.fr (SSL unverified)\",\r",
+							"                    \"Language:\": \"en\",\r",
+							"                    \"Time:\": \"12.39 PM\",\r",
+							"                    \"Pages:\": \"\",\r",
+							"                    \"File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf\": \"8decc8571946d4cd70a024949e033a2a2a54377fe9f1c1b944c20f9ee11a9e51\"\r",
+							"                },\r",
+							"                \"category\": \"address\",\r",
+							"                \"status\": \"pending\"\r",
+							"            }]\r",
+							"        },\r",
+							"        \"error\": {\r",
+							"            \"title\": \"The error Schema\",\r",
+							"            \"type\": \"boolean\",\r",
+							"            \"default\": false,\r",
+							"            \"examples\": [\r",
+							"                false\r",
+							"            ]\r",
+							"        },\r",
+							"        \"device\": {\r",
+							"            \"title\": \"The device Schema\",\r",
+							"            \"type\": \"object\",\r",
+							"            \"default\": {},\r",
+							"            \"required\": [\r",
+							"                \"request_id\"\r",
+							"            ],\r",
+							"            \"properties\": {\r",
+							"                \"request_id\": {\r",
+							"                    \"title\": \"The request_id Schema\",\r",
+							"                    \"type\": \"string\",\r",
+							"                    \"default\": \"\",\r",
+							"                    \"examples\": [\r",
+							"                        \"IN-gmSzAr\"\r",
+							"                    ]\r",
+							"                }\r",
+							"            },\r",
+							"            \"examples\": [{\r",
+							"                \"request_id\": \"IN-gmSzAr\"\r",
+							"            }]\r",
+							"        }\r",
+							"    },\r",
+							"    \"examples\": [{\r",
+							"        \"ssl_certificate\": {},\r",
+							"        \"result\": {\r",
+							"            \"updated_on\": \"2023-04-27T07:53:34\",\r",
+							"            \"orignalsource\": {\r",
+							"                \"Date:\": \"18 Apr 2023\",\r",
+							"                \"Reference:\": \"d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e\",\r",
+							"                \"Website:\": \"nmp-g3-enligne.credit-agricole.fr (SSL unverified)\",\r",
+							"                \"Language:\": \"en\",\r",
+							"                \"Time:\": \"12.39 PM\",\r",
+							"                \"Pages:\": \"\",\r",
+							"                \"File 1:,M.7fb5ae4c-6593-45dc-9be6-1238d8e51c8a/d51c36b1-0eb6-cc80-aa7e-8b7a211ca08e-1681821572830.pdf\": \"8decc8571946d4cd70a024949e033a2a2a54377fe9f1c1b944c20f9ee11a9e51\"\r",
+							"            },\r",
+							"            \"category\": \"address\",\r",
+							"            \"status\": \"pending\"\r",
+							"        },\r",
+							"        \"error\": false,\r",
+							"        \"device\": {\r",
+							"            \"request_id\": \"IN-gmSzAr\"\r",
+							"        }\r",
+							"    }]\r",
+							"};\r",
+							"pm.test('Schema is valid', function () {\r",
+							"    pm.response.to.have.jsonSchema(schema);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"apikey\": \"your-api-key\",\r\n  \"sessionid\": \"US-dummyid\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v2/session-info",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v2",
+						"session-info"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete-document",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"docid\": \"US-dummyid\",\n  \"session\": false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v2/delete-document",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v2",
+						"delete-document"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "smartFeedback",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "your-api-key",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "buttonid",
+							"value": "O.US-dummyid",
+							"type": "text"
+						},
+						{
+							"key": "pdffile",
+							"type": "file",
+							"src": []
+						},
+						{
+							"key": "warn_cases",
+							"value": "{“trackid1”:“123\", “trackid2”:“345\"}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://api.diro.io/textract/smartFeedback",
+					"protocol": "https",
+					"host": [
+						"api",
+						"diro",
+						"io"
+					],
+					"path": [
+						"textract",
+						"smartFeedback"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "smartUpload",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text"
+					},
+					{
+						"key": "x-api-key",
+						"value": "your-api-key",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"docid\": \"US-dummyid\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.dirolabs.com/v3/smartUpload",
+					"protocol": "https",
+					"host": [
+						"api",
+						"dirolabs",
+						"com"
+					],
+					"path": [
+						"v3",
+						"smartUpload"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

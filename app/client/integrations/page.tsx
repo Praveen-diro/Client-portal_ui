@@ -14,6 +14,7 @@ import {
   Rocket, 
   FileText 
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Only import components that are actually used/rendered in your JSX
 import SetupOrganization from "@/components/integration-modals/SetupOrganization";
@@ -34,6 +35,7 @@ import DocumentsModal from "@/components/integration-modals/DocumentsModal";
 import DocumentsSection from "@/components/integration-sections/DocumentsSection";
 
 export default function IntegrationsPage() {
+  const router = useRouter();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -483,11 +485,12 @@ export default function IntegrationsPage() {
                       <motion.div
                         variants={boxVariants}
                         className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        onClick={() => router.push('/client/integrations/apireference')}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             <span className="text-blue-500 dark:text-blue-400">•</span>
-                            Delete data API
+                            View API Documentation
                           </motion.li>
                         </ul>
                       </motion.div>

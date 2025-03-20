@@ -1,0 +1,775 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "After Download API",
+    "version": "v0",
+    "description": "API documentation for post-download operations"
+  },
+  "servers": [
+    {
+      "url": "https://api.dirolabs.com",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "${environment.varificationSwaggerLink}/extractTransaction": {
+      "post": {
+        "tags": ["After Download"],
+        "summary": "To generate JSON for transaction data (coming soon).",
+        "description": "<h2>Get Transactions for verified PDF</h2>\n<p>Description / process </p>\n<ol className=\"list-group list-group-numbered\">\n<li> API sends a success response to http request without JSON {\"status\":\"Success!\"}. </li>\n<li>API sends a callback of the final transaction in the 24 Hr window. Callback will contain following key \"type\" : \"final-transaction\". </li><li> docid is session id.</li>\n<li>callback are accessible in developers > logs.</li>\n</ol>\n",
+        "operationId": "extractTransaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractTransactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/DefaultResponse" },
+                    { "$ref": "#/components/schemas/TransactionResponse" },
+                    { "$ref": "#/components/schemas/TransactionInvalidURLResponse" },
+                    { "$ref": "#/components/schemas/TransactionIncompleteSessionResponse" },
+                    { "$ref": "#/components/schemas/TransactionDeletedSessionResponse" },
+                    { "$ref": "#/components/schemas/TransactionBadDocumentResponse" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request missing one or more required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/BadRequest1" },
+                    { "$ref": "#/components/schemas/BadRequest2" }
+                  ]
+                },
+                "examples": {
+                  "BadRequest1": {
+                    "value": {
+                      "message": "validation failed",
+                      "details": {
+                        "docid": "Doc id can't be null or empty!"
+                      }
+                    }
+                  },
+                  "BadRequest2": {
+                    "value": {
+                      "message": "Document does not exist"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionInvalidToken"
+                }
+              }
+            }
+          }
+        },
+        "callbacks": {
+          "Success": {
+            "callback url setup for client": {
+              "post": {
+                "operationId": "callback2",
+                "description": "Request input for json success",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/TransactionExtractCallbackResponse"
+                      }
+                    }
+                  }
+                },
+                "responses": {}
+              }
+            }
+          },
+          "Failure": {
+            "callback url setup for client": {
+              "post": {
+                "description": "",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/TransactionExtractFailure"
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "${environment.varificationSwaggerLink}/pdf-to-json": {
+      "post": {
+        "tags": ["After Download"],
+        "summary": "Convert PDF to JSON",
+        "description": "Converts an uploaded PDF document to structured JSON data.",
+        "operationId": "pdfToJson",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionid": {
+                    "type": "string",
+                    "example": "IN-Ab3E"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "example": "doc123"
+                  },
+                  "extractionLevel": {
+                    "type": "string",
+                    "enum": ["basic", "detailed", "full"],
+                    "example": "detailed",
+                    "description": "Level of detail for extraction"
+                  }
+                },
+                "required": ["sessionid", "documentId"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Extracted JSON data"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "${environment.varificationSwaggerLinkBeta}/download-native-originals": {
+      "post": {
+        "tags": ["After Download"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "To download the original PDF or MHTML file.",
+        "description": "<h2>Download captured content (MHTML)</h2>\n <p>To download all MHTML pages linked to the original PDF.</p>",
+        "operationId": "orginaldocuments",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadMhtmlRequest"
+              }
+            }
+          },
+          "description": "Request for downloading original document.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadMhtmlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionIdDeleted"
+                }
+              }
+            }
+          },
+          "400 response": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareOnlyJsonTrue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidToken"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Api key is empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyEmpty"
+                }
+              }
+            }
+          },
+          "404 Invalid": {
+            "description": "Docid is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentNotExist"
+                }
+              }
+            }
+          },
+          "404 response": {
+            "description": "Case of abandon sessionid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbandonCaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "${environment.varificationSwaggerLinkBeta}/download-original-pdf-cert": {
+      "post": {
+        "tags": ["After Download"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "To download DIRO certificate.",
+        "description": "<h2>Download certified PDF</h2>\n<p>To download certified original documents with DIRO certificate.\n",
+        "operationId": "download document",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadDocumentRequest"
+              }
+            }
+          },
+          "description": "Request for downloading document.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadDocumentResponse"
+                }
+              }
+            }
+          },
+          "200 response": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadDocumentMultidownloadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionIdDeleted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidToken"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Api key is wrong or empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidResponse1"
+                }
+              }
+            }
+          },
+          "404 response": {
+            "description": "Case of abandon sessionid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbandonCaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExtractTransactionRequest": {
+        "type": "object",
+        "properties": {
+          "docid": {
+            "type": "string",
+            "description": "Document session ID",
+            "example": "IN-Ab3E"
+          }
+        },
+        "required": ["docid"]
+      },
+      "DefaultResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Success!"
+          }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "final-transaction"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "example": "2023-04-15"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Payment received"
+                },
+                "amount": {
+                  "type": "number",
+                  "format": "float",
+                  "example": 1250.75
+                }
+              }
+            }
+          }
+        }
+      },
+      "TransactionInvalidURLResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Invalid URL provided"
+          }
+        }
+      },
+      "TransactionIncompleteSessionResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Incomplete session"
+          }
+        }
+      },
+      "TransactionDeletedSessionResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Session has been deleted"
+          }
+        }
+      },
+      "TransactionBadDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document is not a valid transaction record"
+          }
+        }
+      },
+      "TransactionInvalidToken": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Invalid or expired token"
+          }
+        }
+      },
+      "BadRequest1": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "validation failed"
+          },
+          "details": {
+            "type": "object",
+            "properties": {
+              "docid": {
+                "type": "string",
+                "example": "Doc id can't be null or empty!"
+              }
+            }
+          }
+        }
+      },
+      "BadRequest2": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document does not exist"
+          }
+        }
+      },
+      "TransactionExtractCallbackResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "final-transaction"
+          },
+          "docid": {
+            "type": "string",
+            "example": "IN-Ab3E"
+          },
+          "data": {
+            "type": "object",
+            "description": "Extracted transaction data"
+          }
+        }
+      },
+      "TransactionExtractFailure": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "transaction-failure"
+          },
+          "docid": {
+            "type": "string",
+            "example": "IN-Ab3E"
+          },
+          "error": {
+            "type": "string",
+            "example": "Failed to extract transaction data"
+          }
+        }
+      },
+      "DownloadMhtmlRequest": {
+        "type": "object",
+        "required": ["apikey", "docid"],
+        "properties": {
+          "docid": {
+            "type": "string",
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
+          },
+          "apikey": {
+            "type": "string",
+            "example": "your-api-key-here"
+          }
+        }
+      },
+      "DownloadDocumentRequest": {
+        "type": "object",
+        "required": ["apikey", "docid", "downloadrequired"],
+        "properties": {
+          "apikey": {
+            "type": "string",
+            "example": "your-api-key-here"
+          },
+          "docid": {
+            "type": "string",
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
+          },
+          "downloadrequired": {
+            "type": "boolean",
+            "description": "If you want to required download keep it true.",
+            "example": true
+          }
+        }
+      },
+      "DownloadMhtmlResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": false
+          },
+          "msg": {
+            "type": "string",
+            "example": "Successful"
+          },
+          "data": {
+            "type": "string",
+            "example": "base64"
+          }
+        }
+      },
+      "DownloadDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "file downloaded"
+          },
+          "base64": {
+            "type": "string"
+          },
+          "fileobj": {
+            "type": "object"
+          }
+        }
+      },
+      "DownloadDocumentMultidownloadResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Successful"
+          },
+          "base64": {
+            "type": "string"
+          },
+          "fileobj": {
+            "type": "array"
+          }
+        }
+      },
+      "ShareOnlyJsonTrue": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "This document is configured with JSON only settings."
+          }
+        }
+      },
+      "DocumentNotExist": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "No document exist with specified docid"
+          }
+        }
+      },
+      "ApiKeyEmpty": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Api key is invalid."
+          }
+        }
+      },
+      "AbandonCaseResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Session document not found."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "DocIdWrongOrEmpty": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "Session document not found."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Forbidden": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "You are not allowed to see this session!"
+          }
+        }
+      },
+      "InvalidToken": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2024-07-01T10:02:27.547+0000"
+          },
+          "status": {
+            "type": "number",
+            "example": 401
+          },
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
+          },
+          "message": {
+            "type": "string",
+            "example": "Jwt token is expired pls generate new token!"
+          },
+          "path": {
+            "type": "string",
+            "example": "/Zuul-1.0/HI-2.0/pdf/pdftojson"
+          }
+        }
+      },
+      "InvalidResponse1": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Api key is invalid."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "SessionIdDeleted": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document is deleted"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
