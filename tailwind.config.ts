@@ -88,6 +88,15 @@ const config: Config = {
           "0%": { transform: "translateY(0.1em)" },
           "100%": { transform: "translateY(-0.1em)" },
         },
+        gradient: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+          "100%": { backgroundPosition: "0% 50%" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "0.6" },
+          "50%": { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -97,6 +106,8 @@ const config: Config = {
         shimmer: "shimmer 2.5s linear infinite",
         fadeIn: "fadeIn 0.3s ease-in-out",
         "fly-1": "fly-1 0.6s ease-in-out infinite alternate",
+        gradient: "gradient 3s ease infinite",
+        "pulse-slow": "pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

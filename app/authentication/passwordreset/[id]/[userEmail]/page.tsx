@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -46,14 +46,7 @@ const containerVariants = {
   },
 };
 
-interface ResetPasswordPageProps {
-  params: {
-    id: string;
-    userEmail: string;
-  };
-}
-
-export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
+export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -62,9 +55,10 @@ export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const params = useParams();
 
-  const token = params.id;
-  const userEmail = decodeURIComponent(params.userEmail);
+  const token = params.id as string;
+  const userEmail = decodeURIComponent(params.userEmail as string);
 
   useEffect(() => {
     // Log the token and email for debugging
@@ -226,11 +220,7 @@ export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-xl"></div>
 
                 {/* Main card container */}
-                <div
-                  className="relative rounded-3xl bg-white dark:bg-slate-900/70 backdrop-blur-xl p-8 
-                    border border-slate-200/50 dark:border-white/10
-                    shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]"
-                >
+                <div className="relative rounded-3xl bg-white dark:bg-slate-900/70 backdrop-blur-xl p-8 border border-slate-200/50 dark:border-white/10 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
                   {/* Subtle pattern overlay */}
                   <div className="absolute inset-0 bg-gradient-to-br from-transparent to-blue-50/30 dark:from-transparent dark:to-blue-900/10 rounded-3xl pointer-events-none"></div>
 
