@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.1",
+  "swagger": "2.0",
   "info": {
     "title": "Diro - Internet Original Documents",
     "description": "<p id='no-code-integration'>Intergration API of document verification button for businesses.</p>",
@@ -15,14 +15,10 @@
       "url": "https://diro.io/term-condition/"
     }
   },
-  "servers": [
-    {
-      "url": "https://api.dirolabs.com",
-      "description": "Production server"
-    }
-  ],
+  "host": "api.dirolabs.com",
+  "schemes": ["https"],
   "paths": {
-    "${environment.varificationSwaggerLinkBeta}/delete-document": {
+    "/beta/delete-document": {
       "post": {
         "tags": ["Delete documents"],
         "security": [
@@ -31,187 +27,157 @@
           }
         ],
         "summary": "To delete PDF, MHTML, session document.",
-        "description": "<h2>Delete PDF, MHTML, session documents </h2>\n<p>Use this API to delete PDF, Mhtml, session document..</p>\n",
+        "description": "<h2>Delete PDF, MHTML, session documents</h2>\n<p>Use this API to delete PDF, Mhtml, session document.</p>\n",
         "operationId": "deletedocument",
-        "requestBody": {
-          "description": "Request to delete PDF, Mhtml, session document.",
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeletedocumentRequest"
-              }
-            },
-            "application/xml": {
-              "schema": {
-                "$ref": "#/components/schemas/DeletedocumentRequest"
-              }
+        "consumes": ["application/json", "application/xml"],
+        "produces": ["application/json", "application/xml"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Request to delete PDF, Mhtml, session document.",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeletedocumentRequest"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "Successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeletedocumentResponse"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeletedocumentResponse"
-                }
-              }
+            "schema": {
+              "$ref": "#/definitions/DeletedocumentResponse"
             }
           },
           "400": {
             "description": "Docid is wrong or empty",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocIdWrongResponse"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocIdWrongResponse"
-                }
-              }
+            "schema": {
+              "$ref": "#/definitions/DocIdWrongResponse"
             }
           },
-          "400_1": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentDeleted"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentDeleted"
-                }
-              }
+          "422": {
+            "description": "Document already deleted",
+            "schema": {
+              "$ref": "#/definitions/DocumentDeleted"
             }
           },
-          "400_2": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocIdEmpty"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocIdEmpty"
-                }
-              }
+          "404": {
+            "description": "Document ID is empty",
+            "schema": {
+              "$ref": "#/definitions/DocIdEmpty"
             }
           },
           "401": {
             "description": "Unauthorized Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvalidRequest"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvalidRequest"
-                }
-              }
+            "schema": {
+              "$ref": "#/definitions/InvalidRequest"
             }
           }
         }
       }
     }
   },
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "definitions": {
+    "DeletedocumentRequest": {
+      "type": "object",
+      "required": ["docid"],
+      "properties": {
+        "docid": {
+          "type": "string",
+          "description": "Session ID of the document to be deleted",
+          "example": "IN-Ab3E"
+        }
       }
     },
-    "schemas": {
-      "DeletedocumentRequest": {
-        "type": "object",
-        "required": ["docid"],
-        "properties": {
-          "docid": {
-            "type": "string",
-            "description": "Session ID of the document to be deleted",
-            "example": "IN-Ab3E"
-          }
+    "DeletedocumentResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "Success"
+        },
+        "message": {
+          "type": "string",
+          "example": "Document deleted successfully"
         }
-      },
-      "DeletedocumentResponse": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Success"
-          },
-          "message": {
-            "type": "string",
-            "example": "Document deleted successfully"
-          }
+      }
+    },
+    "DocIdWrongResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "Error"
+        },
+        "message": {
+          "type": "string",
+          "example": "Document ID is wrong"
+        },
+        "error": {
+          "type": "boolean",
+          "example": true
         }
-      },
-      "DocIdWrongResponse": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Error"
-          },
-          "message": {
-            "type": "string",
-            "example": "Document ID is wrong"
-          }
+      }
+    },
+    "DocumentDeleted": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "Error"
+        },
+        "message": {
+          "type": "string",
+          "example": "Document already deleted"
+        },
+        "error": {
+          "type": "boolean",
+          "example": true
         }
-      },
-      "DocumentDeleted": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Error"
-          },
-          "message": {
-            "type": "string",
-            "example": "Document already deleted"
-          }
+      }
+    },
+    "DocIdEmpty": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "Error"
+        },
+        "message": {
+          "type": "string",
+          "example": "Document ID is empty"
         }
-      },
-      "DocIdEmpty": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Error"
-          },
-          "message": {
-            "type": "string",
-            "example": "Document ID is empty"
-          }
-        }
-      },
-      "InvalidRequest": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "example": "Error"
-          },
-          "message": {
-            "type": "string",
-            "example": "Unauthorized request"
-          }
+      }
+    },
+    "InvalidRequest": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "example": "2024-07-01T10:02:27.547+0000"
+        },
+        "status": {
+          "type": "number",
+          "example": 401
+        },
+        "error": {
+          "type": "string",
+          "example": "Unauthorized"
+        },
+        "message": {
+          "type": "string",
+          "example": "Jwt token is expired pls generate new token!"
+        },
+        "path": {
+          "type": "string",
+          "example": "/Zuul-1.0/HI-2.0/pdf/pdftojson"
         }
       }
     }

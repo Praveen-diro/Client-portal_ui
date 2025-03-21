@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageContainer } from "@/components/ui/page-container";
@@ -19,12 +19,109 @@ import {
   FileTextIcon,
   MailIcon,
   LinkIcon,
-  FileIcon
+  FileIcon,
+  Copy,
+  RefreshCw,
+  CheckIcon
 } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import Image from "next/image";
+import { ReloadIcon } from "@radix-ui/react-icons";
+
+// Define interfaces for button options
+interface ButtonOption {
+  id: string;
+  name: string;
+}
 
 export default function ApiReferencePage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [currentButtonId, setCurrentButtonId] = useState("dev");
+  const [apikey, setApikey] = useState("");
+  const [token, setToken] = useState("");
+  
+  // Define ButtonOption type for buttonList
+  interface ButtonOption {
+    id: string;
+    name: string;
+  }
+  
+  const [buttonList, setButtonList] = useState<ButtonOption[]>([
+    { id: "dev", name: "Development" },
+    { id: "stage", name: "Staging" },
+    { id: "prod", name: "Production" },
+  ]);
+  
+  const [copied, setCopied] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [modal, setModal] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState("user@company.com");
+  const [ownerEmail, setOwnerEmail] = useState("admin@company.com");
+  const [isSwaggerLoaded, setIsSwaggerLoaded] = useState(false);
+
+  useEffect(() => {
+    // Mock data for demonstration - remove this since state is already initialized
+    
+    // for demo purposes, let's make this admin
+    setIsAdmin(true);
+    setCurrentEmail("admin@company.com");
+    
+    // In a real app, you'd determine this from user session:
+    // setIsAdmin(session?.user?.role === "admin");
+    // setCurrentEmail(session?.user?.email);
+  }, []);
+
+  const handleButtonChange = (value: string) => {
+    setCurrentButtonId(value);
+    // In real implementation, would fetch corresponding API key and token
+  };
+
+  const copyToClipboard = (text: string, isToken: boolean = false) => {
+    navigator.clipboard.writeText(text);
+    if (isToken) {
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 3000);
+    } else {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  const toggleModal = () => {
+    setModal(!modal);
+  };
+
+  const generateNewToken = () => {
+    // Handle token generation
+    setToken(`new-token-${Date.now()}`);
+    toggleModal();
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -48,49 +145,146 @@ export default function ApiReferencePage() {
             </Link>
 
             {/* API Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 gap-6 mb-10">
+              {/* API Key & Token Selection Card - Full Width */}
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-6 
-                            shadow-sm hover:shadow-md transition-shadow">
-                <div className="mb-4 flex items-center">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-full mr-4 flex-shrink-0">
-                    <KeyIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                           shadow-sm hover:shadow-md transition-shadow w-full">
+                
+                {!isAdmin && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 
+                              rounded-lg p-2.5 text-sm text-amber-700 dark:text-amber-300 font-medium flex items-center mb-6">
+                    <ShieldIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>Login via admin account to access API credentials</span>
                   </div>
-                  <h3 className="text-lg font-semibold">Authentication</h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                  All API requests require an API key for authentication. Add the API key in the 
-                  <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded mx-1 text-sm font-mono">X-API-KEY</code> 
-                  header with each request.
-                </p>
+                )}
+                
+                {isAdmin && (
+                  <div className="space-y-6">
+                    {/* Row with select, public API key and secret token */}
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mx-auto w-full">
+                      {/* Select Button */}
+                      <div className="flex items-center gap-3 lg:w-auto flex-shrink-0 mx-auto lg:mx-0">
+                        <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex-shrink-0">
+                          <ServerIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <Label htmlFor="select-button" className="font-medium text-sm whitespace-nowrap">
+                          Select API Environment
+                        </Label>
+                        <Select value={currentButtonId} onValueChange={handleButtonChange}>
+                          <SelectTrigger className="w-[180px] border-indigo-100 dark:border-indigo-900/40 focus:ring-indigo-500">
+                            <SelectValue placeholder="Select environment" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {buttonList.map((button) => (
+                              <SelectItem key={button.id} value={button.id}>
+                                {button.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Public API Key */}
+                      <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-2 flex-shrink-0">
+                            <KeyIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300 whitespace-nowrap">Public API Key</h4>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
+                                            dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
+                                            hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
+                                  onClick={() => copyToClipboard(apikey)}
+                                >
+                                  {copied ? (
+                                    <CheckIcon className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+
+                      {/* Secret Access Token */}
+                      <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg mr-2 flex-shrink-0">
+                            <ShieldIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                          <h4 className="text-base font-semibold text-emerald-800 dark:text-emerald-300 whitespace-nowrap">Secret Access Token</h4>
+                          
+                          <div className="ml-2 flex items-center gap-2">
+                            {currentEmail === ownerEmail && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button 
+                                      className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                                dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                      onClick={toggleModal}
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p>Generate new token</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                              dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                              hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                    onClick={() => copyToClipboard(token, true)}
+                                  >
+                                    {copiedToken ? (
+                                      <CheckIcon className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <Copy className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p>{copiedToken ? "Copied!" : "Copy to clipboard"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        
+                      
+                      </div>
+                    </div>
+
+                    {copiedToken && (
+                      <Alert className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 py-1 px-3">
+                        <AlertDescription>Copied!</AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
               </div>
+
+
+
               
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-6 
-                            shadow-sm hover:shadow-md transition-shadow">
-                <div className="mb-4 flex items-center">
-                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 rounded-full mr-4 flex-shrink-0">
-                    <BookIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Documentation</h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                  Our API uses OpenAPI 3.0 specifications. You can test endpoints directly from this page 
-                  using the interactive "Try it out" feature in each endpoint section.
-                </p>
-              </div>
-              
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-6 
-                            shadow-sm hover:shadow-md transition-shadow">
-                <div className="mb-4 flex items-center">
-                  <div className="p-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-full mr-4 flex-shrink-0">
-                    <ServerIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Rate Limits</h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                  API calls are limited to 100 requests per minute. Contact us if you need higher limits for 
-                  your production environment.
-                </p>
-              </div>
             </div>
             
             {/* Endpoints overview section */}
@@ -295,6 +489,22 @@ export default function ApiReferencePage() {
           </div>
         </div>
       </PageContainer>
+
+      {/* Token Regeneration Confirmation Dialog */}
+      <Dialog open={modal} onOpenChange={setModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Action</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to generate a new token? Your previous token will be invalidated.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-center gap-2">
+            <Button variant="outline" onClick={toggleModal}>Cancel</Button>
+            <Button onClick={generateNewToken}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

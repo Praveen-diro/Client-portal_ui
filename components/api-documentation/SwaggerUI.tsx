@@ -273,10 +273,15 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
             let data;
             try {
               data = JSON.parse(text);
-            } catch (parseError) {
-              console.error(`Invalid JSON in ${spec.name}:`, parseError);
+            } catch (e) {
+              console.error(`Failed to parse JSON for ${spec.name}:`, e);
               failed.push(spec.name);
               continue;
+            }
+            
+            // Convert Swagger 2.0 to OpenAPI 3.0 if needed
+            if (data.swagger === "2.0") {
+              data = convertSwagger2ToOpenAPI3(data);
             }
             
             // Skip empty specs
@@ -344,6 +349,209 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
     
     // Path already has appropriate prefix after replacements
     return normalizedPath;
+  };
+
+  // Add this new function after fetchAndCombineSpecs or elsewhere in the file
+  const convertSwagger2ToOpenAPI3 = (swagger2Spec: any): any => {
+    console.log("Converting Swagger 2.0 to OpenAPI 3.0:", swagger2Spec.info?.title);
+    
+    const openapi3Spec: any = {
+      openapi: "3.0.1", // Using 3.0.1 for better compatibility
+      info: swagger2Spec.info,
+      servers: [
+        {
+          url: `https://${swagger2Spec.host}`,
+          description: "Production server"
+        }
+      ],
+      paths: {},
+      components: {
+        schemas: {},
+        securitySchemes: {}
+      }
+    };
+    
+    // Convert securityDefinitions to components/securitySchemes
+    if (swagger2Spec.securityDefinitions) {
+      for (const [key, value] of Object.entries(swagger2Spec.securityDefinitions)) {
+        const securityScheme = value as Record<string, any>;
+        
+        // Convert apiKey type
+        if (securityScheme.type === "apiKey") {
+          openapi3Spec.components.securitySchemes[key] = {
+            type: "apiKey",
+            name: securityScheme.name,
+            in: securityScheme.in
+          };
+        }
+        // Convert basic auth
+        else if (securityScheme.type === "basic") {
+          openapi3Spec.components.securitySchemes[key] = {
+            type: "http",
+            scheme: "basic"
+          };
+        }
+        // Convert OAuth2
+        else if (securityScheme.type === "oauth2") {
+          openapi3Spec.components.securitySchemes[key] = {
+            type: "oauth2",
+            flows: {} // Would need more conversion logic for different flow types
+          };
+        }
+      }
+    }
+    
+    // Helper function to fix references - more thorough version
+    const fixReference = (obj: any, path = ""): any => {
+      if (!obj) return obj;
+      
+      // Handle arrays
+      if (Array.isArray(obj)) {
+        return obj.map((item, index) => fixReference(item, `${path}[${index}]`));
+      }
+      
+      // Handle objects
+      if (typeof obj === 'object') {
+        // Create a new object to avoid reference issues
+        const newObj: any = {};
+        
+        // Fix direct $ref
+        if (obj.$ref && typeof obj.$ref === 'string') {
+          if (obj.$ref.startsWith('#/definitions/')) {
+            newObj.$ref = obj.$ref.replace('#/definitions/', '#/components/schemas/');
+            console.log(`Fixed reference from ${obj.$ref} to ${newObj.$ref} at ${path}`);
+          } else {
+            newObj.$ref = obj.$ref;
+          }
+          return newObj;
+        }
+        
+        // Process each property in the object
+        for (const key in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            newObj[key] = fixReference(obj[key], `${path}.${key}`);
+          }
+        }
+        
+        return newObj;
+      }
+      
+      // Return primitive values as is
+      return obj;
+    };
+    
+    // Convert definitions to components/schemas
+    if (swagger2Spec.definitions) {
+      // First, deep copy and fix references in all schemas
+      const fixedSchemas: any = {};
+      
+      for (const [key, schema] of Object.entries(swagger2Spec.definitions)) {
+        console.log(`Processing schema: ${key}`);
+        fixedSchemas[key] = fixReference(schema, `schemas.${key}`);
+      }
+      
+      // Then assign to components.schemas
+      openapi3Spec.components.schemas = fixedSchemas;
+    }
+    
+    // Convert paths
+    if (swagger2Spec.paths) {
+      for (const [pathKey, pathValue] of Object.entries(swagger2Spec.paths)) {
+        openapi3Spec.paths[pathKey] = {};
+        console.log(`Processing path: ${pathKey}`);
+        
+        // Copy each HTTP method
+        for (const [methodKey, methodValue] of Object.entries(pathValue as any)) {
+          console.log(`Processing method: ${methodKey} for path ${pathKey}`);
+          
+          // Deep copy method to avoid reference issues
+          const method = JSON.parse(JSON.stringify(methodValue));
+          
+          // Convert parameters to requestBody for POST/PUT/PATCH
+          if (["post", "put", "patch"].includes(methodKey.toLowerCase()) && method.parameters) {
+            const bodyParam = method.parameters.find((p: any) => p.in === "body");
+            if (bodyParam) {
+              console.log(`Creating requestBody for ${pathKey}.${methodKey}`);
+              method.requestBody = {
+                description: bodyParam.description,
+                required: bodyParam.required,
+                content: {
+                  "application/json": {
+                    schema: bodyParam.schema ? fixReference(bodyParam.schema, `${pathKey}.${methodKey}.requestBody`) : {}
+                  }
+                }
+              };
+              
+              // If there are other content types specified in consumes
+              if (method.consumes && Array.isArray(method.consumes)) {
+                method.consumes.forEach((contentType: string) => {
+                  if (contentType !== "application/json") {
+                    method.requestBody.content[contentType] = {
+                      schema: bodyParam.schema ? fixReference(bodyParam.schema, `${pathKey}.${methodKey}.requestBody.${contentType}`) : {}
+                    };
+                  }
+                });
+              }
+              
+              // Remove body parameter
+              method.parameters = method.parameters.filter((p: any) => p.in !== "body");
+            }
+          }
+          
+          // Fix references in all parameters
+          if (method.parameters && Array.isArray(method.parameters)) {
+            method.parameters = method.parameters.map((param: any, index: number) => 
+              fixReference(param, `${pathKey}.${methodKey}.parameters[${index}]`)
+            );
+          }
+          
+          // Convert references in responses
+          if (method.responses) {
+            const newResponses: any = {};
+            
+            for (const [statusCode, response] of Object.entries(method.responses)) {
+              console.log(`Processing response ${statusCode} for ${pathKey}.${methodKey}`);
+              const resp = JSON.parse(JSON.stringify(response));
+              
+              // Convert schema to content
+              if (resp.schema) {
+                resp.content = {
+                  "application/json": {
+                    schema: fixReference(resp.schema, `${pathKey}.${methodKey}.responses.${statusCode}.content.application/json.schema`)
+                  }
+                };
+                
+                // If there are other content types specified in produces
+                if (method.produces && Array.isArray(method.produces)) {
+                  method.produces.forEach((contentType: string) => {
+                    if (contentType !== "application/json") {
+                      resp.content[contentType] = {
+                        schema: fixReference(resp.schema, `${pathKey}.${methodKey}.responses.${statusCode}.content.${contentType}.schema`)
+                      };
+                    }
+                  });
+                }
+                
+                delete resp.schema;
+              }
+              
+              newResponses[statusCode] = resp;
+            }
+            
+            method.responses = newResponses;
+          }
+          
+          // Remove consumes and produces arrays (not used in OpenAPI 3)
+          delete method.consumes;
+          delete method.produces;
+          
+          openapi3Spec.paths[pathKey][methodKey] = method;
+        }
+      }
+    }
+    
+    console.log("Conversion complete. OpenAPI 3.0 spec created.");
+    return openapi3Spec;
   };
 
   if (isLoading) {

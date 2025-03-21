@@ -32,7 +32,6 @@ import BeforeLiveModal from "@/components/integration-modals/BeforeLiveModal";
 import SetupUserPermissionsModal from "@/components/integration-modals/SetupUserPermissionsModal";
 import HmacSecureCommunication from "@/components/integration-modals/HmacSecureCommunication";
 import DocumentsModal from "@/components/integration-modals/DocumentsModal";
-import DocumentsSection from "@/components/integration-sections/DocumentsSection";
 
 export default function IntegrationsPage() {
   const router = useRouter();

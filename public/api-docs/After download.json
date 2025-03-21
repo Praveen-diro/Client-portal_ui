@@ -299,9 +299,31 @@
         "summary": "To download DIRO certificate.",
         "description": "<h2>Download certified PDF</h2>\n<p>To download certified original documents with DIRO certificate.\n",
         "operationId": "download document",
+        "parameters": [
+          {
+            "in": "",
+            "name": "Note",
+            "description": "<ol><li>Docid is equal to sessionid.</li> <li>This API can be used to download the original certificate PDF for a specific docid. For a non-multi-download session, the API returns a base64 string within a JSON object that can be convert to access the original certificate pdf.</li>  <li>For multi download sessions, the API can be called using either the meta session docid or the sub-session docid.<ul><li>Calling the API with the meta session docid allows the download of all related original PDFs for the meta session. The API returns a base64 string within a JSON object that can be decoded to a zip file. The zip file can be unzipped to access a folder containing all original PDFs. </li></ul></li></ul><ul><li>Calling the API with the sub-session docid allows the download of the original PDF for that specific sub-session only. The API returns a base64 string within a JSON object that can be convert to access the original certificate PDF.</li></ul></li></ul></p>\n</li></ol> "
+          },
+          {
+            "in": "",
+            "name": "Base64 → PDF",
+            "description": "<h5 id=\"heading_swag_code\">Convert an encoded Base64  file to a PDF.</h5> <pre id=\"container_pre\"> <code id=\"code_desc\"><p id=\"comment_swag_code\"> // Node.js </br></br> # Base64 encoded string</p>  const base64String = req.base64; </br></br><p id=\"comment_swag_code\"># Step 1: Decode the Base64 string</p>  const pdfBuffer = Buffer.from(base64String, 'base64'); </br></br><p id=\"comment_swag_code\"># Step 2: Save the decoded data as a PDF file</p>  const outputPath = path.join(__dirname, 'extracted_file.pdf');</br>  fs.writeFileSync(outputPath, pdfBuffer);</br>"
+          },
+          {
+            "in": "",
+            "name": " Base64(zip) → PDF",
+            "description": "<h5 id=\"heading_swag_code\">Convert an encoded Base64 ZIP file to a PDF.</h5> <pre id=\"container_pre\"> <code id=\"code_desc\"><p id=\"comment_swag_code\">// Node.js </br></br># Base64 encoded string</p>  const base64String = req.base64; </br></br><p id=\"comment_swag_code\"># Step 1: Decode the Base64 string</p>  const zipBuffer = Buffer.from(base64String, 'base64'); </br></br><p id=\"comment_swag_code\"># Step 2: Save the decoded ZIP file to disk (optional)</p>  const zipFilePath = path.join(__dirname, 'file.zip');</br>  fs.writeFileSync(zipFilePath, zipBuffer);</br></br><p id=\"comment_swag_code\"># Step 3: Unzip the decoded ZIP file</p>  const zip = new AdmZip(zipBuffer);</br>  const extractPath = path.join(__dirname, 'extracted_files');</br>  zip.extractAllTo(extractPath, true);"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadDocumentRequest"
+              }
+            },
+            "application/xml": {
               "schema": {
                 "$ref": "#/components/schemas/DownloadDocumentRequest"
               }
@@ -377,6 +399,112 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AbandonCaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "${environment.varificationSwaggerLinkBeta}/session-info": {
+      "post": {
+        "tags": ["After Download"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "To get session info.",
+        "description": "<h2>Get session information (in JSON) </h2>\n<p>To get metadata about an original document and the user session information. It includes source URL, user device info and network fingerprints and all other meta-information in the PDF, in JSON format.</p>\n<p>Just pass session id in your request to get session information JSON</p>\n<h3>How to get session id?</h3>\n<p>After the user session is over, DIRO API sends a callback at your callback url , please find below a sample response </p>\n<ul>\n<li>Session ID</li>\n<li>Status</li>\n<li>Date & time of status</li>\n<li>Custom tracker</li>\n<li>File name</li>\n</ul>\n<pre className=\"json-pre\">\n{\n  \"date\": \"1644301889696\",\n    \"request\": {\n     \"urlStatus\": {\n        \"urlMatch\": false,\n        \"country\": \"Not Found\",\n        \"message\": \"The link will be sent for review by human in the loop, a Callback will be sent  in 24hrs\",\n        \"category\": \"address\",\n        \"sslVerified\": true,\n        \"status\": \"pending\"\n    },\n    \"firstname\": \"Jhon\",\n    \"docid\": \"XX-XXXXX\",\n    \"mobile\": \"1234567890\",\n    \"message\": \"document uploaded\",\n    \"mcc\": \"+000\",\n    \"type\": \"uploadsuccess\",\n    \"url\": \"https://diro.io/secure/#/client/MQBnAG15c3Fs/bank/XX-XXXXXX/XX-XXXXXX\",\n    \"filename\": \"XX-Uco25R1644300678702.pdf\",\n    \"kycstatus\": \"pending\",\n    \"filestatus\": \"pending\",\n    \"buttonid\": \"3a3ebab1-9914-bbd3-e6fe-c1f9e83d8a0b\",\n    \"category\": \"address\",\n    \"status\": true\n  }\n  \"message\": \"<!DOCTYPE html>\\n\\t<!-- \\n\\t\\tLicensed to the Apache Sof..-->\"\n  \"orgid\": \"O.71a859db-a10f-4b91-a762-3e2fa66959d3\",\n  \"status\": 200\n}\n\n</pre>\n",
+        "operationId": "sessioninfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionInfoRequest"
+              }
+            }
+          },
+          "description": "Request for getting session information.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfoResponse"
+                }
+              }
+            }
+          },
+          "200 response": {
+            "description": "Case of abandon sessionid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbandonSessionId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionBadResponse"
+                }
+              }
+            }
+          },
+          "400 response": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionIdDeleted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidToken"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Api key is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidResponse1"
+                }
+              }
+            }
+          },
+          "404 Invalid": {
+            "description": "Api key is empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidResponse2"
+                }
+              }
+            }
+          },
+          "404 response": {
+            "description": "Docid is wrong or empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocIdWrongOrEmpty"
                 }
               }
             }
@@ -760,6 +888,282 @@
           "error": {
             "type": "boolean",
             "example": true
+          }
+        }
+      },
+      "SessionInfoRequest": {
+        "type": "object",
+        "required": ["apikey", "sessionid"],
+        "properties": {
+          "sessionid": {
+            "type": "string",
+            "example": "IN-123TXyT"
+          },
+          "apikey": {
+            "type": "string",
+            "example": "your-api-key-here"
+          }
+        }
+      },
+      "SessionInfoResponse": {
+        "type": "object",
+        "properties": {
+          "ssl_certificate": {
+            "type": "object",
+            "properties": {
+              "reach": {
+                "type": "null",
+                "example": null
+              },
+              "rank": {
+                "type": "null",
+                "example": null
+              },
+              "common_name": {
+                "type": "string",
+                "example": "www.jio.com"
+              }
+            }
+          },
+          "result": {
+            "type": "object",
+            "required": ["validation"],
+            "properties": {
+              "updated_on": {
+                "type": "string",
+                "example": "2024-06-23T10:08:03"
+              },
+              "orignalsource": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Date": {
+                      "type": "string",
+                      "example": "23 Jun 2024"
+                    },
+                    "Reference": {
+                      "type": "string",
+                      "example": "US-emspz"
+                    },
+                    "Website": {
+                      "type": "string",
+                      "example": "jio.com"
+                    },
+                    "Language": {
+                      "type": "string",
+                      "example": "en"
+                    },
+                    "time": {
+                      "type": "string",
+                      "example": "10.07 AM"
+                    },
+                    "Pages": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "category": {
+                "type": "string",
+                "example": "address"
+              },
+              "status": {
+                "type": "string",
+                "example": "pending"
+              }
+            }
+          },
+          "error": {
+            "type": "boolean",
+            "example": false
+          },
+          "device": {
+            "type": "object",
+            "properties": {
+              "fingerprint_id": {
+                "type": "string",
+                "example": "3221601874"
+              },
+              "location": {
+                "type": "string",
+                "example": "New Delhi"
+              },
+              "ip_address": {
+                "type": "string",
+                "example": "2401:4900:1c63:3890:d967:bcea:bcf8:af41"
+              },
+              "request_id": {
+                "type": "string",
+                "example": "US-emspzo"
+              },
+              "user_agent": {
+                "type": "string",
+                "example": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+              }
+            }
+          },
+          "navLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "summary": {
+                  "type": "string",
+                  "example": "The webpage titled 'Sample PDF Download' offers downloadable PDF documents, including bank statements and utility bills. Each document is listed with a description and a download link. The page is straightforward, focusing on providing access to sample documents for testing purposes."
+                },
+                "type": {
+                  "type": "string",
+                  "example": "clickEvent"
+                },
+                "click": {
+                  "type": "string",
+                  "example": "The user clicked on the link labeled 'Bank Statement (Multiple Acc Number)', which is intended to download a PDF file named 'Multiple acc numbers (Bank of Manhattan).docx.pdf'. This action will initiate the download of the specified document to the user's device."
+                },
+                "url": {
+                  "type": "string",
+                  "example": "https://sample.diro.me/"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "example": "2024-06-23T10:08:03"
+                }
+              }
+            }
+          }
+        },
+        "required": ["device", "result", "ssl_certificate"]
+      },
+      "AbandonSessionId": {
+        "type": "object",
+        "properties": {
+          "ssl_certificate": {
+            "type": "object"
+          },
+          "result": {
+            "type": "object"
+          },
+          "error": {
+            "type": "boolean",
+            "example": false
+          },
+          "navLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "summary": {
+                  "type": "string",
+                  "example": "The webpage titled 'Sample PDF Download' offers downloadable PDF documents, including bank statements and utility bills. Each document is listed with a description and a download link. The page is straightforward, focusing on providing access to sample documents for testing purposes."
+                },
+                "type": {
+                  "type": "string",
+                  "example": "clickEvent"
+                },
+                "click": {
+                  "type": "string",
+                  "example": "The user clicked on the link labeled 'Bank Statement (Multiple Acc Number)', which is intended to download a PDF file named 'Multiple acc numbers (Bank of Manhattan).docx.pdf'. This action will initiate the download of the specified document to the user's device."
+                },
+                "url": {
+                  "type": "string",
+                  "example": "https://sample.diro.me/"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "example": "2024-06-23T10:08:03"
+                }
+              }
+            }
+          },
+          "device": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "example": "Dublin"
+              },
+              "ip_address": {
+                "type": "string",
+                "example": "54.77.161.125"
+              },
+              "request_id": {
+                "type": "string",
+                "example": "IN-EULc7T"
+              }
+            }
+          }
+        }
+      },
+      "SessionBadResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "about:blank"
+          },
+          "title": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "status": {
+            "type": "number",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "example": "Failed to read request"
+          },
+          "instance": {
+            "type": "string",
+            "example": "/sessioninfo"
+          }
+        }
+      },
+      "SessionNotAllow": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "You are not allowed to see this session."
+          }
+        }
+      },
+      "InvalidResponse2": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Api key is invalid."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ServerDown": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Server is down Please try again."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "DocIdEmpty": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "session id can't be null or empty"
           }
         }
       }
