@@ -52,6 +52,9 @@ import {
 import Image from "next/image";
 import { ReloadIcon } from "@radix-ui/react-icons";
 
+// Import cookies service
+import { cookies } from "../../../services/cookie.service";
+
 // Define interfaces for button options
 interface ButtonOption {
   id: string;
@@ -86,8 +89,19 @@ export default function ApiReferencePage() {
   const [isSwaggerLoaded, setIsSwaggerLoaded] = useState(false);
 
   useEffect(() => {
-    // Mock data for demonstration - remove this since state is already initialized
+    // Get apiKey from cookies
+    const apiKeyFromCookie = cookies.get("apikey");
+    if (apiKeyFromCookie) {
+      setApikey(apiKeyFromCookie);
+      console.log("API key retrieved from cookie:", apiKeyFromCookie);
+    }
     
+    // Get token from cookies
+    const tokenFromCookie = cookies.get("secrettoken");
+    if (tokenFromCookie) {
+      setToken(tokenFromCookie);
+    }
+
     // for demo purposes, let's make this admin
     setIsAdmin(true);
     setCurrentEmail("admin@company.com");
@@ -272,19 +286,9 @@ export default function ApiReferencePage() {
                       
                       </div>
                     </div>
-
-                    {copiedToken && (
-                      <Alert className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 py-1 px-3">
-                        <AlertDescription>Copied!</AlertDescription>
-                      </Alert>
-                    )}
                   </div>
                 )}
               </div>
-
-
-
-              
             </div>
             
             {/* Endpoints overview section */}
