@@ -1113,6 +1113,9 @@ export default function PdfViewer() {
       {/* Rejection Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent className="p-0 max-w-[850px] rounded-xl overflow-hidden border-0 shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Document Rejection</DialogTitle>
+          </DialogHeader>
           <div className="flex flex-col md:flex-row">
             {/* Left sidebar with decorative elements */}
             <div className="w-full md:w-[280px] bg-gradient-to-b from-[#1E1E2E] to-[#2D2D44] p-6 md:p-8 relative overflow-hidden">

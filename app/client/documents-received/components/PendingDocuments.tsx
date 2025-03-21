@@ -29,10 +29,12 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Loader from "@/components/ui/loader";
 import { JsonButton } from "@/components/ui/json-button";
+import { DeleteModal } from "@/components/ui/delete-modal";
 import { tableService } from "@/app/services/table.service";
 import { getPendings } from "@/app/store/features/tableSlice";
 import { viewDocService } from "@/app/services/viewdoc.service";
 import { cookies } from "@/app/services/cookie.service";
+import { toast } from "@/components/ui/use-toast";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -324,6 +326,39 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     setDeleteModalOpen(true);
   };
 
+  // Handle session deletion
+  const handleDeleteSession = async () => {
+    if (!currentSessionId) return;
+
+    try {
+      setIsLoading(true);
+      const response = await tableService.deleteSession(currentSessionId);
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Document deleted successfully",
+          variant: "default",
+        });
+        // Refresh the document list and keep loader active until complete
+        await fetchPendingDocuments(currentPage);
+        setDeleteModalOpen(false);
+      } else {
+        throw new Error(response.error || "Failed to delete document");
+      }
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      setDeleteModalOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // JSON modal
   const openPdftojsonModal = (sessionId: string, doc: any) => {
     setCurrentSessionId(sessionId);
@@ -549,8 +584,20 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
                     <DropdownMenuItem asChild>
                       <Link href={`/pdf/${makefileurl(sessionId)}`}>View doc</Link>
                     </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={!isDeleteStatus ? () => sessiontoggle(sessionId, index, sessionId) : onSessionStatusCheck}
+                    >
+                      Session details
+                    </DropdownMenuItem>
+
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-500">Delete session</DropdownMenuItem>
+
+                    <DropdownMenuItem onClick={() => openReportModal(sessionId)}>Report issue</DropdownMenuItem>
+
+                    <DropdownMenuItem className="text-red-500" onClick={() => deleteToggle(sessionId)}>
+                      Delete session
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -635,8 +682,25 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
         </div>
       )}
 
-      {/* Note: Modal components for document view, session details, report issue, delete confirmation, 
+      {/* Note: Modal components for document view, session details, report issue, 
       and JSON conversion would need to be implemented separately */}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteSession}
+        itemType="document"
+        isLoading={isLoading}
+        itemDetail={
+          currentSessionId
+            ? {
+                label: "Session ID",
+                value: currentSessionId,
+              }
+            : undefined
+        }
+      />
 
       {/* Add this to your global CSS or add it inline */}
       <style jsx>{`

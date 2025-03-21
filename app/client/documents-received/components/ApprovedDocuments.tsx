@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FileText, Eye, MoreVertical, ChevronLeft, ChevronRight, Copy, Info, Check, ClipboardCheck } from "lucide-react";
 import Link from "next/link";
+import { toast } from "@/components/ui/use-toast";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Loader from "@/components/ui/loader";
 import { JsonButton } from "@/components/ui/json-button";
+import { DeleteModal } from "@/components/ui/delete-modal";
 import { tableService } from "@/app/services/table.service";
 import { getApproves } from "@/app/store/features/tableSlice";
 import { viewDocService } from "@/app/services/viewdoc.service";
@@ -311,6 +313,39 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
   const deleteToggle = (sessionId: string) => {
     setCurrentSessionId(sessionId);
     setDeleteModalOpen(true);
+  };
+
+  // Handle session deletion
+  const handleDeleteSession = async () => {
+    if (!currentSessionId) return;
+
+    try {
+      setIsLoading(true);
+      const response = await tableService.deleteSession(currentSessionId);
+
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Document deleted successfully",
+          variant: "default",
+        });
+        // Refresh the document list and keep loader active until complete
+        await fetchApprovedDocuments(currentPage);
+        setDeleteModalOpen(false);
+      } else {
+        throw new Error(response.error || "Failed to delete document");
+      }
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+      setDeleteModalOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // JSON modal
@@ -998,7 +1033,24 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
         </div>
       )}
 
-      {/* Note: Modal components for document view, session details, report issue, delete confirmation, 
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteSession}
+        itemType="document"
+        isLoading={isLoading}
+        itemDetail={
+          currentSessionId
+            ? {
+                label: "Session ID",
+                value: currentSessionId,
+              }
+            : undefined
+        }
+      />
+
+      {/* Note: Modal components for document view, session details, report issue, 
       and JSON conversion would need to be implemented separately */}
 
       {/* Add this to your global CSS or add it inline */}

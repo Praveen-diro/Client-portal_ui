@@ -119,7 +119,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "pending",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -138,7 +138,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "approved",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -152,7 +152,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -205,8 +205,9 @@ class TableService {
 
   async deleteSession(sessionid: string): Promise<TableResponse<any>> {
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      // apikey: this.getApiKey(),
+      docid: sessionid,
+      session: false,
     };
 
     return this.makeRequest(env.deletesession, data, "deleteSession");
