@@ -15,7 +15,6 @@ const ensureTokenHasBearer = (token: string): string => {
   return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
 };
 
-
 interface AuthState {
   user: any;
   login_user: any;
@@ -241,26 +240,28 @@ const authSlice = createSlice({
     },
     loginSandboxTwoFactor: (state, action: PayloadAction<any>) => {
       const { doc } = action.payload.payload;
+      const emptyString = "";
 
-      // Set tokens with Bearer prefix
-      cookies.set("token", ensureTokenHasBearer(doc.token || doc));
-      cookies.set("secrettoken", ensureTokenHasBearer(doc.sandbox?.accesstoken));
-      cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
-      cookies.set("refreshToken", doc.refreshToken);
+      // Add proper error handling with optional chaining and fallback values
+      // Set tokens with Bearer prefix - using nullish coalescing to handle missing properties
+      cookies.set("token", ensureTokenHasBearer(doc?.token || doc?.accesstoken || emptyString));
+      cookies.set("secrettoken", ensureTokenHasBearer(doc?.sandbox?.accesstoken || emptyString));
+      cookies.set("tempsecret", ensureTokenHasBearer(doc?.dirotoken || emptyString));
+      cookies.set("refreshToken", doc?.refreshToken || emptyString);
 
-      // Set API keys
-      cookies.set("apikey", doc.sandbox.apikey);
-      cookies.set("liveapi", doc.apikey);
-      cookies.set("sandboxapi", doc.sandbox.apikey);
-      cookies.set("tokenTest", doc.sandbox.accesstoken);
+      // Set API keys with fallbacks
+      cookies.set("apikey", doc?.sandbox?.apikey || emptyString);
+      cookies.set("liveapi", doc?.apikey || emptyString);
+      cookies.set("sandboxapi", doc?.sandbox?.apikey || emptyString);
+      cookies.set("tokenTest", doc?.sandbox?.accesstoken || emptyString);
 
-      // Set user data
-      cookies.set("alldata", JSON.stringify(doc));
-      cookies.set("alldataa", JSON.stringify(doc));
-      cookies.set("stripeid", doc.stripeid);
-      cookies.set("planid", doc.planid);
+      // Set user data with null checks
+      cookies.set("alldata", JSON.stringify(doc || {}));
+      cookies.set("alldataa", JSON.stringify(doc || {}));
+      cookies.set("stripeid", doc?.stripeid || emptyString);
+      cookies.set("planid", doc?.planid || emptyString);
 
-      if (doc.roles) {
+      if (doc?.roles?.length > 0) {
         cookies.set("roles", doc.roles[0]);
       }
 
@@ -291,7 +292,7 @@ const authSlice = createSlice({
       cookies.set("token", ensureTokenHasBearer(action.payload.token));
       cookies.set("secrettoken", ensureTokenHasBearer(doc.dirotoken));
       cookies.set("tempsecret", ensureTokenHasBearer(doc.dirotoken));
-      cookies.set("refreshToken",action.payload.token);
+      cookies.set("refreshToken", action.payload.token);
 
       // Set API keys
       cookies.set("apikey", doc.apikey);

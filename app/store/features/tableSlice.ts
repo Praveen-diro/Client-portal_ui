@@ -22,6 +22,7 @@ export interface TableState {
   completed: any[];
   reviews: any[];
   approved: any[];
+  totalDocuments: any[];
   rejects: any[];
   deleted: any[];
   session_report: any[];
@@ -51,6 +52,7 @@ const initialState: TableState = {
   completed: [],
   reviews: [],
   approved: [],
+  totalDocuments: [],
   rejects: [],
   deleted: [],
   session_report: [],
@@ -206,6 +208,11 @@ export const tableSlice = createSlice({
       state.submitFeedalert = false;
     },
 
+    getTotalDocuments: (state, action: PayloadAction<{ data: { data: any[] } }>) => {
+      state.totalDocuments = action.payload.data.data;
+      state.loading = false;
+    },
+
     getCallbackLogs: (state, action: PayloadAction<{ data: { data: any[]; limit: number } }>) => {
       state.callbacklog = action.payload.data.data;
       state.limitrejets = action.payload.data.limit;
@@ -349,6 +356,7 @@ export const {
   searchGetTrue,
   searchApiFalse,
   getApproves,
+  getTotalDocuments,
   getCallbackLogs,
   getRejects,
   getSearchResult,

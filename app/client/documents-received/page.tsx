@@ -44,6 +44,7 @@ export default function DocumentsReceived() {
   const pendingDocuments = useSelector((state: any) => state.table.pendings, shallowEqual);
   const approvedDocuments = useSelector((state: any) => state.table.approved, shallowEqual);
   const rejectedDocuments = useSelector((state: any) => state.table.rejects, shallowEqual);
+  const totalDocuments = useSelector((state: any) => state.table.totalDocuments, shallowEqual);
 
   // Optimize the animation effect to reduce rerenders
   useEffect(() => {
@@ -73,9 +74,9 @@ export default function DocumentsReceived() {
     try {
       // In a real implementation, you would make an API call to get accurate stats
       // For now, we'll update based on redux state or use default values
-      const pendingCount = pendingDocuments?.data?.length || 10;
-      const approvedCount = approvedDocuments?.data?.length || 25;
-      const rejectedCount = rejectedDocuments?.data?.length || 5;
+      const pendingCount = totalDocuments?.pendingCount || 0;
+      const approvedCount = totalDocuments?.approvedCount || 0;
+      const rejectedCount = totalDocuments?.rejectedCount || 0;
 
       // Use functional update to ensure we're working with the latest state
       setStats((prevStats) => ({

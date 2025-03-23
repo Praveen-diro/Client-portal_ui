@@ -19,12 +19,21 @@ import {
 import Loader from "@/components/ui/loader";
 import { JsonButton } from "@/components/ui/json-button";
 import { DeleteModal } from "@/components/ui/delete-modal";
+import { SessionDetailsModal } from "@/components/ui/session-details-modal";
 import { tableService } from "@/app/services/table.service";
-import { getRejects } from "@/app/store/features/tableSlice";
+import { getRejects, getTotalDocuments } from "@/app/store/features/tableSlice";
 import { viewDocService } from "@/app/services/viewdoc.service";
 import { cookies } from "@/app/services/cookie.service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ClipboardCheck, Copy, Check } from "lucide-react";
+import { JsonViewer } from "./JsonViewer";
+import {
+  pdfLoader,
+  pdfToJsonData,
+  pdfToJsonError,
+  extractTransactionData,
+  extractTransactionError,
+} from "@/app/store/features/tableSlice";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -122,6 +131,12 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [sessionDetailsModalOpen, setSessionDetailsModalOpen] = useState(false);
+  const [jsonModalOpen, setJsonModalOpen] = useState(false);
+  const [currentDoc, setCurrentDoc] = useState<any>(null);
+
+  // Add a new state for JSON modal loading
+  const [jsonLoading, setJsonLoading] = useState(false);
 
   // Verification cell helper
   const verificationCell = (doc: any) => {
@@ -146,18 +161,81 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   };
 
   const sessiontoggle = (sessionId: string, index: number, id: string) => {
-    console.log("Session toggle", sessionId, index, id);
-    // Implement actual functionality here
+    setCurrentSessionId(id);
+    setSessionDetailsModalOpen(true);
   };
 
   const openPdftojsonModal = (sessionId: string, doc: any) => {
-    console.log("Open PDF to JSON modal", sessionId, doc);
-    // Implement actual functionality here
-  };
+    setCurrentSessionId(sessionId);
+    setCurrentDoc(doc);
 
-  const openReportModal = (sessionId: string) => {
-    console.log("Open report modal", sessionId);
-    // Implement actual functionality here
+    // Open the modal immediately with loading state
+    setJsonLoading(true);
+    setJsonModalOpen(true);
+
+    // Dispatch loading state for PDF data in Redux
+    dispatch(pdfLoader());
+
+    // Call both getPdfToJson and getExtractTransactionData methods simultaneously
+    Promise.all([
+      tableService.getPdfToJson(sessionId),
+      tableService.getExtractTransactionData({ docid: "", sessionid: sessionId }),
+    ])
+      .then(([pdfToJsonResponse, extractTransactionResponse]) => {
+        // Handle PDF to JSON response
+        if (pdfToJsonResponse.success) {
+          // Dispatch success action for PDF to JSON
+          dispatch(pdfToJsonData(pdfToJsonResponse.data));
+
+          // Update the current document with JSON data
+          setCurrentDoc({
+            ...doc,
+            extractedData: pdfToJsonResponse.data,
+            transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
+          });
+
+          toast({
+            title: "Success",
+            description: "JSON data loaded successfully",
+            variant: "default",
+          });
+        } else {
+          // Dispatch error action for PDF to JSON
+          dispatch(pdfToJsonError({ data: pdfToJsonResponse.error }));
+
+          toast({
+            title: "Error",
+            description: pdfToJsonResponse.error || "Failed to load JSON data",
+            variant: "destructive",
+          });
+        }
+
+        // Handle transaction data response
+        if (extractTransactionResponse.success) {
+          // Dispatch success action for transaction data
+          dispatch(extractTransactionData(extractTransactionResponse.data));
+        } else {
+          // Dispatch error action for transaction data
+          dispatch(extractTransactionError(extractTransactionResponse.error));
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading JSON data:", error);
+
+        // Dispatch error actions for both
+        dispatch(pdfToJsonError({ data: error }));
+        dispatch(extractTransactionError(error));
+
+        toast({
+          title: "Error",
+          description: "An error occurred while loading JSON data",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        // Clear loading state for JSON modal only
+        setJsonLoading(false);
+      });
   };
 
   const deleteToggle = (sessionId: string) => {
@@ -212,7 +290,9 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
 
       if (response.success) {
         dispatch(getRejects({ data: { data: response.data, limit: response.data?.length || 0 } }));
-
+        if (response.data.totalCounts) {
+          dispatch(getTotalDocuments({ data: { data: response.data.totalCounts } }));
+        }
         // Update pagination
         let total = 0;
         if (typeof response.data === "object" && response.data !== null) {
@@ -329,6 +409,14 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Report modal toggle function to pass to SessionDetailsModal
+  const handleOpenReportModal = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setSessionDetailsModalOpen(false); // Close the session details modal
+    // Assuming you will implement the report modal functionality
+    console.log("Open report modal for session:", sessionId);
   };
 
   return (
@@ -587,7 +675,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
 
                             <DropdownMenuSeparator />
 
-                            <DropdownMenuItem onClick={() => openReportModal(sessionId)}>Report issue</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenReportModal(sessionId)}>Report issue</DropdownMenuItem>
 
                             <DropdownMenuItem onClick={() => deleteToggle(sessionId)} className="text-red-500">
                               Delete session
@@ -647,7 +735,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
         </div>
       )}
 
-      {/* Add Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -662,6 +750,36 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
               }
             : undefined
         }
+      />
+
+      {/* Session Details Modal */}
+      <SessionDetailsModal
+        isOpen={sessionDetailsModalOpen}
+        onClose={() => setSessionDetailsModalOpen(false)}
+        sessionId={currentSessionId || undefined}
+        onReportIssue={handleOpenReportModal}
+      />
+
+      {/* JSON Viewer Modal */}
+      <JsonViewer
+        isOpen={jsonModalOpen}
+        onClose={() => setJsonModalOpen(false)}
+        jsonData={(currentDoc as any)?.extractedData || {}}
+        status="final"
+        title="Extracted fields"
+        transactionData={(currentDoc as any)?.transaction}
+        showSendForReviewButton={true}
+        isLoading={jsonLoading}
+        onSendForReview={() => {
+          // Implement send for review logic here
+          console.log("Send for review clicked", currentSessionId);
+          setJsonModalOpen(false);
+          toast({
+            title: "Success",
+            description: "Document sent for review",
+            variant: "default",
+          });
+        }}
       />
 
       {/* Add this to your global CSS or add it inline */}
