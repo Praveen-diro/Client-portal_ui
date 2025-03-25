@@ -188,6 +188,7 @@ const authSlice = createSlice({
       cookies.set("authMode", action.payload.toString());
       state.authMode = action.payload;
       state.sandboxStatus = action.payload === 2;
+
     },
     getCountries: (state, action: PayloadAction<any>) => {
       console.log("getCountries reducer called with payload:", action.payload);
@@ -443,60 +444,76 @@ const authSlice = createSlice({
       state.loginError = null;
     },
     twoFactorLoginSuccess: (state, action: PayloadAction<any>) => {
+      console.log("twoFactorLoginSuccess reducer called with payload:", action.payload);
       try {
         // Extract payload data safely
         const payload = action.payload.payload || {};
         const headers = action.payload.headers || {};
+        const doc = payload.doc || {};
+
         console.log("Payload: here is the payload", payload);
+
         // Set token from headers if available
-        if (headers.authorization) {
+        if (headers?.authorization) {
           console.log("Setting token from headers:", headers.authorization);
           const token = ensureTokenHasBearer(headers.authorization);
-          cookies.set("token", token);
+          cookies.set("token", token, cookieOptions);
           state.token = token;
         }
 
         // Handle email
-        if (payload.doc.email) {
-          console.log("Setting email:", payload.email);
-          cookies.set("email", payload.doc.email);
-          state.email = payload.doc.email;
+        if (doc.email) {
+          console.log("Setting email:", doc.email);
+          cookies.set("email", doc.email, cookieOptions);
+          state.email = doc.email;
         }
 
         // Handle roles - can be array or string
-        if (payload.doc.roles) {
-          const role = Array.isArray(payload.doc.roles) ? payload.doc.roles[0] : payload.doc.roles;
+        if (doc.roles) {
+          const role = Array.isArray(doc.roles) ? doc.roles[0] : doc.roles;
           console.log("Setting role:", role);
-          cookies.set("roles", role);
+          cookies.set("roles", role, cookieOptions);
           state.roles = role;
         }
-        if (payload.doc) {
-          cookies.set("alldata", JSON.stringify(payload.doc));
-          state.user = payload.doc;
+
+        // Store the whole doc data
+        if (doc) {
+          cookies.set("alldata", JSON.stringify(doc), cookieOptions);
+          cookies.set("alldataa", JSON.stringify(doc), cookieOptions);
+          state.user = doc;
+          state.login_user = doc;
         }
 
         // Additional user data if available
-        if (payload.data && payload.data.orgid) {
-          console.log("Setting orgid:", payload.data.orgid);
-          cookies.set("orgid", payload.data.orgid);
-          state.orgid = payload.data.orgid;
+        if (doc.data && doc.data.orgid) {
+          console.log("Setting orgid:", doc.data.orgid);
+          cookies.set("orgid", doc.data.orgid, cookieOptions);
+          state.orgid = doc.data.orgid;
         }
 
-        if (payload.data) {
-          cookies.set("apikey", payload.data.apikey);
-          state.apikey = payload.data.doc.apikey;
+        // Set API key
+        if (doc.apikey) {
+          cookies.set("apikey", doc.apikey, cookieOptions);
+          state.apikey = doc.apikey;
+        }
+
+        // Set sandbox API if available
+        if (doc.sandbox && doc.sandbox.apikey) {
+          cookies.set("sandboxapi", doc.sandbox.apikey, cookieOptions);
         }
 
         // Explicitly clear two-factor flags in cookies
         cookies.remove("isTwoFactor");
         cookies.remove("twoFactorId");
-        cookies.set("isAuthenticated", "true");
+        cookies.set("isAuthenticated", "true", cookieOptions);
+        cookies.set("multiFactorEnabled", "true", cookieOptions);
 
         // Update authentication state
         state.isAuthenticated = true;
         state.loading = false;
         state.loginError = null;
         state.isTwoFactor = false;
+        state.multiFactorEnabled = true;
 
         // Log the updated state
         console.log("Auth state after twoFactorLoginSuccess:", {
@@ -511,9 +528,16 @@ const authSlice = createSlice({
         // Even if there's an error, ensure user is authenticated if we have token
         if (action.payload.headers?.authorization) {
           const token = ensureTokenHasBearer(action.payload.headers.authorization);
+          cookies.set("token", token, cookieOptions);
           state.isAuthenticated = true;
           state.token = token;
-          state.apikey = action.payload.headers.authorization;
+
+          // Try to set API key from payload if available
+          const doc = action.payload.payload?.doc;
+          if (doc && doc.apikey) {
+            cookies.set("apikey", doc.apikey, cookieOptions);
+            state.apikey = doc.apikey;
+          }
         }
       }
     },

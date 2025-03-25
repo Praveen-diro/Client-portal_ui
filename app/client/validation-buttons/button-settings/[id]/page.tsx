@@ -89,13 +89,13 @@ import { AnimatePresence } from "framer-motion";
 import React from "react";
 
 // Add import for BasicTab component
-import { BasicTab } from "@/components/ButtonSettingTabs/BasicTab";
-import { IntegrationTab } from "@/components/ButtonSettingTabs/IntegrationTab";
-import { PrivacyTab } from "@/components/ButtonSettingTabs/PrivacyTab";
-import { TriggersEmailTab } from "@/components/ButtonSettingTabs/TriggersEmailTab";
-import { DisplayTab } from "@/components/ButtonSettingTabs/DisplayTab";
-import { RejectionTab } from "@/components/ButtonSettingTabs/RejectionTab";
-import { AdvancedTab } from "@/components/ButtonSettingTabs/AdvancedTab";
+import { BasicTab } from "../../components/BasicTab";
+import { IntegrationTab } from "../../components/IntegrationTab";
+import { PrivacyTab } from "../../components/PrivacyTab";
+import { TriggersEmailTab } from "../../components/TriggersEmailTab";
+import { DisplayTab } from "../../components/DisplayTab";
+import { RejectionTab } from "../../components/RejectionTab";
+import { AdvancedTab } from "../../components/AdvancedTab";
 import {
   setVerificationMethod,
   setDirectUrlEnabled,

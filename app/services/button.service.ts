@@ -1,12 +1,9 @@
-import axios from "axios";
-import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { GlobalDebug } from "./remove-console.service";
 import { cookies } from "./cookie.service";
 import { apiService, ApiResponse } from "./api.service";
-ls.config.encrypt = true;
 
 if (!env.consoleLog) {
   GlobalDebug(false);
@@ -42,9 +39,17 @@ class ButtonService {
   }
 
   private validateApiKey(): void {
-    const apiKey = localStorage.getItem("apikey");
-    if (apiKey && this.isAlphanumeric(apiKey)) {
-      this.logout();
+    const apiKey = cookies.get("apikey");
+    if (apiKey && apiKey.length < 10 && this.isAlphanumeric(apiKey)) {
+      const authMode = cookies.get("authMode");
+      const isSandboxMode = authMode === "2";
+
+      if (!isSandboxMode) {
+        console.warn("Invalid API key detected in live mode");
+        this.logout();
+      } else {
+        console.warn("Invalid API key detected in sandbox mode, continuing anyway");
+      }
     }
   }
 
@@ -71,7 +76,7 @@ class ButtonService {
   }
 
   async getButtons(): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.requesteduser, {});
+    return this.makeRequest(env.btnStateList, {});
   }
 
   async getButton(buttonId: string): Promise<ButtonResponse<any>> {

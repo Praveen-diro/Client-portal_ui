@@ -102,6 +102,8 @@ export class CookieService {
         path: "/",
         sameSite: "lax",
         expires: 7, // 7 days default
+        // Don't set secure flag unless we're using HTTPS
+        secure: typeof window !== "undefined" ? window.location.protocol === "https:" : false,
       };
 
       // Merge with user options

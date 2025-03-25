@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ModeToggle } from "./mode-toggle";
 
 interface SidebarProps {
   onExpandedChange?: (expanded: boolean) => void;
@@ -205,13 +206,9 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   // Footer actions
   const footerActions = [
     {
-      icon: Settings,
-      label: "Test Mode",
-      onClick: () => console.log("Test mode clicked"),
-    },
-    {
+      id: "theme",
       icon: theme === "dark" ? Sun : Moon,
-      label: "Theme",
+      label: theme === "dark" ? "Light Mode" : "Dark Mode",
       onClick: () => {
         if (!mounted) return;
         setTheme(theme === "light" ? "dark" : "light");
@@ -250,7 +247,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Tooltip for collapsed state */}
+      {/* Tooltip for collapsed state
       <AnimatePresence>
         {tooltipInfo?.show && (
           <motion.div
@@ -265,7 +262,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
             <div className="absolute top-1/2 -left-1 h-2 w-2 bg-popover transform rotate-45 -translate-y-1/2" />
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
       {/* Sidebar with hover functionality */}
       <motion.div
@@ -362,8 +359,8 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                       stiffness: 400,
                       damping: isExpanded ? 20 : 17,
                     }}
-                    // onMouseEnter={!isExpanded ? (e) => showTooltip(item.label, e) : undefined}
-                    // onMouseLeave={!isExpanded ? hideTooltip : undefined}
+                    onMouseEnter={!isExpanded ? (e) => showTooltip(item.label, e) : undefined}
+                    onMouseLeave={!isExpanded ? hideTooltip : undefined}
                   >
                     {/* Active indicator */}
                     {isActive && (
@@ -409,9 +406,38 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
 
         {/* Footer */}
         <div className={cn("border-t border-border/10 p-4", isExpanded ? "space-y-3" : "space-y-5")}>
-          {footerActions.map((action, index) => (
+          {/* Test Mode Toggle */}
+          <div
+            className={cn(
+              "text-muted-foreground hover:text-foreground flex items-center",
+              "h-12 rounded-xl w-full transition-colors duration-200",
+              isExpanded ? "px-4 hover:bg-accent/30" : "justify-center"
+            )}
+          >
+            <div className={cn("flex items-center justify-center flex-shrink-0", isExpanded ? "h-10 w-10 rounded-lg" : "")}>
+              <Settings className="h-[22px] w-[22px]" />
+            </div>
+
+            {isExpanded && (
+              <motion.div
+                className="ml-2 flex-1"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{
+                  duration: 0.2,
+                  ease: "easeOut",
+                }}
+              >
+                <ModeToggle />
+              </motion.div>
+            )}
+          </div>
+
+          {/* Theme Toggle */}
+          {footerActions.map((action) => (
             <motion.button
-              key={index}
+              key={action.id}
               onClick={action.onClick}
               className={cn(
                 "text-muted-foreground hover:text-foreground flex items-center",
@@ -420,8 +446,6 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               )}
               whileHover={isExpanded ? { x: 2, scale: 1.02 } : { scale: 1.15 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onMouseEnter={!isExpanded ? (e) => showTooltip(action.label, e) : undefined}
-              onMouseLeave={!isExpanded ? hideTooltip : undefined}
             >
               {/* Button icon - always visible */}
               <div className={cn("flex items-center justify-center flex-shrink-0", isExpanded ? "h-10 w-10 rounded-lg" : "")}>
@@ -431,7 +455,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               {/* Only render button label when expanded */}
               {isExpanded && (
                 <motion.span
-                  className="text-[15px] truncate flex-shrink-0 ml-4 font-medium"
+                  className="text-[15px] truncate flex-shrink-0 ml-2 font-medium"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
@@ -440,7 +464,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                     ease: "easeOut",
                   }}
                 >
-                  {index === 1 && mounted ? (theme === "dark" ? "Light Mode" : "Dark Mode") : action.label}
+                  {action.label}
                 </motion.span>
               )}
             </motion.button>

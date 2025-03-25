@@ -619,11 +619,9 @@ export default function RequestsSent() {
                                     <DropdownMenuItem onClick={() => handleViewSessionDetails(request.sessionId)}>
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>Download Report</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleOpenReportModal(request.sessionId)}>
                                       Report Issue
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>

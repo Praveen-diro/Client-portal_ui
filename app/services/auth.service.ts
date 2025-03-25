@@ -160,15 +160,15 @@ class AuthService {
     }
 
     try {
-      // Set a timeout of 5 seconds for reCAPTCHA validation
+      // Set a timeout of 10 seconds for reCAPTCHA validation
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const result = await axios.post(
         env.recaptcha, // Use the existing recaptcha endpoint from environment
         { token },
         {
-          timeout: 5000,
+          timeout: 10000,
           signal: controller.signal,
         }
       );
@@ -468,8 +468,8 @@ class AuthService {
    * Switches the server mode (between live and sandbox)
    * @param data Object containing email for the account
    */
-  async switchModeServer(data: { email: string }): Promise<void> {
-    const switchPayload = { emailId: data.email };
+  async switchModeServer(data: { email: string; sandbox: string }): Promise<void> {
+    const switchPayload = { emailId: data.email, sandbox: data.sandbox };
 
     try {
       const response = await this.axiosWithRetry(env.switchServer, switchPayload);
@@ -967,14 +967,6 @@ export const authService = new AuthService();
  */
 export const changeModeLogout = (mode: number): void => {
   authService.changeModeLogout(mode);
-};
-
-/**
- * Switches the server mode (between live and sandbox)
- * @param data Object containing email for the account
- */
-export const switchModeServer = async (data: { email: string }): Promise<void> => {
-  await authService.switchModeServer(data);
 };
 
 /**

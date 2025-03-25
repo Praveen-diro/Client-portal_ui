@@ -47,7 +47,7 @@ export function BillingSection() {
     const fetchBillingOrg = async () => {
       dispatch(setLoading(true));
       try {
-        const response = await orgService.getBillingOrg();
+        const response = await orgService.getOrgAccount();
         if (response.success && response.data) {
           dispatch(getOrgItem(response.data));
 

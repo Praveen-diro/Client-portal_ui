@@ -102,7 +102,7 @@ class OrgService {
     }
   }
 
-  async getBillingOrg(): Promise<OrgResponse<any>> {
+  async getOrgAccount(): Promise<OrgResponse<any>> {
     return apiService.makeRefreshAuthRequest(env.orgaccount, {
       apikey: this.getApiKey(),
       email: cookies.get("email"),
