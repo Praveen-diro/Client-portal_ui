@@ -16,7 +16,7 @@
       "post": {
         "tags": ["Capture process"],
         "summary": "To generate a verification link (for advanced features).",
-        "description": "<p>Use this API to generate a one-time verification link. It will create a link with a unique session ID without exposing the button ID in the URL. You can configure the link's behavior by modifying the button settings. This API is optional; you can also use a no-code verification link from the button settings for faster integration.\n   <h4 >Note</h4>\n<ul><li>Add at least one warn case.</li><li>For adding the track id:</li>   <ul><li>it should be added inside warn_case  <li>add \"trackid\" inside \"type\" field <li>add field name of trackid inside \"message\" <li> add the custom value for trackid inside \"keyword\"</ul>  \n For example { </br>\"hinttext\": \"\" ,</br>\"keyword\": \"trackid value\" ,\n</br> \"type\": \"trackid\",\n  </br>\"message\": \"key3\" </br>} <h2>Best practice</h2>\n<ul>\n<li>The link should ideally be placed on your website as a verification button.</li><li>A customer tracking ID should be added in the end while triggering it.</li><li>The link should be opened as an Iframe.<ul><li>Add event listener for the message event in the parent window to listen for messages from the <p>\niframe for progress status as 'Opened link', 'Verifying', 'Submitted'</p><ul><li>Example - {sessionid: \"IN-OaBTRQ\", buttonid: \"O.IN-X16BzE-xPg\",progress_status:\"Started\"}</li></ul></li></ul></li></ul></p>\n   <h2>Setup webhooks</h2>\n   <ul>\n   <li>Webhook URL can be configured per organization as default.</li>\n     <li> Please navigate to the left panel > callback logs and update your webhook URL by clicking the settings icon.</li>\n     <li>Please enter and submit your URL to send webhook URL as default for all the different types of verifications in the organization.</li>\n     <li>Please note: The webhook URL can also be set up per button under button settings as an override.</li>\n     <li>Please go to verification buttons on the left vertical bar and then click on settings icon of the respective button to access settings then go to \"After Verification\" section then update value against label \"Override default callback url\".</li>\n     <li>Webhooks are triggered once a verification session begins or completes.</li>\n     </ul>\n     <ol class=\"list-group list-group-numbered\">\n    <li> \"Pending\" - When the capture process is completed and the file is submitted.</li>\n     <li> \"Verified\" - The document is verified and approved.</li>\n     <li> \"Rejected\" - The document is rejected.</li>\n   </ol>\n   <h2>Instant Window.postMessage() </h2>\n <p>The window.postMessage() method is used in JavaScript to enable cross-origin communication between window objects. It is a security feature that allows you to safely enable cross-origin communication between different windows or iframes.</p><p>// Sending a message from one window/iframe</p><p><b> var message = { sessionid:\"IN-TEST12\",buttonid: \"test.button\",progress_status: \"Submitted\",sender: \"capture\"};</b></p> <p><b>window.top.postMessage(message, \"*\");</b> </p> <p>progress_status where user reached during verification process. The values will be #Started, #Selected source link, #Opened link, #Saw preview, #Tried to find info / Tried help, #Cancelled preview, #Tried download, #Verifying, #Submitted .</p> <p>// Receiving the message in another window/iframe</p> <p><b>window.addEventListener(\"message\", event => {if (event.data.sessionid) { }}</b></p><p>In this example, the parent window sends a message to the iframe, and the iframe listens for messages using the `window.addEventListener` method. The `event.origin` property is used to ensure that the message is coming from an expected source to prevent unauthorized communication.</p> <p>Its important to note that while `postMessage` is a powerful tool for communication between windows and frames, it should be used carefully and with security considerations in mind, as improper usage can introduce vulnerabilities in your web application.</p>\n",
+        "description": "<p>Use this API to generate a one-time verification link. It will create a link with a unique session ID without exposing the button ID in the URL. You can configure the link's behavior by modifying the button settings. This API is optional; you can also use a no-code verification link from the button settings for faster integration.</p>\n   <h4>Note</h4>\n<ul><li>Add at least one warn case.</li><li>For adding the track id:<ul><li>It should be added inside warn_case</li><li>Add \"trackid\" inside \"type\" field</li><li>Add field name of trackid inside \"message\"</li><li>Add the custom value for trackid inside \"keyword\"</li></ul></li></ul>\n <p>For example:</p><pre>{\n  \"hinttext\": \"\",\n  \"keyword\": \"trackid value\",\n  \"type\": \"trackid\",\n  \"message\": \"key3\"\n}</pre>\n<h2>Best practice</h2>\n<ul><li>The link should ideally be placed on your website as a verification button.</li><li>A customer tracking ID should be added in the end while triggering it.</li><li>The link should be opened as an Iframe.<ul><li>Add event listener for the message event in the parent window to listen for messages from the iframe for progress status as 'Opened link', 'Verifying', 'Submitted'<ul><li>Example - {sessionid: \"IN-OaBTRQ\", buttonid: \"O.IN-X16BzE-xPg\",progress_status:\"Started\"}</li></ul></li></ul></li></ul>\n   <h2>Setup webhooks</h2>\n   <ul><li>Webhook URL can be configured per organization as default.</li><li>Please navigate to the left panel > callback logs and update your webhook URL by clicking the settings icon.</li><li>Please enter and submit your URL to send webhook URL as default for all the different types of verifications in the organization.</li><li>Please note: The webhook URL can also be set up per button under button settings as an override.</li><li>Please go to verification buttons on the left vertical bar and then click on settings icon of the respective button to access settings then go to \"After Verification\" section then update value against label \"Override default callback url\".</li><li>Webhooks are triggered once a verification session begins or completes.</li></ul>\n     <ol style=\"list-style-type: decimal;\">\n    <li>\"Pending\" - When the capture process is completed and the file is submitted.</li>\n    <li>\"Verified\" - The document is verified and approved.</li>\n    <li>\"Rejected\" - The document is rejected.</li>\n</ol>\n   <h2>Instant Window.postMessage() </h2>\n <p>The window.postMessage() method is used in JavaScript to enable cross-origin communication between window objects. It is a security feature that allows you to safely enable cross-origin communication between different windows or iframes.</p><p>// Sending a message from one window/iframe</p><p><b>var message = { sessionid:\"IN-TEST12\",buttonid: \"test.button\",progress_status: \"Submitted\",sender: \"capture\"};</b></p><p><b>window.top.postMessage(message, \"*\");</b></p><p>progress_status where user reached during verification process. The values will be #Started, #Selected source link, #Opened link, #Saw preview, #Tried to find info / Tried help, #Cancelled preview, #Tried download, #Verifying, #Submitted.</p><p>// Receiving the message in another window/iframe</p><p><b>window.addEventListener(\"message\", event => {if (event.data.sessionid) { }}</b></p><p>In this example, the parent window sends a message to the iframe, and the iframe listens for messages using the `window.addEventListener` method. The `event.origin` property is used to ensure that the message is coming from an expected source to prevent unauthorized communication.</p><p>Its important to note that while `postMessage` is a powerful tool for communication between windows and frames, it should be used carefully and with security considerations in mind, as improper usage can introduce vulnerabilities in your web application.</p>",
         "operationId": "getverificationlink",
         "consumes": ["application/json"],
         "produces": ["application/json"],
@@ -143,7 +143,7 @@
             "type": "string", 
             "format": "string",
             "description": "button id/unique identifier of button used to generate verification link",
-            "example": ""
+            "example": "O.IN-h4fh6i-10n6-sandbox"
           },
           "user_info": {
             "type": "object",
@@ -247,111 +247,403 @@
       },
       "ApiKeyNullorEmpty": {
         "type": "object",
+        "description": "When api key is null or empty.",
         "properties": {
-          "message": {
+          "msg": {
             "type": "string",
-            "example": "Api key cannot be null or empty"
+            "example": "Apikey Can't be null or empty!."
+          },
+          "error": {
+            "type": "boolean", 
+            "example": true
           }
         }
       },
       "ButtonIdEmpty": {
         "type": "object",
+        "description": "When buttonid is empty.",
         "properties": {
-          "message": {
+          "type": {
             "type": "string",
-            "example": "Button id cannot be null or empty"
+            "example": "about:blank"
+          },
+          "title": {
+            "type": "string", 
+            "example": "Bad Request"
+          },
+          "status": {
+            "type": "number",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "example": "Failed to read request"
+          },
+          "instance": {
+            "type": "string",
+            "example": "/getverificationlink"
           }
         }
       },
       "JsonRequestWrong": {
         "type": "object",
+        "description": "when JSON request is wrong.",
         "properties": {
-          "message": {
+          "type": {
             "type": "string",
-            "example": "JSON parse error: Unexpected end-of-input: expected close marker for Object"
+            "example": "about:blank"
+          },
+          "title": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "status": {
+            "type": "number", 
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "example": "Failed to read request"
+          },
+          "instance": {
+            "type": "string",
+            "example": "/getverificationlink"
           }
         }
       },
       "ApiKeyWrong": {
         "type": "object",
+        "description": "when api key is wrong.",
         "properties": {
-          "message": {
+          "msg": {
             "type": "string",
-            "example": "Api key is not valid"
+            "example": "Apikey is wrong!"
+          },
+          "error": {
+            "type": "boolean", 
+            "example": true
           }
         }
       },
       "ButtonIdWrong": {
         "type": "object",
+        "description": "When buttonid is wrong.",
         "properties": {
-          "message": {
+          "msg": {
             "type": "string",
-            "example": "Button with id not found"
+            "example": "Button id is wrong no button found by this id."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
           }
         }
       },
       "RequestEngagementCallback": {
         "type": "object",
         "properties": {
-          "sessionid": {
-            "type": "string",
-            "description": "Session ID for the verification"
+          "email": {
+            "type": "string", 
+            "description": "email of user",
+            "example": "abc@diro.io"
           },
-          "status": {
+          "docid": {
             "type": "string",
-            "enum": ["Started", "In Progress"],
-            "description": "Status of the engagement"
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
           },
-          "timestamp": {
+          "sandbox": {
+            "type": "boolean",
+            "description": "is document requested from sandbox account ?",
+            "example": false
+          },
+          "message": {
             "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of the event"
+            "description": "Stage where user reached during verification process.",
+            "example": "Done, now in review"
+          },
+          "type": {
+            "type": "string",
+            "description": "type of callback sent from DIRO",
+            "example": "EngagementStatus"
+          },
+          "url": {
+            "type": "string",
+            "description": "url from which document captured.",
+            "example": "https://onlinesbi.com"
+          },
+          "buttonid": {
+            "type": "string",
+            "description": "button id/unique identifier of button used to generate verification link",
+            "example": ""
+          },
+          "category": {
+            "type": "string",
+            "description": "category of document, this can be bank/address/id/professional/other.",
+            "example": "bank"
+          },
+          "stage": {
+            "type": "string",
+            "description": "Stage where user reached during verification process. The values will be #Started, #Selected source link, #Opened link (clicked on continue), #Tried to find info / Tried help, #Saw preview, #Cancelled preview, #Saw preview, #Done, #now in Review.",
+            "example": "Done, now in review"
           }
         }
       },
       "RequestDocumentUploadCallback": {
         "type": "object",
         "properties": {
-          "sessionid": {
+          "urlStatus": {
+            "type": "object",
+            "properties": {
+              "urlMatch": {
+                "type": "boolean",
+                "example": true
+              },
+              "country": {
+                "type": "string", 
+                "example": "India"
+              },
+              "sslVerified": {
+                "type": "boolean",
+                "example": true
+              },
+              "differentCategory": {
+                "type": "boolean",
+                "example": false
+              },
+              "message": {
+                "type": "string",
+                "example": "Url Verified!"
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "urlMatchDetails": {
+                "type": "object",
+                "properties": {
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "isFound": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "urlmatch": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "status": {
+                "type": "string",
+                "example": "verified"
+              }
+            }
+          },
+          "firstname": {
             "type": "string",
-            "description": "Session ID for the verification"
+            "example": "demo@diro.io"
+          },
+          "trackid": {
+            "type": "string",
+            "example": ""
+          },
+          "docid": {
+            "type": "string",
+            "example": "IN-ANzZey"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "demo@diro.io"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "example": true
+          },
+          "sourcename": {
+            "type": "string",
+            "example": "Sample Utility"
+          },
+          "message": {
+            "type": "string",
+            "example": "document uploaded"
+          },
+          "mcc": {
+            "type": "string",
+            "example": "+91"
+          },
+          "type": {
+            "type": "string",
+            "example": "uploadsuccess"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://sample.diro.me/"
+          },
+          "livefeedBack": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "example": "2022/11/23-2023/03/22"
+                    },
+                    "address": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "accountnumber": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "isCategoryInvalid": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "IN-ANzZey"
+                    },
+                    "name": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fileOutsidePeriod": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "document_type": {
+                      "type": "string",
+                      "example": "bank"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "filename": {
+            "type": "string",
+            "example": "IN-ANzZey-test1736750900926.pdf"
+          },
+          "urlTree": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "urlPath": {
+                      "type": "string",
+                      "example": "sample.diro.me\nsample.diro.me → Download ✔"
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "IN-ANzZey"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "expectedTimeForProcessingJSON": {
+            "description": "This key will only come when autojson is on",
+            "type": "number",
+            "example": "1736751248927"
+          },
+          "kycstatus": {
+            "type": "string",
+            "example": "pending"
+          },
+          "filestatus": {
+            "type": "string",
+            "example": "pending"
+          },
+          "buttonid": {
+            "type": "string",
+            "example": "O.IN-78K2Mj-pbNQ"
+          },
+          "name": {
+            "type": "string",
+            "example": " New button"
+          },
+          "sourcecountry": {
+            "type": "string",
+            "example": "India"
+          },
+          "category": {
+            "type": "string",
+            "example": "bank"
           },
           "status": {
-            "type": "string",
-            "enum": ["Pending", "Verified"],
-            "description": "Status of the document upload"
-          },
-          "document": {
-            "type": "object",
-            "description": "Document information"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of the event"
+            "type": "boolean",
+            "example": true
           }
         }
       },
       "uploadRejectCallback": {
         "type": "object",
         "properties": {
-          "sessionid": {
+          "date": {
             "type": "string",
-            "description": "Session ID for the verification"
+            "example": "1731399954992"
+          },
+          "request": {
+            "type": "object", 
+            "properties": {
+              "docid": {
+                "type": "string",
+                "example": "IN-2hpc9R-test"
+              },
+              "sandbox": {
+                "type": "boolean",
+                "example": true
+              },
+              "message": {
+                "type": "string", 
+                "example": "Suspicious submission attempted/Unverified url"
+              },
+              "type": {
+                "type": "string",
+                "example": "uploadreject"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://sample.diro.me/"
+              },
+              "buttonid": {
+                "type": "string",
+                "example": "O.IN-As7NSS-WvD1-sandbox"
+              },
+              "name": {
+                "type": "string",
+                "example": "New Button"
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "trackid": {
+                "type": "string"
+              }
+            }
+          },
+          "callBackUrl": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "orgid": {
+            "type": "string",
+            "example": "O.IN-As7NSS"
           },
           "status": {
-            "type": "string",
-            "enum": ["Rejected"],
-            "description": "Status of the document upload"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Reason for rejection"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of the event"
+            "type": "boolean"
           }
         }
       }

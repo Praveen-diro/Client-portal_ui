@@ -336,11 +336,11 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
   
   useEffect(() => {
     // Alert to confirm token is received
-    if (token) {
-      alert(`Token received in SwaggerUIsss: ${token}`);
-    } else {
-      alert("No token received in SwaggerUI componentss");
-    }
+    // if (token) {
+    //   alert(`Token received in SwaggerUIsss: ${token}`);
+    // } else {
+    //   alert("No token received in SwaggerUI componentss");
+    // }
     
     // Get API key from cookies
     const apiKeyFromCookie = getCookie("apikey");
@@ -443,7 +443,7 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
         const currentApiKey = apiKeyFromCookie || getCookie("apikey") || "";
         const email = getCookie("email") || "";
         const currentToken = token || "";
-        alert("Using token from props:", email);
+        // alert("Using token from props:", email);
      
         // Only inject API key if it exists
         let finalSpec = combinedSpec;
