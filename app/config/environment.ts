@@ -145,7 +145,7 @@ interface Environment {
   boards_list: string;
   zip_update: string;
   downloadboard: string;
-  btn_data: string;
+  create_button: string;
   btn_list: string;
   update_btn: string;
   country_with_states: string;
@@ -262,7 +262,7 @@ const stage2: Environment = {
   boards_list: baseurl.stage2baseurl + "boards-2.0/boardlist",
   zip_update: baseurl.stage2baseurl + "boards-2.0/update",
   downloadboard: baseurl.stage2baseurl + "boards-2.0/downloadboard",
-  btn_data: baseurl.stage2baseurl + "boards-2.0/createbutton",
+  create_button: baseurl.stage2baseurl + "boards-2.0/createbutton",
   btn_list: baseurl.stage2baseurl + "boards-2.0/buttonlist",
   update_btn: baseurl.stage2baseurl + "boards-2.0/updatebutton",
   country_with_states: baseurl.stage2baseurl + "IdMaster-2.0/countrywithstates",
@@ -439,7 +439,7 @@ const stage1: Environment = {
   boards_list: baseurl.stage1baseurl + "boards-2.0/boardlist",
   zip_update: baseurl.stage1baseurl + "boards-2.0/update",
   downloadboard: baseurl.stage1baseurl + "boards-2.0/downloadboard",
-  btn_data: baseurl.stage1baseurl + "boards-2.0/createbutton",
+  create_button: baseurl.stage1baseurl + "boards-2.0/createbutton",
   btn_list: baseurl.stage1baseurl + "boards-2.0/buttonlist",
   update_btn: baseurl.stage1baseurl + "boards-2.0/updatebutton",
   country_with_states: baseurl.stage1baseurl + "IdMaster-2.0/countrywithstates",
@@ -615,7 +615,7 @@ const prodeu: Environment = {
   boards_list: baseurl.prodbaseurl + "boards-2.0/boardlist",
   zip_update: baseurl.prodbaseurl + "boards-2.0/update",
   downloadboard: baseurl.prodbaseurl + "boards-2.0/downloadboard",
-  btn_data: baseurl.prodbaseurl + "boards-2.0/createbutton",
+  create_button: baseurl.prodbaseurl + "boards-2.0/createbutton",
   btn_list: baseurl.prodbaseurl + "boards-2.0/buttonlist",
   update_btn: baseurl.prodbaseurl + "boards-2.0/updatebutton",
   country_with_states: baseurl.prodbaseurl + "IdMaster-2.0/countrywithstates",
