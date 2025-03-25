@@ -1,4 +1,15 @@
 {
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "https://api.dirolabs.com",
+      "description": "Generated server url"
+    }
+  ],
   "paths": {
     "${environment.varificationSwaggerLink}/smartFeedback": {
       "post": {
@@ -66,7 +77,7 @@
               "application/json": {
                 "schema": {
                   "oneOf": [
-                    { "$ref": "#/components/schemas/MissingAPIKey_Response" },
+                    { "$ref": "#/components/schemas/MissingAPIKeyResponse" },
                     { "$ref": "#/components/schemas/APIKeyInvalid_Response" }
                   ]
                 }
@@ -181,6 +192,322 @@
           }
         }
       }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Requestfeedback": {
+        "type": "object",
+        "required": ["buttonid", "pdffile"],
+        "properties": {
+          "buttonid": {
+            "type": "object",
+            "description": "button id/unique identifier of button used to generate verification link"
+          },
+          "pdffile": {
+            "type": "file", 
+            "format": "binary",
+            "description": "The PDF file to upload"
+          },
+          "warn_cases": {
+            "type": "object",
+            "description": "Object containing warning cases and track ID.",
+            "properties": {
+              "trackid1": {
+                "type": "string",
+                "example": ""
+              },
+              "trackid2": {
+                "type": "string",
+                "example": ""
+              }
+            }
+          }
+        }
+      },
+      "FeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "example": "Bank"
+          },
+          "name": {
+            "type": "boolean",
+            "example": true
+          },
+          "address": {
+            "type": "boolean",
+            "example": true
+          },
+          "accountnumber": {
+            "type": "boolean",
+            "example": true
+          },
+          "period": {
+            "type": "string",
+            "example": "2022/11/01-2022/12/25"
+          },
+          "docid": {
+            "type": "string",
+            "example": "IN-123TXyT"
+          }
+        }
+      },
+      "FeedbackResponse1": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "example": "Invalid"
+          },
+          "docid": {
+            "type": "string", 
+            "example": "IN-RZAPO2"
+          }
+        }
+      },
+      "Feedback_Response1": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "File not found"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Feedback_Response2": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "Button ID is required"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ButtonType_Response3": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "Button type must be upload method"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Feedback_Response4": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "Invalid file format"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Feedback_Response5": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "File is password protected"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "Feedback_Response6": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string",
+            "example": "File is corrupted"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "MissingAPIKeyResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string", 
+            "example": "Missing API key in headers!"
+          }
+        }
+      },
+      "APIKeyInvalid_Response": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "API key is not valid!"
+          }
+        }
+      },
+      "PayloadToo_Large": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "File size should not exceed 50MB!"
+          }
+        }
+      },
+      "InternalServerError_Response": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean", 
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "An internal server error occurred."
+          }
+        }
+      },
+      "InternalServerError_Response1": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Something went wrong, please try again."
+          }
+        }
+      },
+      "RequestSmartUpload": {
+        "type": "object",
+        "required": ["docid"],
+        "properties": {
+          "docid": {
+            "type": "string", 
+            "example": "IN-123TXyT",
+            "description": "unique id for document submitted"
+          }
+        }
+      },
+
+      "UploadedDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document Uploaded Successfully."
+          },
+          "error": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "UploadedDocumentResponse1": {
+        "type": "object", 
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File already uploaded for this session."
+          },
+          "error": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+     
+      "InvalidToken": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2024-07-01T10:02:27.547+0000"
+          },
+          "status": {
+            "type": "number", 
+            "example": 401
+          },
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
+          },
+          "message": {
+            "type": "string",
+            "example": "Jwt token is expired pls generate new token!"
+          },
+          "path": {
+            "type": "string",
+            "example": "/Zuul-1.0/HI-2.0/pdf/pdftojson"
+          }
+        }
+      },
+      "InvalidSessionIdResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document does not exist!"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "InvalidSessionIdResponse1": {
+        "type": "object", 
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "docid is required!"
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      }
+
     }
   }
 }

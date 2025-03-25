@@ -762,15 +762,29 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
           defaultModelRendering="model"
           tagsSorter="alpha"
           persistAuthorization={true}
-          requestInterceptor={(req) => {
-         
-            // Add the token from props to the Authorization header
+          requestInterceptor={(req: any) => {
+            // Always add Authorization header
             if (token) {
               req.headers["Authorization"] = ` ${token}`;
-              console.log("Added token to request headers:", token.substring(0, 4) + "..." + token.substring(token.length - 4));
-            } else {
-              console.log("No token available to add to request headers");
             }
+
+            // Add x-api-key only for smart endpoints
+            if (
+              req.url.includes("/betav3/smartFeedback") ||
+              req.url.includes("/betav3/smartUpload")
+            ) {
+              const apiKeyFromCookie = getCookie("apikey");
+              if (apiKeyFromCookie) {
+                req.headers["x-api-key"] = apiKeyFromCookie;
+              }
+
+              // Override Authorization for these specific endpoints
+              const secretToken = getCookie("secrettoken");
+              if (secretToken) {
+                req.headers.Authorization = secretToken;
+              }
+            }
+            
             return req;
           }}
         />
