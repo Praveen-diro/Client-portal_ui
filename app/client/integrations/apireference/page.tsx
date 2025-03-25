@@ -101,10 +101,10 @@ export default function ApiReferencePage() {
     if (tokenFromCookie) {
       setToken(tokenFromCookie);
       // Add alert to check token value
-      alert(`Token retrieved from cookie: ${tokenFromCookie}`);
+      // alert(`Token retrieved from cookie: ${tokenFromCookie}`);
       console.log("Token retrieved from cookie:", tokenFromCookie);
     } else {
-      alert("No token found in cookies");
+      // alert("No token found in cookies");
       console.log("No token found in cookies");
     }
 

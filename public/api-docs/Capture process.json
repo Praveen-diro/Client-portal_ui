@@ -9,6 +9,7 @@
       "url": "https://api.dirolabs.com",
       "description": "Generated server url"
     }
+    
   ],
   "paths": {
     "${environment.varificationSwaggerLink}/get-verification-link": {
@@ -133,25 +134,96 @@
   },
   "components": {
     "schemas": {
+      
       "GetVerificationLinkRequest": {
         "type": "object",
-        "required": ["buttonid", "orgid", "apikey"],
+        "required": ["buttonid", "apikey", "warn_case"],
         "properties": {
           "buttonid": {
-            "type": "string",
-            "description": "Button ID for verification"
+            "type": "string", 
+            "format": "string",
+            "description": "button id/unique identifier of button used to generate verification link",
+            "example": ""
           },
-          "orgid": {
-            "type": "string",
-            "description": "Organization ID"
+          "user_info": {
+            "type": "object",
+            "$ref": "#/components/schemas/UserInfo"
+          },
+          "warn_case": {
+            "type": "object",
+            "required": ["keyword", "message"],
+            "properties": {
+              "hinttext": {
+                "type": "string",
+                "format": "string", 
+                "description": "placeholder for the verification field input box at Request doc"
+              },
+              "proceed": {
+                "type": "boolean",
+                "description": "move to next step if verification field not present"
+              },
+              "present": {
+                "type": "boolean",
+                "description": "check if the verification field is required to be present"
+              },
+              "keyword": {
+                "type": "string",
+                "format": "string",
+                "description": "field that needs to be verified, can be an empty string"
+              },
+              "type": {
+                "type": "string",
+                "format": "string",
+                "description": "data type for keyword"
+              },
+              "message": {
+                "type": "string",
+                "format": "string",
+                "description": "displayed during capture process incase keyword is empty"
+              },
+              "hovertext": {
+                "type": "string",
+                "format": "string",
+                "description": "used to display instruction or guide when hovered on keywords"
+              }
+            }
           },
           "apikey": {
             "type": "string",
-            "description": "API key for authentication"
+            "format": "string"
+          }
+        },
+        "xml": {
+          "name": "GetVerificationLinkRequest"
+        }
+      },
+
+      "UserInfo": {
+        "required": ["email"],
+        "type": "object",
+        "properties": {
+          "firstname": {
+            "type": "string"
           },
-          "trackingid": {
+          "lastname": {
+            "type": "string"
+          },
+          "email": {
             "type": "string",
-            "description": "Optional tracking ID for the verification"
+            "example": "user@example.com"
+          },
+          "mobile": {
+            "type": "string",
+            "example": ""
+          },
+          "mcc": {
+            "type": "string"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "zipcode": {
+            "type": "string"
           }
         }
       },

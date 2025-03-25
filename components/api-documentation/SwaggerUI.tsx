@@ -6,6 +6,8 @@ import "swagger-ui-dist/swagger-ui.css";
 import SwaggerUIReact from "swagger-ui-react";
 import { FileJson } from "lucide-react";
 import { env as environment } from "@/app/config/environment";
+import axios from "axios";
+import { cookies } from "@/app/services/cookie.service";
 
 // Simple spinner component
 const Spinner = ({ size = "lg" }: { size?: "sm" | "md" | "lg" | "xl" }) => {
@@ -230,63 +232,95 @@ const getCookie = (name: string): string | undefined => {
 };
 
 // Add this function to modify the swagger spec with the API key
-const injectApiKey = (spec: any, apiKeyValue: string): any => {
+const injectApiKey = (spec: any, apiKeyValue: string, email: string, token: string): any => {
   // Make a deep copy to avoid mutating the original spec
   const newSpec = JSON.parse(JSON.stringify(spec));
   
   try {
-    // Display API key in alert for visibility
-    // if (typeof window !== 'undefined') {
-    //   alert(`API Key being used: ${apiKeyValue}`);
-    // }
-    
     // Look for capture process API endpoint in the combined spec
     Object.entries(newSpec.paths || {}).forEach(([path, pathObj]: [string, any]) => {
       // Check for endpoints related to verification
-      if (path.includes("get-verification-link") && pathObj.post) {
-        // Create a default example if none exists
-        if (!pathObj.post.requestBody?.content?.["application/json"]?.examples) {
-          if (!pathObj.post.requestBody) pathObj.post.requestBody = {};
-          if (!pathObj.post.requestBody.content) pathObj.post.requestBody.content = {};
-          if (!pathObj.post.requestBody.content["application/json"]) pathObj.post.requestBody.content["application/json"] = {};
+      // if (path.includes("get-verification-link") && pathObj.post) {
+        // For the request body examples
+        if (pathObj.post.requestBody?.content?.["application/json"]) {
+          const requestContent = pathObj.post.requestBody.content["application/json"];
           
-          // Add examples section with our API key
-          pathObj.post.requestBody.content["application/json"].examples = {
-            "default": {
-              "value": {
-                "buttonid": "your-button-id",
-                "orgid": "your-org-id",
-                "apikey": apiKeyValue,
-                "trackingid": "optional-tracking-id"
+          // If there are examples, update only the apikey field
+          if (requestContent.examples) {
+            Object.keys(requestContent.examples).forEach(exampleKey => {
+              if (requestContent.examples[exampleKey].value) {
+                // Only update the apikey field, preserve everything else
+                requestContent.examples[exampleKey].value.apikey = apiKeyValue;
+                
+                // Update email if user_info exists
+                if (requestContent.examples[exampleKey].value.user_info) {
+                  requestContent.examples[exampleKey].value.user_info.email = email;
+                }
               }
+            });
+          }
+          
+          // Also update the schema example if it exists
+          if (requestContent.schema?.properties?.apikey) {
+            requestContent.schema.properties.apikey.example = apiKeyValue;
+          }
+          
+          // Update email in user_info schema if it exists
+          if (requestContent.schema?.properties?.user_info?.$ref) {
+            // The reference exists, but we need to update the actual schema
+            if (newSpec.components?.schemas?.UserInfo?.properties?.email) {
+              newSpec.components.schemas.UserInfo.properties.email.example = email;
             }
-          };
-        } else {
-          // Update existing example
-          const examples = pathObj.post.requestBody.content["application/json"].examples;
-          Object.keys(examples).forEach(exampleKey => {
-            if (examples[exampleKey].value && typeof examples[exampleKey].value === 'object') {
-              examples[exampleKey].value.apikey = apiKeyValue;
-            }
-          });
+          }
         }
-        
-        // Also update the schema example if it exists
-        if (pathObj.post.requestBody?.content?.["application/json"]?.schema?.properties?.apikey) {
-          pathObj.post.requestBody.content["application/json"].schema.properties.apikey.example = apiKeyValue;
-        }
-      }
+      // }
     });
     
     // Also check for the schema in components
     if (newSpec.components?.schemas?.GetVerificationLinkRequest?.properties?.apikey) {
       newSpec.components.schemas.GetVerificationLinkRequest.properties.apikey.example = apiKeyValue;
     }
+    
+    // Update email in UserInfo schema
+    if (newSpec.components?.schemas?.UserInfo?.properties?.email) {
+      newSpec.components.schemas.UserInfo.properties.email.example = email;
+    }
   } catch (error) {
-    console.error("Error injecting API key:", error);
+    console.error("Error injecting API key and email:", error);
   }
   
   return newSpec;
+};
+
+// To update a user's email using the API key
+const updateUserEmail = async (newEmail: string) => {
+  try {
+    // Get the API key from cookies
+    const apiKey = cookies.get("apikey");
+    
+    // Create the update payload
+    const updateData = {
+      apiKey: apiKey,
+      emailId: cookies.get("email"), // Current email as identifier
+      email: newEmail // New email to update to
+    };
+    
+    // Make the update request
+    const response = await axios.post(environment.updateWorker, updateData);
+    
+    if (response.data && response.data.success) {
+      // Update the email in cookies
+      cookies.set("email", newEmail);
+      console.log("Email updated successfully to:", newEmail);
+      return true;
+    } else {
+      console.error("Failed to update email:", response.data);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error updating user email:", error);
+    return false;
+  }
 };
 
 export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps) {
@@ -395,12 +429,14 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
         
         // Get updated cookie value (in case it was set during processing)
         const currentApiKey = apiKeyFromCookie || getCookie("apikey") || "";
-        
+        const email = getCookie("email") || "";
+        const token = getCookie("token") || "";
+     
         // Only inject API key if it exists
         let finalSpec = combinedSpec;
         if (currentApiKey) {
-          finalSpec = injectApiKey(combinedSpec, currentApiKey);
-          setApiKey(currentApiKey);
+          finalSpec = injectApiKey(combinedSpec, currentApiKey,email,token);
+          setApiKey(currentApiKey,email,token);
         } else {
           console.warn("No API key available to inject into Swagger UI");
         }
@@ -453,8 +489,8 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
       info: swagger2Spec.info,
       servers: [
         {
-          url: `https://${swagger2Spec.host}`,
-          description: "Production server"
+          url: "https://api.dirolabs.com",
+          description: "Generated server url"
         }
       ],
       paths: {},
