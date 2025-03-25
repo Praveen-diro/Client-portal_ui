@@ -219,12 +219,93 @@ interface SwaggerUIProps {
   endpoint?: string;
 }
 
+// Add this new function to get cookie value
+const getCookie = (name: string): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return undefined;
+};
+
+// Add this function to modify the swagger spec with the API key
+const injectApiKey = (spec: any, apiKeyValue: string): any => {
+  // Make a deep copy to avoid mutating the original spec
+  const newSpec = JSON.parse(JSON.stringify(spec));
+  
+  try {
+    // Display API key in alert for visibility
+    // if (typeof window !== 'undefined') {
+    //   alert(`API Key being used: ${apiKeyValue}`);
+    // }
+    
+    // Look for capture process API endpoint in the combined spec
+    Object.entries(newSpec.paths || {}).forEach(([path, pathObj]: [string, any]) => {
+      // Check for endpoints related to verification
+      if (path.includes("get-verification-link") && pathObj.post) {
+        // Create a default example if none exists
+        if (!pathObj.post.requestBody?.content?.["application/json"]?.examples) {
+          if (!pathObj.post.requestBody) pathObj.post.requestBody = {};
+          if (!pathObj.post.requestBody.content) pathObj.post.requestBody.content = {};
+          if (!pathObj.post.requestBody.content["application/json"]) pathObj.post.requestBody.content["application/json"] = {};
+          
+          // Add examples section with our API key
+          pathObj.post.requestBody.content["application/json"].examples = {
+            "default": {
+              "value": {
+                "buttonid": "your-button-id",
+                "orgid": "your-org-id",
+                "apikey": apiKeyValue,
+                "trackingid": "optional-tracking-id"
+              }
+            }
+          };
+        } else {
+          // Update existing example
+          const examples = pathObj.post.requestBody.content["application/json"].examples;
+          Object.keys(examples).forEach(exampleKey => {
+            if (examples[exampleKey].value && typeof examples[exampleKey].value === 'object') {
+              examples[exampleKey].value.apikey = apiKeyValue;
+            }
+          });
+        }
+        
+        // Also update the schema example if it exists
+        if (pathObj.post.requestBody?.content?.["application/json"]?.schema?.properties?.apikey) {
+          pathObj.post.requestBody.content["application/json"].schema.properties.apikey.example = apiKeyValue;
+        }
+      }
+    });
+    
+    // Also check for the schema in components
+    if (newSpec.components?.schemas?.GetVerificationLinkRequest?.properties?.apikey) {
+      newSpec.components.schemas.GetVerificationLinkRequest.properties.apikey.example = apiKeyValue;
+    }
+  } catch (error) {
+    console.error("Error injecting API key:", error);
+  }
+  
+  return newSpec;
+};
+
 export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps) {
   const [unifiedSpec, setUnifiedSpec] = useState<any>(null);
   const [failedSpecs, setFailedSpecs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiKey, setApiKey] = useState<string>("");
   
   useEffect(() => {
+    // Get API key from cookies
+    const apiKeyFromCookie = getCookie("apikey");
+    console.log("API key from cookie:", apiKeyFromCookie);
+    
+    if (apiKeyFromCookie) {
+      setApiKey(apiKeyFromCookie);
+    } else {
+      console.error("No API key found in cookies");
+    }
+    
     const fetchAndCombineSpecs = async () => {
       try {
         // Initialize combined spec with OpenAPI boilerplate
@@ -312,8 +393,20 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
           }
         }
         
+        // Get updated cookie value (in case it was set during processing)
+        const currentApiKey = apiKeyFromCookie || getCookie("apikey") || "";
+        
+        // Only inject API key if it exists
+        let finalSpec = combinedSpec;
+        if (currentApiKey) {
+          finalSpec = injectApiKey(combinedSpec, currentApiKey);
+          setApiKey(currentApiKey);
+        } else {
+          console.warn("No API key available to inject into Swagger UI");
+        }
+        
         setFailedSpecs(failed);
-        setUnifiedSpec(combinedSpec);
+        setUnifiedSpec(finalSpec);
       } catch (error) {
         console.error("Error combining API specs:", error);
       } finally {
@@ -566,6 +659,30 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
     <div className="w-full swagger-ui-container pb-10">
       <SwaggerStyle />
       
+      {apiKey ? (
+        <div className="mb-4">
+          <div className="p-4 bg-green-50 border-l-4 border-green-400 text-green-700 dark:bg-green-900/30 dark:border-green-600 dark:text-green-200 rounded">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Using API Key: {apiKey}</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-600 dark:text-yellow-200 rounded">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">No API key found in cookies. API functionality may be limited.</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {failedSpecs.length > 0 && (
         <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-600 dark:text-yellow-200">
           <div className="flex items-center">
@@ -592,9 +709,10 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
           displayRequestDuration={true}
           showExtensions={true}
           showCommonExtensions={true}
-          tryItOutEnabled={false}
+          tryItOutEnabled={true}
           defaultModelRendering="model"
           tagsSorter="alpha"
+          persistAuthorization={true}
         />
       </div>
     </div>

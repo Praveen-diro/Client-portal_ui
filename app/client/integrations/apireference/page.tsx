@@ -96,10 +96,16 @@ export default function ApiReferencePage() {
       console.log("API key retrieved from cookie:", apiKeyFromCookie);
     }
     
-    // Get token from cookies
-    const tokenFromCookie = cookies.get("secrettoken");
+    // Get token from cookies - change "secrettoken" to "token"
+    const tokenFromCookie = cookies.get("token");
     if (tokenFromCookie) {
       setToken(tokenFromCookie);
+      // Add alert to check token value
+      alert(`Token retrieved from cookie: ${tokenFromCookie}`);
+      console.log("Token retrieved from cookie:", tokenFromCookie);
+    } else {
+      alert("No token found in cookies");
+      console.log("No token found in cookies");
     }
 
     // for demo purposes, let's make this admin
@@ -117,13 +123,44 @@ export default function ApiReferencePage() {
   };
 
   const copyToClipboard = (text: string, isToken: boolean = false) => {
-    navigator.clipboard.writeText(text);
-    if (isToken) {
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 3000);
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          if (isToken) {
+            setCopiedToken(true);
+            setTimeout(() => setCopiedToken(false), 3000);
+          } else {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 3000);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to copy text: ', err);
+        });
     } else {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      // Fallback for environments without clipboard API
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (isToken) {
+          setCopiedToken(true);
+          setTimeout(() => setCopiedToken(false), 3000);
+        } else {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 3000);
+        }
+      } catch (err) {
+        console.error('Fallback: Failed to copy text: ', err);
+      }
     }
   };
 
