@@ -219,6 +219,7 @@ const API_PATH_CONFIG = {
 
 interface SwaggerUIProps {
   endpoint?: string;
+  token?: string;
 }
 
 // Add this new function to get cookie value
@@ -237,20 +238,22 @@ const injectApiKey = (spec: any, apiKeyValue: string, email: string, token: stri
   const newSpec = JSON.parse(JSON.stringify(spec));
   
   try {
-    // Look for capture process API endpoint in the combined spec
+    // Process all paths in the spec, not just verification-related ones
     Object.entries(newSpec.paths || {}).forEach(([path, pathObj]: [string, any]) => {
-      // Check for endpoints related to verification
-      // if (path.includes("get-verification-link") && pathObj.post) {
+      // Process all POST endpoints
+      if (pathObj.post) {
         // For the request body examples
         if (pathObj.post.requestBody?.content?.["application/json"]) {
           const requestContent = pathObj.post.requestBody.content["application/json"];
           
-          // If there are examples, update only the apikey field
+          // If there are examples, update the apikey field in all of them
           if (requestContent.examples) {
             Object.keys(requestContent.examples).forEach(exampleKey => {
               if (requestContent.examples[exampleKey].value) {
-                // Only update the apikey field, preserve everything else
-                requestContent.examples[exampleKey].value.apikey = apiKeyValue;
+                // Only update the apikey field if it exists
+                if (requestContent.examples[exampleKey].value.apikey !== undefined) {
+                  requestContent.examples[exampleKey].value.apikey = apiKeyValue;
+                }
                 
                 // Update email if user_info exists
                 if (requestContent.examples[exampleKey].value.user_info) {
@@ -264,26 +267,28 @@ const injectApiKey = (spec: any, apiKeyValue: string, email: string, token: stri
           if (requestContent.schema?.properties?.apikey) {
             requestContent.schema.properties.apikey.example = apiKeyValue;
           }
-          
-          // Update email in user_info schema if it exists
-          if (requestContent.schema?.properties?.user_info?.$ref) {
-            // The reference exists, but we need to update the actual schema
-            if (newSpec.components?.schemas?.UserInfo?.properties?.email) {
-              newSpec.components.schemas.UserInfo.properties.email.example = email;
-            }
-          }
         }
-      // }
+      }
     });
     
-    // Also check for the schema in components
-    if (newSpec.components?.schemas?.GetVerificationLinkRequest?.properties?.apikey) {
-      newSpec.components.schemas.GetVerificationLinkRequest.properties.apikey.example = apiKeyValue;
-    }
-    
-    // Update email in UserInfo schema
-    if (newSpec.components?.schemas?.UserInfo?.properties?.email) {
-      newSpec.components.schemas.UserInfo.properties.email.example = email;
+    // Update all schema components that have apikey or email fields
+    if (newSpec.components?.schemas) {
+      Object.entries(newSpec.components.schemas).forEach(([schemaName, schema]: [string, any]) => {
+        // Update apikey in any schema that has it
+        if (schema.properties?.apikey) {
+          schema.properties.apikey.example = apiKeyValue;
+        }
+        
+        // Update email in any schema that has it
+        if (schema.properties?.email) {
+          schema.properties.email.example = email;
+        }
+        
+        // Check for nested user_info with email
+        if (schema.properties?.user_info?.properties?.email) {
+          schema.properties.user_info.properties.email.example = email;
+        }
+      });
     }
   } catch (error) {
     console.error("Error injecting API key and email:", error);
@@ -323,13 +328,20 @@ const updateUserEmail = async (newEmail: string) => {
   }
 };
 
-export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps) {
+export default function SwaggerUI({ endpoint = "verification", token = "" }: SwaggerUIProps) {
   const [unifiedSpec, setUnifiedSpec] = useState<any>(null);
   const [failedSpecs, setFailedSpecs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string>("");
   
   useEffect(() => {
+    // Alert to confirm token is received
+    if (token) {
+      alert(`Token received in SwaggerUIsss: ${token}`);
+    } else {
+      alert("No token received in SwaggerUI componentss");
+    }
+    
     // Get API key from cookies
     const apiKeyFromCookie = getCookie("apikey");
     console.log("API key from cookie:", apiKeyFromCookie);
@@ -430,13 +442,14 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
         // Get updated cookie value (in case it was set during processing)
         const currentApiKey = apiKeyFromCookie || getCookie("apikey") || "";
         const email = getCookie("email") || "";
-        const token = getCookie("token") || "";
+        const currentToken = token || "";
+        alert("Using token from props:", email);
      
         // Only inject API key if it exists
         let finalSpec = combinedSpec;
         if (currentApiKey) {
-          finalSpec = injectApiKey(combinedSpec, currentApiKey,email,token);
-          setApiKey(currentApiKey,email,token);
+          finalSpec = injectApiKey(combinedSpec, currentApiKey, email, currentToken);
+          setApiKey(currentApiKey);
         } else {
           console.warn("No API key available to inject into Swagger UI");
         }
@@ -451,7 +464,7 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
     };
     
     fetchAndCombineSpecs();
-  }, []);
+  }, [token]);
 
   // Helper function to normalize path with appropriate prefix
   const normalizePath = (path: string): string => {
@@ -749,6 +762,17 @@ export default function SwaggerUI({ endpoint = "verification" }: SwaggerUIProps)
           defaultModelRendering="model"
           tagsSorter="alpha"
           persistAuthorization={true}
+          requestInterceptor={(req) => {
+         
+            // Add the token from props to the Authorization header
+            if (token) {
+              req.headers["Authorization"] = ` ${token}`;
+              console.log("Added token to request headers:", token.substring(0, 4) + "..." + token.substring(token.length - 4));
+            } else {
+              console.log("No token available to add to request headers");
+            }
+            return req;
+          }}
         />
       </div>
     </div>

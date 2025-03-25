@@ -431,7 +431,7 @@ export default function ApiReferencePage() {
             {/* Main API Documentation Section */}
             <div className="bg-card rounded-lg border shadow-lg dark:shadow-gray-900/30 overflow-hidden mb-10">
               <div className="p-0">
-                <SwaggerUI endpoint="verification" />
+                <SwaggerUI endpoint="verification" token={token} />
               </div>
             </div>
             

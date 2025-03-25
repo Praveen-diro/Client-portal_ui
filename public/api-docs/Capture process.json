@@ -229,14 +229,19 @@
       },
       "VerificationUrlLink": {
         "type": "object",
+        "description": "will give verification url link with success msg and false error",
         "properties": {
-          "url": {
+          "msg": {
             "type": "string",
-            "description": "Verification URL"
+            "example": "success"
           },
-          "sessionid": {
+          "error": {
+            "type": "boolean", 
+            "example": false
+          },
+          "verificationlink": {
             "type": "string",
-            "description": "Session ID for the verification"
+            "example": "https://session.diro.io/server/#/client/MQBnAG15c3Fs/bank/US-qU82ia/US-qU82ia"
           }
         }
       },
