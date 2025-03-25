@@ -128,54 +128,153 @@
     "${environment.varificationSwaggerLink}/pdf-to-json": {
       "post": {
         "tags": ["After Download"],
-        "summary": "Convert PDF to JSON",
-        "description": "Converts an uploaded PDF document to structured JSON data.",
+        "parameters": [
+          {
+            "in": "",
+            "name": "Note",
+            "description": "1.API sends a success response to http request without JSON <br>{\"msg\":\"Success!\"}.<br> 2.API sends a callback nearly instantaneously with Interim JSON. Callback will contain following key<br> \"type\":\"interim-pdftojson\"  and stage 'final'( in multidownload not supported) .<br>3.API sends a callback of final JSON in 24 Hr window. Callback will contain following key. <br>\"type\":\"json-success\" and stage 'final'.<br>4.Docid is equal to sessionid.<br></br>In some cases, system will send stage final JSON instantaneously without sending stage interim."
+          }
+        ],
+        "summary": "To generate JSON for an uploaded PDF.",
+        "description": "<h2>Get JSON for verified PDF</h2>\n<p>Description / process </p>\n<ol className=\"list-group list-group-numbered\">\n<li>API sends a success response to http request without JSON {\"msg\":\"Success!\"}. </li>\n<li>API sends a callback nearly instantaneously with Interim JSON. Callback will contain the following key \"type\" : \"interim-pdftojson\" ( in multidownload not supported). </li>\n<li>API sends a callback of the final JSON in the 24 Hr window. Callback will contain following  key \"type\" : \"final-pdftojson\". </li>\n<li>pdfdata object in callback contains the warncases/fields JSON. </li>\n<li>docid is session id. </li>\n<li>callback are accessible in developers > logs.</li>\n</ol>\n",
         "operationId": "pdfToJson",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "sessionid": {
-                    "type": "string",
-                    "example": "IN-Ab3E"
-                  },
-                  "documentId": {
-                    "type": "string",
-                    "example": "doc123"
-                  },
-                  "extractionLevel": {
-                    "type": "string",
-                    "enum": ["basic", "detailed", "full"],
-                    "example": "detailed",
-                    "description": "Level of detail for extraction"
-                  }
-                },
-                "required": ["sessionid", "documentId"]
+                "$ref": "#/components/schemas/RequestPdfToJson"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Default response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "object",
-                      "description": "Extracted JSON data"
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/DefaultJsonResponse" },
+                    { "$ref": "#/components/schemas/CombineJsonResponse" },
+                    { "$ref": "#/components/schemas/SingleDocumentResponse" },
+                    { "$ref": "#/components/schemas/IncompleteSessionJsonResponse" },
+                    { "$ref": "#/components/schemas/DeletedSessionJsonResponse" },
+                    { "$ref": "#/components/schemas/BadDocumentJsonResponse" }
+                  ]
+                }
+              }
+            }
+          },
+          "200 response": {
+            "description": "Responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/SuccessResponsePdftojson" },
+                    { "$ref": "#/components/schemas/BadDocument" },
+                    { "$ref": "#/components/schemas/DocidAbandon" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/ResponseForBadRequest1" },
+                    { "$ref": "#/components/schemas/ResponseForSessionIdDelete" },
+                    { "$ref": "#/components/schemas/ApiKeyNullOrEmptyPdftojson" },
+                    { "$ref": "#/components/schemas/ApiKeyWrongResponse" },
+                    { "$ref": "#/components/schemas/docIdNullOrEmpty" },
+                    { "$ref": "#/components/schemas/JSONRequestWrong" }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidToken"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "callbacks": {
+          "JSON success": {
+            "callback url setup for client": {
+              "post": {
+                "operationId": "callback2",
+                "description": "Request input for JSON success",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/callbackresponse"
+                      }
                     }
                   }
-                }
+                },
+                "responses": {}
+              }
+            }
+          },
+          "JSON failure": {
+            "callback url setup for client": {
+              "post": {
+                "description": "Request input for JSON failure",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/RequestInvalidPdfToJson"
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {}
+              }
+            }
+          },
+          "Combine JSON": {
+            "callback url setup for client": {
+              "post": {
+                "operationId": "callback3",
+                "description": "Request input for Combine JSON",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CombineJson"
+                      }
+                    }
+                  },
+                  "required": true
+                },
+                "responses": {}
               }
             }
           }
@@ -513,72 +612,160 @@
       }
     }
   },
+  
   "components": {
     "schemas": {
       "ExtractTransactionRequest": {
         "type": "object",
+        "required": ["docid"],
         "properties": {
           "docid": {
             "type": "string",
-            "description": "Document session ID",
-            "example": "IN-Ab3E"
+            "example": "IN-123TXyT", 
+            "description": "unique id for document submitted"
+          },
+          "apikey": {
+            "type": "string",
+            "example": "ls.get(\"apikey\")"
           }
         },
-        "required": ["docid"]
+        "xml": {
+          "name": "ExtractTransactionRequest"
+        }
       },
       "DefaultResponse": {
         "type": "object",
+        "description": "Default response when documents not processed",
         "properties": {
+          "message": {
+            "type": "string",
+            "example": "Processing result, please wait it may take upto 24 hrs."
+          },
           "status": {
             "type": "string",
-            "example": "Success!"
+            "example": "success!"
           }
         }
       },
       "TransactionResponse": {
         "type": "object",
+        "description": "Response after documents processed.",
         "properties": {
-          "type": {
-            "type": "string",
-            "example": "final-transaction"
-          },
-          "transactions": {
+          "data": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "date": {
-                  "type": "string",
-                  "format": "date",
-                  "example": "2023-04-15"
+                "accountId": {
+                  "type": "string"
                 },
-                "description": {
-                  "type": "string",
-                  "example": "Payment received"
+                "currency": {
+                  "type": "string"
                 },
-                "amount": {
-                  "type": "number",
-                  "format": "float",
-                  "example": 1250.75
+                "accountType": {
+                  "type": "string"
+                },
+                "balance": {
+                  "type": "object",
+                  "properties": {
+                    "openingBalance": {
+                      "type": "string"
+                    },
+                    "closingBalance": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "reportingPeriod": {
+                  "type": "object",
+                  "properties": {
+                    "startDate": {
+                      "type": "string"
+                    },
+                    "endDate": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "transactions": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "amount": {
+                            "type": "string"
+                          },
+                          "bookingDate": {
+                            "type": "string"
+                          },
+                          "transactionInformation": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditDebitIndicator": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "amount": {
+                            "type": "string"
+                          },
+                          "bookingDate": {
+                            "type": "string"
+                          },
+                          "transactionInformation": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditDebitIndicator": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    ]
+                  }
                 }
               }
             }
+          },
+          "message": {
+            "type": "string",
+            "example": "success!"
           }
         }
       },
       "TransactionInvalidURLResponse": {
         "type": "object",
+        "description": "Invalid URL",
         "properties": {
           "message": {
             "type": "string",
-            "example": "Invalid URL provided"
+            "example": "Invalid URL"
+          },
+          "status": {
+            "type": "string",
+            "example": "JSON not processed, URL not valid"
           }
         }
       },
       "TransactionIncompleteSessionResponse": {
         "type": "object",
+        "description": "Incomplete session",
         "properties": {
           "message": {
+            "type": "string",
+            "example": "JSON not processed, as document not submitted or still in process"
+          },
+          "status": {
             "type": "string",
             "example": "Incomplete session"
           }
@@ -586,31 +773,33 @@
       },
       "TransactionDeletedSessionResponse": {
         "type": "object",
+        "description": "Deleted session",
         "properties": {
           "message": {
             "type": "string",
-            "example": "Session has been deleted"
+            "example": "JSON not processed, as session is deleted"
+          },
+          "status": {
+            "type": "string",
+            "example": "Deleted session"
           }
         }
       },
       "TransactionBadDocumentResponse": {
         "type": "object",
+        "description": "Bad document",
         "properties": {
           "message": {
             "type": "string",
-            "example": "Document is not a valid transaction record"
-          }
-        }
-      },
-      "TransactionInvalidToken": {
-        "type": "object",
-        "properties": {
-          "message": {
+            "example": "Document marked as bad reason:Critical information missing"
+          },
+          "status": {
             "type": "string",
-            "example": "Invalid or expired token"
+            "example": "Bad document"
           }
         }
       },
+
       "BadRequest1": {
         "type": "object",
         "properties": {
@@ -620,6 +809,7 @@
           },
           "details": {
             "type": "object",
+            "required": ["docid"],
             "properties": {
               "docid": {
                 "type": "string",
@@ -630,45 +820,204 @@
         }
       },
       "BadRequest2": {
-        "type": "object",
+        "type": "object", 
         "properties": {
           "message": {
             "type": "string",
-            "example": "Document does not exist"
+            "example": "Document does not exist."
           }
+        }
+      },
+      "TransactionInvalidToken": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "example": 401
+          },
+          "error": {
+            "type": "string", 
+            "example": "Unauthorized"
+          },
+          "message": {
+            "type": "string",
+            "example": "Jwt token is expired pls generate new token!"
+          }
+        },
+        "xml": {
+          "name": "TransactionInvalidToken"
         }
       },
       "TransactionExtractCallbackResponse": {
         "type": "object",
         "properties": {
+          "docid": {
+            "description": "unique id for document submitted",
+            "type": "string",
+            "example": "IN-6AN6Sc"
+          },
+          "sandbox": {
+            "type": "boolean", 
+            "example": false,
+            "description": "is document requested from sandbox account ?"
+          },
+          "trackid": {
+            "type": "string",
+            "description": "trackid is the field name given in verification fields which is of type trackid it can be multiple."
+          },
           "type": {
             "type": "string",
-            "example": "final-transaction"
+            "example": "final-transaction",
+            "description": "type of callback sent from DIRO"
           },
-          "docid": {
+          "url": {
             "type": "string",
-            "example": "IN-Ab3E"
+            "example": "https://www.jio.com"
           },
-          "data": {
-            "type": "object",
-            "description": "Extracted transaction data"
+          "transactionData": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "accountType": {
+                  "type": "string"
+                },
+                "balance": {
+                  "type": "object",
+                  "properties": {
+                    "openingBalance": {
+                      "type": "string"
+                    },
+                    "closingBalance": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "reportingPeriod": {
+                  "type": "object",
+                  "properties": {
+                    "startDate": {
+                      "type": "string"
+                    },
+                    "endDate": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "transactions": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "amount": {
+                            "type": "string"
+                          },
+                          "bookingDate": {
+                            "type": "string"
+                          },
+                          "transactionInformation": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditDebitIndicator": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "amount": {
+                            "type": "string"
+                          },
+                          "bookingDate": {
+                            "type": "string"
+                          },
+                          "transactionInformation": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "creditDebitIndicator": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "buttonid": {
+            "type": "string",
+            "example": "O.IN-oTrD8c-5AtD",
+            "description": "button id/unique identifier of button used to generate verification link"
+          },
+          "category": {
+            "type": "string",
+            "example": "address",
+            "description": "category of document, this can be bank/address/id/professional/other."
+          },
+          "sourcename": {
+            "type": "string",
+            "example": " jio"
+          },
+          "sourcecountry": {
+            "type": "string",
+            "example": " india"
           }
+        },
+        "xml": {
+          "name": "TransactionExtractCallbackResponse"
         }
       },
       "TransactionExtractFailure": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "example": "transaction-failure"
+          "trackid": {
+            "description": "trackid is the field name given in verification fields which is of type trackid it can be multiple.",
+            "type": "string"
           },
           "docid": {
-            "type": "string",
-            "example": "IN-Ab3E"
+            "description": "unique id for document submitted",
+            "type": "string"
           },
-          "error": {
+          "sandbox": {
+            "type": "boolean",
+            "example": false,
+            "description": "is document requested from sandbox account ?"
+          },
+          "buttonid": {
             "type": "string",
-            "example": "Failed to extract transaction data"
+            "description": "button id/unique identifier of button used to generate verification link"
+          },
+          "message": {
+            "type": "string",
+            "example": "reason for bad document"
+          },
+          "type": {
+            "type": "string",
+            "example": "json-failure"
+          },
+          "category": {
+            "type": "string",
+            "example": "address",
+            "description": "category of document, this can be bank/address/id/professional/other."
+          },
+          "email": {
+            "type": "string"
           }
         }
       },
@@ -1164,6 +1513,2602 @@
           "error": {
             "type": "string",
             "example": "session id can't be null or empty"
+          }
+        }
+      },
+     
+
+      "RequestPdfToJson": {
+        "required": ["docid", "apikey"],
+        "type": "object", 
+        "properties": {
+          "docid": {
+            "type": "string",
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
+          },
+          "apikey": {
+            "type": "string",
+            "example": "ls.get(\"apikey\")"
+          }
+        }
+      },
+      "DefaultJsonResponse": {
+        "type": "object",
+        "required": ["message"],
+        "description": "Default response when documents not processed.",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "2024-05-13 11:50:23 : Processing result, please wait it may take upto 24 hrs."
+          },
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "buttonid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "urlStatus": {
+                "type": "object",
+                "properties": {
+                  "urlMatch": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "United States of America"
+                  },
+                  "sslVerified": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Url Verified!"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "bank"
+                  },
+                  "urlMatchDetails": {
+                    "type": "object",
+                    "properties": {
+                      "differentCategory": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "isFound": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "urlmatch": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "verified"
+                  }
+                }
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "docid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://testing99.diro.me/"
+              },
+              "livefeedback": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "string",
+                          "example": "2022/11/01-2022/12/25"
+                        },
+                        "accountnumber": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "address": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        },
+                        "name": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "fileOutsidePeriod": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "document_type": {
+                          "type": "string",
+                          "example": "Bank"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "urlTree": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "urlPath": {
+                          "type": "string",
+                          "example": "sample.diro.me → Download ✔"
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "CombineJsonResponse": {
+        "type": "object",
+        "description": "Combine JSON response in case of multi-download.",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "example": "fail/success/partial"
+              },
+              "continuousperiod": {
+                "type": "boolean",
+                "example": "false/true"
+              },
+              "sourcename": {
+                "type": "string",
+                "example": " Sample Utility"
+              },
+              "sourcecountry": {
+                "type": " string",
+                "example": " India"
+              },
+              "discardeddoc": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "docid": "object",
+                      "properties": {
+                        "docid": {
+                          "type": "string",
+                          "example": "IN-123xYx-a"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "example": "Corrupt document"
+                        }
+                      }
+                    },
+                    {
+                      "docid": "object",
+                      "properties": {
+                        "docid": {
+                          "type": "string",
+                          "example": "IN-123xYx-b"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "example": "Critical information missing"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "entitytype": {
+                "type": " string"
+              },
+              "referencenumber": {
+                "type": " string"
+              },
+              "mobile": {
+                "type": " string"
+              },
+              "email": {
+                "type": " string"
+              },
+              "accountdetails": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "account_number": {
+                          "type": "string",
+                          "example": "000000803244175"
+                        },
+                        "account_type": {
+                          "type": "string",
+                          "example": "Chase Checking"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Alex Smith"
+                        },
+                        "namedetails": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "firstname": {
+                                "type": "string",
+                                "example": "ALEX"
+                              },
+                              "lastname": {
+                                "type": "string",
+                                "example": "SMITH"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "string",
+                          "exmaple": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                        },
+                        "addressdetails": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "street": {
+                                    "type": "string",
+                                    "example": " 1020 Courage St, STE 108"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "city": {
+                                    "type": "string",
+                                    "example": "Brownsville"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "example": "TX"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "country": {
+                                    "type": "string",
+                                    "example": "US"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "zipcode": {
+                                    "type": "string",
+                                    "example": "78521"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "iban": {
+                          "type": "string"
+                        },
+                        "routingnumber": {
+                          "type": "string"
+                        },
+                        "transaction": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "account_number": {
+                          "type": "string",
+                          "example": "000000803244177"
+                        },
+                        "account_type": {
+                          "type": "string",
+                          "example": "Chase Checking"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "example": "USD"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Alex Smith"
+                        },
+                        "namedetails": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "firstname": {
+                                "type": "string",
+                                "example": "ALEX"
+                              },
+                              "lastname": {
+                                "type": "string",
+                                "example": "SMITH"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "string",
+                          "exmaple": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                        },
+                        "addressdetails": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "street": {
+                                    "type": "string",
+                                    "example": " 1020 Courage St, STE 108"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "city": {
+                                    "type": "string",
+                                    "example": " Brownsville"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "example": " TX"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "country": {
+                                    "type": "string",
+                                    "example": "US"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "zipcode": {
+                                    "type": "string",
+                                    "example": "78521"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "iban": {
+                          "type": "string"
+                        },
+                        "routingnumber": {
+                          "type": "string"
+                        },
+                        "transaction": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "buttonid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "urlStatus": {
+                "type": "object",
+                "properties": {
+                  "urlMatch": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "United States of America"
+                  },
+                  "sslVerified": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Url Verified!"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "bank"
+                  },
+                  "urlMatchDetails": {
+                    "type": "object",
+                    "properties": {
+                      "differentCategory": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "isFound": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "urlmatch": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "verified"
+                  }
+                }
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "docid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://testing99.diro.me/"
+              },
+              "livefeedback": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "string",
+                          "example": "2022/11/01-2022/12/25"
+                        },
+                        "accountnumber": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "address": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        },
+                        "name": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "fileOutsidePeriod": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "document_type": {
+                          "type": "string",
+                          "example": "Bank"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "string",
+                          "example": "2022/11/01-2022/12/25"
+                        },
+                        "accountnumber": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "address": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um-d"
+                        },
+                        "name": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "fileOutsidePeriod": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "document_type": {
+                          "type": "string",
+                          "example": "Bank"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "urlTree": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "urlPath": {
+                          "type": "string",
+                          "example": "sample.diro.me → Download ✔"
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "example": "success!"
+          }
+        }
+      },
+      "IncompleteSessionJsonResponse": {
+        "type": "object",
+        "description": "Incomplete session.",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "JSON not processed, as document not submitted or still in process"
+          },
+          "status": {
+            "type": "string",
+            "example": "Incomplete session"
+          }
+        }
+      },
+      "DeletedSessionJsonResponse": {
+        "type": "object",
+        "description": "Deleted session.",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "JSON not processed, as session is deleted"
+          },
+          "status": {
+            "type": "string",
+            "example": "Deleted session"
+          }
+        }
+      },
+      "BadDocumentJsonResponse": {
+        "type": "object",
+        "description": "Bad document",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document marked as bad reason:Critical information missing"
+          },
+          "status": {
+            "type": "string",
+            "example": "Bad document"
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "buttonid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "urlStatus": {
+                "type": "object",
+                "properties": {
+                  "urlMatch": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "United States of America"
+                  },
+                  "sslVerified": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Url Verified!"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "bank"
+                  },
+                  "urlMatchDetails": {
+                    "type": "object",
+                    "properties": {
+                      "differentCategory": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "isFound": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "urlmatch": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "verified"
+                  }
+                }
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "docid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://testing99.diro.me/"
+              },
+              "livefeedback": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "string",
+                          "example": "2022/11/01-2022/12/25"
+                        },
+                        "accountnumber": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "address": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        },
+                        "name": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "fileOutsidePeriod": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "document_type": {
+                          "type": "string",
+                          "example": "Bank"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "urlTree": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "urlPath": {
+                          "type": "string",
+                          "example": "sample.diro.me → Download ✔"
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "SingleDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object", 
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "date"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "date": {
+                                "type": "string",
+                                "example": "date"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": "date"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "period": {
+                                "type": "string",
+                                "example": "Apr 01 - Apr 30"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "startdate": {
+                                "type": "string",
+                                "example": "Apr 01"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": "date"
+                              },
+                              "enddate": {
+                                "type": "string",
+                                "example": "Apr 30"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "name"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "example": "John Doe"
+                          },
+                          "namedetails": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "firstname": {
+                                  "type": "string",
+                                  "example": "John"
+                                },
+                                "lastname": {
+                                  "type": "string",
+                                  "example": "Doe"
+                                }
+                              }
+                            }
+                          },
+                          "requested": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "address"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": "date"
+                              },
+                              "address": {
+                                "type": "string",
+                                "example": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "street": {
+                                "type": "string",
+                                "example": "1020 Courage St, STE 108"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "city": {
+                                "type": "string",
+                                "example": "Brownsville"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "example": "TX"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "country": {
+                                "type": "string",
+                                "example": "US"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "zipcode": {
+                                "type": "string",
+                                "example": "78521"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "source"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "sourcename": {
+                                "type": "string",
+                                "example": "ATT Inc"
+                              },
+                              "requested": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": "date"
+                              },
+                              "sourcecountry": {
+                                "type": "string",
+                                "example": "United States of America"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "account"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountnumber": {
+                            "type": "string",
+                            "example": "667564454"
+                          },
+                          "requested": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "transaction"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "totalcharges": {
+                            "type": "string",
+                            "example": "$81.43"
+                          },
+                          "requested": {
+                            "type": "string",
+                            "example": "date"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "buttonid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "urlStatus": {
+                "type": "object",
+                "properties": {
+                  "urlMatch": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "United States of America"
+                  },
+                  "sslVerified": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Url Verified!"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "bank"
+                  },
+                  "urlMatchDetails": {
+                    "type": "object",
+                    "properties": {
+                      "differentCategory": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "isFound": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "urlmatch": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "verified"
+                  }
+                }
+              },
+              "category": {
+                "type": "string",
+                "example": "bank"
+              },
+              "docid": {
+                "type": "string",
+                "example": "IN-123xYx-a"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://testing99.diro.me/"
+              },
+              "livefeedback": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "type": "string",
+                          "example": "2022/11/01-2022/12/25"
+                        },
+                        "accountnumber": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "address": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        },
+                        "name": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "fileOutsidePeriod": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "document_type": {
+                          "type": "string",
+                          "example": "Bank"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "urlTree": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "urlPath": {
+                          "type": "string",
+                          "example": "sample.diro.me → Download ✔"
+                        },
+                        "docid": {
+                          "type": "string",
+                          "example": "US-4BA7Um"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "example": "success!"
+          }
+        }
+      },
+
+
+      "ResponseForBadRequest1": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document does not exist."
+          }
+        }
+      },
+      "ResponseForSessionIdDelete": {
+        "type": "object", 
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "JSON not processed, as session is deleted"
+          },
+          "status": {
+            "type": "string",
+            "example": "Deleted session"
+          }
+        }
+      },
+      "ApiKeyNullOrEmptyPdftojson": {
+        "type": "object",
+        "description": "When api key is null or empty.",
+        "properties": {
+          "msg": {
+            "type": "string", 
+            "example": "apikey cannot be null."
+          },
+          "error": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ApiKeyWrongResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "example": "apikey is wrong."
+          }
+        }
+      },
+      "docIdNullOrEmpty": {
+        "type": "object",
+        "description": "When docid is null or empty",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2024-07-01T10:39:36.394+00:00"
+          },
+          "status": {
+            "type": "number",
+            "example": 400
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "path": {
+            "type": "string",
+            "example": "/pdf/pdftojson"
+          }
+        }
+      },
+      "JSONRequestWrong": {
+        "type": "object",
+        "description": "when json request is wrong",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2024-07-01T10:39:36.394+00:00"
+          },
+          "status": {
+            "type": "number", 
+            "example": 400
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "path": {
+            "type": "string",
+            "example": "/pdf/pdftojson"
+          }
+        }
+      },
+
+      
+      "SuccessResponsePdftojson": {
+        "type": "object",
+        "description": "will give pdftojson with success msg",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "2024-07-01 10:49:00 : Processing result, please wait it may take upto 24 hrs."
+          },
+          "status": {
+            "type": "string",
+            "example": "Success!"
+          }
+        }
+      },
+      "BadDocument": {
+        "type": "object", 
+        "description": "when document marked as bad",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Document marked as bad reason :reason"
+          },
+          "status": {
+            "type": "string",
+            "example": "Bad document"
+          }
+        }
+      },
+      "DocidAbandon": {
+        "type": "object",
+        "description": "when docid is Abandon", 
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "JSON not processed, as document not submitted or still in process"
+          },
+          "status": {
+            "type": "string",
+            "example": "Incomplete session"
+          }
+        }
+      },
+      "callbackresponse": {
+        "type": "object",
+        "properties": {
+          "urlStatus": {
+            "type": "object",
+            "properties": {
+              "urlMatch": {
+                "type": "boolean",
+                "description": "pdf was generated from url that requester has set",
+                "example": true
+              },
+              "country": {
+                "type": "string",
+                "example": "India"
+              },
+              "message": {
+                "type": "string",
+                "example": "Url Verified"
+              },
+              "category": {
+                "type": "string", 
+                "description": "category of document, this can be bank/address/id/professional/other.",
+                "example": "bank"
+              },
+              "sslVerified": {
+                "type": "boolean",
+                "description": "states if the dns/url accessed has a valid SSL/chain/issuer.",
+                "example": true
+              },
+              "differentCategory": {
+                "type": "boolean",
+                "example": true
+              },
+              "urlMatchDetails": {
+                "type": "object",
+                "properties": {
+                  "urlStatus": {
+                    "type": "object",
+                    "properties": {
+                      "differentCategory": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "isFound": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "urlmatch": {
+                        "type": "boolean",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              },
+              "status": {
+                "type": "string",
+                "description": "Status of captured document",
+                "example": "verified"
+              }
+            }
+          },
+          "pdfdata": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "date"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "date": {
+                                "type": "string",
+                                "example": "22/02/2023"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "period": {
+                                "type": "string",
+                                "example": "23/12/2022 to 22/02/2023"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "startdate": {
+                                "type": "string",
+                                "example": "23/12/2022"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              },
+                              "enddate": {
+                                "type": "string",
+                                "example": "22/2/2023"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "name"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "firstname": {
+                                "type": "string",
+                                "example": "Rachel"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "lastname": {
+                                "type": "string",
+                                "example": "Zane"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "example": "Rachel Zane"
+                              },
+                              "namedetails": {
+                                "type": "object",
+                                "properties": {
+                                  "firstname": {
+                                    "type": "string",
+                                    "example": "Rachel"
+                                  }
+                                }
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "address"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "address": {
+                                "type": "string",
+                                "example": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "street": {
+                                "type": "string",
+                                "example": "1020 Courage St, STE 108"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "city": {
+                                "type": "string",
+                                "example": "Brownsville"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              },
+                              "state": {
+                                "type": "string",
+                                "example": "TX"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              },
+                              "zipcode": {
+                                "type": "string",
+                                "example": "78521"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "source"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "sourcename": {
+                                "type": "string",
+                                "example": "Sample Utility"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "sourcecountry": {
+                                "type": "string",
+                                "example": "India"
+                              },
+                              "requested": {
+                                "type": "string",
+                                "example": ""
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "account"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "accountdetails": {
+                            "type": "object",
+                            "properties": {
+                              "account_number": {
+                                "type": "string",
+                                "example": "50200874561"
+                              },
+                              "account_type": {
+                                "type": "string",
+                                "example": "Checking Account"
+                              },
+                              "currency": {
+                                "type": "string",
+                                "example": "USD"
+                              },
+                              "account_balance": {
+                                "type": "string",
+                                "example": "591,800.00"
+                              }
+                            }
+                          },
+                          "requested": {
+                            "type": "string",
+                            "example": ""
+                          },
+                          "accountnumber": {
+                            "type": "string",
+                            "example": "50200874561"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "example": "transaction"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "balance": {
+                            "type": "string",
+                            "example": "591,800.00"
+                          },
+                          "requested": {
+                            "type": "string",
+                            "example": ""
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "livefeedback": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "example": "2024/01/01-2024/01/31"
+                    },
+                    "accountnumber": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "address": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "IN-123TXyT"
+                    },
+                    "name": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fileOutsidePeriod": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "document_type": {
+                      "type": "string",
+                      "example": "bank"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "urlTree": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "urlPath": {
+                      "type": "string",
+                      "example": "sample.diro.me → Download ✔"
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "US-4BA7Um"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "firstname": {
+            "type": "string",
+            "description": "verifying party details",
+            "example": ""
+          },
+          "docid": {
+            "type": "string",
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "emaple@diro.io"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "description": "is document requested from sandbox account ?",
+            "example": false
+          },
+          "lockedurlmatch": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "document uploaded"
+          },
+          "mcc": {
+            "type": "string",
+            "example": "+91",
+            "description": "Mobile Country Code"
+          },
+          "type": {
+            "type": "string",
+            "example": "final-pdftojson"
+          },
+          "url": {
+            "type": "string",
+            "description": "url from which document captured",
+            "example": "https://sample.diro.me/"
+          },
+          "filename": {
+            "type": "string",
+            "example": "IN-z3XLu71651069203968.pdf"
+          },
+          "stage": {
+            "type": "string",
+            "example": "final"
+          },
+          "filestatus": {
+            "type": "string",
+            "description": "Status of captured document",
+            "example": "pending"
+          },
+          "kycstatus": {
+            "type": "string",
+            "description": "Status of KYC process",
+            "example": "pending"
+          },
+          "buttonid": {
+            "type": "string",
+            "description": "button id/unique identifier of button used to generate verification link",
+            "example": "O.IN-v6EsGi-yF7y"
+          },
+          "category": {
+            "type": "string",
+            "description": "category of document, this can be bank/address/id/professional/other.",
+            "example": "bank"
+          },
+          "status": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "xml": {
+          "name": "callbackresponse"
+        }
+      },
+      "RequestInvalidPdfToJson": {
+        "type": "object",
+        "properties": {
+          "docid": {
+            "type": "string", 
+            "description": "unique id for document submitted",
+            "example": "IN-123TXyT"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "description": "is document requested from sandbox account ?", 
+            "example": false
+          },
+          "trackid": {
+            "type": "string",
+            "description": "trackid is the field name given in verification fields which is of type trackid it can be multiple."
+          },
+          "buttonid": {
+            "type": "string",
+            "description": "button id/unique identifier of button used to generate verification link",
+            "example": ""
+          },
+          "message": {
+            "type": "string",
+            "example": "irrelevant document",
+            "description": "reason for making document invalid. Values can be irrelevant document/ File format not supported / Critical information missing / Unverified url / Language not supported / Corrupt document / Processing error, document needs to be resubmitted"
+          },
+          "type": {
+            "type": "string",
+            "description": "callback type sent by DIRO",
+            "example": "JSON-failure"
+          },
+          "email": {
+            "type": "string",
+            "description": "email of user",
+            "example": ""
+          },
+          "category": {
+            "type": "string",
+            "description": "category of document, this can be bank/address/id/professional/other",
+            "example": "bank"
+          }
+        }
+      },
+      "CombineJson": {
+        "type": "object",
+        "properties": {
+          "urlStatus": {
+            "type": "object",
+            "properties": {
+              "urlMatch": {
+                "type": "boolean",
+                "example": true
+              },
+              "country": {
+                "type": "string",
+                "example": "Not found"
+              },
+              "sslVerified": {
+                "type": "boolean",
+                "example": true
+              },
+              "differentCategory": {
+                "type": "boolean",
+                "example": false
+              },
+              "message": {
+                "type": "string",
+                "example": "Url Verified!"
+              },
+              "category": {
+                "type": "string",
+                "example": "address",
+                "description": "category of document, this can be bank/address/id/professional/other."
+              },
+              "urlMatchDetails": {
+                "type": "object",
+                "properties": {
+                  "differentCategory": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "isFound": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "urlmatch": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "status": {
+                "type": "string",
+                "example": "verified"
+              }
+            }
+          },
+          "livefeedback": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "example": "2024/01/01-2024/01/31"
+                    },
+                    "accountnumber": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "address": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "IN-123TXyT"
+                    },
+                    "name": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fileOutsidePeriod": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "document_type": {
+                      "type": "string",
+                      "example": "bank"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "period": {
+                      "type": "string",
+                      "example": "2024/01/01-2024/01/31"
+                    },
+                    "accountnumber": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "address": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "IN-123TXyT-a"
+                    },
+                    "name": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fileOutsidePeriod": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "document_type": {
+                      "type": "string",
+                      "example": "bank"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "urlTree": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "urlPath": {
+                      "type": "string",
+                      "example": "sample.diro.me → Download ✔"
+                    },
+                    "docid": {
+                      "type": "string",
+                      "example": "US-4BA7Um"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "firstname": {
+            "type": "string",
+            "example": "demo@diro.io"
+          },
+          "docid": {
+            "type": "string",
+            "example": "IN-dZtAzy",
+            "description": "unique id for document submitted."
+          },
+          "sandbox": {
+            "type": "boolean",
+            "example": false,
+            "description": "is document requested from sandbox account ?"
+          },
+          "lockedurlmatch": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "document uploaded"
+          },
+          "mcc": {
+            "type": "string",
+            "example": "+91"
+          },
+          "type": {
+            "type": "string",
+            "example": "final-pdftojson",
+            "description": "type of callback sent from DIRO"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://nj.myaccount.pseg.com/myaccountdashboard?SelectAccountPage=1"
+          },
+          "stage": {
+            "type": "string",
+            "example": "final"
+          },
+          "pdfdata": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "example": "fail/success/partial"
+              },
+              "continuousperiod": {
+                "type": "boolean",
+                "example": "false/true"
+              },
+              "sourcename": {
+                "type": "string",
+                "example": "Sample Utility"
+              },
+              "sourcecountry": {
+                "type": " string",
+                "example": "india"
+              },
+              "discardeddoc": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "docid": "object",
+                      "properties": {
+                        "docid": {
+                          "type": "string",
+                          "example": "IN-123xYx-a"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "example": "Corrupt document"
+                        }
+                      }
+                    },
+                    {
+                      "docid": "object",
+                      "properties": {
+                        "docid": {
+                          "type": "string",
+                          "example": "IN-123xYx-b"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "example": "Critical information missing"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "entitytype": {
+                "type": " string"
+              },
+              "referencenumber": {
+                "type": " string"
+              },
+              "mobile": {
+                "type": " string"
+              },
+              "email": {
+                "type": " string"
+              },
+              "accountdetails": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "account_number": {
+                          "type": "string",
+                          "example": "000000803244177"
+                        },
+                        "account_type": {
+                          "type": "string",
+                          "example": "Chase Checking"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Alex Smith"
+                        },
+                        "namedetails": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "firstname": {
+                                "type": "string",
+                                "example": "ALEX"
+                              },
+                              "lastname": {
+                                "type": "string",
+                                "example": "SMITH"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "string",
+                          "exmaple": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                        },
+                        "addressdetails": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "street": {
+                                    "type": "string",
+                                    "example": " 1020 Courage St, STE 108"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "city": {
+                                    "type": "string",
+                                    "example": "Brownsville"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "example": "TX"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "country": {
+                                    "type": "string",
+                                    "example": "US"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "zipcode": {
+                                    "type": "string",
+                                    "example": "78521"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "iban": {
+                          "type": "string"
+                        },
+                        "routingnumber": {
+                          "type": "string"
+                        },
+                        "transaction": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "account_number": {
+                          "type": "string",
+                          "example": "000000803244177"
+                        },
+                        "account_type": {
+                          "type": "string",
+                          "example": "Chase Checking"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "example": "USD"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Alex Smith"
+                        },
+                        "namedetails": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "firstname": {
+                                "type": "string",
+                                "example": "ALEX"
+                              },
+                              "lastname": {
+                                "type": "string",
+                                "example": "SMITH"
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "string",
+                          "exmaple": "1020 Courage St, STE 108, Brownsville, TX 78521"
+                        },
+                        "addressdetails": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "street": {
+                                    "type": "string",
+                                    "example": " 1020 Courage St, STE 108"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "city": {
+                                    "type": "string",
+                                    "example": " Brownsville"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "example": " TX"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "country": {
+                                    "type": "string",
+                                    "example": "US"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "zipcode": {
+                                    "type": "string",
+                                    "example": "78521"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "iban": {
+                          "type": "string",
+                          "exmaple": " "
+                        },
+                        "routingnumber": {
+                          "type": "string",
+                          "exmaple": ""
+                        },
+                        "transaction": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "date": {
+                                    "type": "string"
+                                  },
+                                  "period": {
+                                    "type": "string"
+                                  },
+                                  "balance": {
+                                    "type": "string"
+                                  },
+                                  "totalcharge": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "kycstatus": {
+            "type": "string",
+            "example": "pending"
+          },
+          "filestatus": {
+            "type": "string",
+            "example": "pending",
+            "description": "Status of captured document"
+          },
+          "buttonid": {
+            "type": "string",
+            "example": "O.IN-As7NSS-DlE",
+            "description": "button id/unique identifier of button used to generate verification link"
+          },
+          "category": {
+            "type": "string",
+            "example": "address",
+            "description": "category of document, this can be bank/address/id/professional/other."
+          },
+          "status": {
+            "type": "boolean",
+            "exmaple": true
+          }
+        }
+      },
+      "InternalServerResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2024-07-01T11:07:19.447+00:00"
+          },
+          "status": {
+            "type": "number",
+            "example": 500
+          },
+          "error": {
+            "type": "string",
+            "example": "Internal server error"
+          },
+          "path": {
+            "type": "string",
+            "example": "/pdf/pdftojson"
           }
         }
       }
