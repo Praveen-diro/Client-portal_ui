@@ -3,6 +3,7 @@ import { cookies } from "./cookie.service";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
 import { logService } from "./logs.service";
+import { env } from "../config/environment";
 
 // Declare the loadingSubscribers property on the Window interface
 declare global {
@@ -148,6 +149,119 @@ class ApiService {
         success: false,
         error: error.message || "An unknown error occurred",
       };
+    }
+  }
+
+  /**
+   * Generates a new secret token
+   * @param token Current authorization token
+   * @param orgId Organization ID
+   * @param apikey API key
+   * @returns Promise with the new token or null on failure
+   */
+  async generateSecretToken(token: string, orgId: string, apikey: string): Promise<ApiResponse<string>> {
+    const sandbox = apikey.startsWith('d-');
+    
+    let cleanedToken: string;
+    if (sandbox) {
+      cleanedToken = token;
+    } else if (token.startsWith('Bearer ')) {
+      cleanedToken = token.slice(7);
+    } else {
+      cleanedToken = token;
+    }
+
+    const json = {
+      accesstoken: cleanedToken,
+      orgid: orgId,
+      sandbox: sandbox
+    };
+
+    console.log("Payload to generate secret token:", json);
+
+    try {
+      console.log("API call initiated");
+      
+      // Set authorization header if needed
+      // axios.defaults.headers.common["Authorization"] = token;
+      
+      const response = await axios.post(env.generateSecretToken, json);
+      console.log("API call completed with status:", response.status);
+
+      if (response.status === 200) {
+        console.log("Response from API:", response.data);
+        
+        if (sandbox) {
+          cookies.set("secrettoken", response.data);
+          cookies.set("tokenTest", response.data);
+          console.log("Response sandbox", response.data);
+        } else {
+          cookies.set("secrettoken", "Bearer " + response.data);
+          cookies.set("tempsecret", "Bearer " + response.data);
+          console.log("Response out of sandbox", response.data);
+        }
+        
+        return {
+          success: true,
+          data: response.data
+        };
+      } else {
+        console.log('Something went wrong', response.status, response.data);
+        return {
+          success: false,
+          error: "Request failed with unexpected status: " + response.status
+        };
+      }
+    } catch (error: any) {
+      console.log("Inside the error block");
+      console.log("Error message:", error.message);
+      
+      if (error.message === "Request failed with status code 401" || error.message === "Network Error") {
+        // Handle token expiration
+        console.log("Authentication error detected, refreshing token");
+        try {
+          // Use your refresh auth mechanism
+          await refreshAuthService.refreshAuth();
+          
+          // Retry the request with fresh token
+          return this.generateSecretToken(
+            cookies.get("token") || "", 
+            orgId, 
+            apikey
+          );
+        } catch (refreshError) {
+          return {
+            success: false,
+            error: "Failed to refresh authentication"
+          };
+        }
+      } else if (error.response) {
+        if (error.response.status === 400) {
+          console.log("Invalid token to generate new secret token:", error.response.data);
+          return {
+            success: false,
+            error: "Invalid token provided"
+          };
+        } else {
+          console.log("Unexpected error occurred:", error.response.data);
+          return {
+            success: false,
+            error: error.response.data?.message || "Unexpected error"
+          };
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log("Error request:", error.request);
+        return {
+          success: false,
+          error: "No response received from server"
+        };
+      } else {
+        return {
+          success: false,
+          error: "Unknown error occurred"
+        };
+      }
     }
   }
 

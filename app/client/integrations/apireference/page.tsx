@@ -22,7 +22,8 @@ import {
   FileIcon,
   Copy,
   RefreshCw,
-  CheckIcon
+  CheckIcon,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,9 @@ import { ReloadIcon } from "@radix-ui/react-icons";
 
 // Import cookies service
 import { cookies } from "../../../services/cookie.service";
+
+// Import API service
+import { apiService } from "../../../services/api.service";
 
 // Define interfaces for button options
 interface ButtonOption {
@@ -87,6 +91,14 @@ export default function ApiReferencePage() {
   const [currentEmail, setCurrentEmail] = useState("user@company.com");
   const [ownerEmail, setOwnerEmail] = useState("admin@company.com");
   const [isSwaggerLoaded, setIsSwaggerLoaded] = useState(false);
+  const [altrmsgtoken, setAletrmsgtoken] = useState(false);
+  const [generateErrorMsg, setGenerateErrorMsg] = useState(false);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [tokenAlert, setTokenAlert] = useState<{show: boolean, success: boolean, message: string}>({
+    show: false,
+    success: false,
+    message: ''
+  });
 
   useEffect(() => {
     // Get apiKey from cookies
@@ -168,10 +180,51 @@ export default function ApiReferencePage() {
     setModal(!modal);
   };
 
-  const generateNewToken = () => {
-    // Handle token generation
-    setToken(`new-token-${Date.now()}`);
-    toggleModal();
+  const generateNewToken = async () => {
+    try {
+      setIsGeneratingToken(true);
+      
+      // Get necessary values from cookies or props
+      const token = cookies.get("token") || "";
+      const orgId = cookies.get("orgid") || "";
+      const apikey = cookies.get("apikey") || "";
+      
+      // Call the service method
+      const response = await apiService.generateSecretToken(token, orgId, apikey);
+      
+      if (response.success) {
+        // Show success message
+        setTokenAlert({
+          show: true,
+          success: true,
+          message: "New secret token generated successfully!"
+        });
+        
+        // Update token in your component state if needed
+        // setToken(response.data); // Uncomment if you need to update UI
+      } else {
+        // Show error message
+        setTokenAlert({
+          show: true,
+          success: false,
+          message: `Failed to generate token: ${response.error}`
+        });
+      }
+    } catch (error) {
+      console.error('Error generating new token:', error);
+      setTokenAlert({
+        show: true,
+        success: false,
+        message: "An unexpected error occurred while generating the token"
+      });
+    } finally {
+      setIsGeneratingToken(false);
+      
+      // Auto-hide alert after 3 seconds
+      setTimeout(() => {
+        setTokenAlert(prev => ({...prev, show: false}));
+      }, 3000);
+    }
   };
 
   return (
@@ -284,9 +337,14 @@ export default function ApiReferencePage() {
                                       className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
                                                 dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
                                                 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
-                                      onClick={toggleModal}
+                                      onClick={generateNewToken}
+                                      disabled={isGeneratingToken}
                                     >
-                                      <RefreshCw className="h-3.5 w-3.5" />
+                                      {isGeneratingToken ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                      )}
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top">
@@ -320,7 +378,12 @@ export default function ApiReferencePage() {
                           </div>
                         </div>
                         
-                      
+                        {/* Alert message */}
+                        {tokenAlert.show && (
+                          <div className={`mt-2 p-2 ${tokenAlert.success ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'} rounded-md text-sm transition-opacity duration-300 max-w-xs mx-auto`}>
+                            {tokenAlert.message}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
