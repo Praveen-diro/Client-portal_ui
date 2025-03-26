@@ -104,8 +104,8 @@ class ButtonService {
     return s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4();
   }
 
-  private async makeRequest<T>(url: string, data: any): Promise<ButtonResponse<T>> {
-    const requestData = { ...data, apikey: this.getApiKey() };
+  private async makeRequest<T>(url: string, data: any, skipAddingApiKey: boolean = false): Promise<ButtonResponse<T>> {
+    const requestData = skipAddingApiKey ? data : { ...data, apikey: this.getApiKey() };
     return apiService.makeRefreshAuthRequest<T>(url, requestData);
   }
 
@@ -130,7 +130,7 @@ class ButtonService {
   }
 
   async deleteButton(buttonId: string): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.delete_link, { buttonid: buttonId });
+    return this.makeRequest(env.deletebutton, { buttonid: buttonId });
   }
 
   async getCountryList(): Promise<ButtonResponse<any>> {
@@ -200,8 +200,8 @@ class ButtonService {
    */
   async buttonAddSendboxToProduction(data: any): Promise<ButtonSandboxResponse> {
     try {
-      // Make the API request using axios service
-      const response = await this.makeRequest<any>(env.getbtndata, data);
+      // Make the API request using axios service without adding apiKey from getApiKey()
+      const response = await this.makeRequest<any>(env.create_button, data, true);
       console.log("here is the res in addsandboxto production data", response);
 
       if (response?.data?.error === false) {
@@ -252,50 +252,270 @@ class ButtonService {
    * @returns Object containing status (true if differences exist) and the differences
    */
   deepCompareJson(json1: Record<string, any>, json2: Record<string, any>): CompareJsonResult {
-    const excludedKeys = ["buttonid", "apikey", "sandboxid", "eptime", "crtime", "org_info", "note"];
+    // Exclude these keys from comparison
+    const excludedKeys = ["crtime", "eptime", "_id", "buttonid", "id", "apikey"];
 
-    // Helper function to check if an argument is an object or array
     const isObjectOrArray = (arg: any): boolean => typeof arg === "object" && arg !== null;
 
-    // Helper function to get keys excluding the specified keys
     const getFilteredKeys = (obj: Record<string, any>): string[] => Object.keys(obj).filter((key) => !excludedKeys.includes(key));
 
     const findDifferences = (a: any, b: any): any => {
-      let differences: Record<string, any> = {};
+      // If one doesn't exist or is null/undefined
+      if (!a || !b) return { a, b };
 
-      if (isObjectOrArray(a) !== isObjectOrArray(b)) {
-        return a; // Return the updated value from json1 if the types differ
-      }
+      const diffs: Record<string, any> = {};
+      let status = true;
 
-      if (!isObjectOrArray(a) && !isObjectOrArray(b)) {
+      // Compare simple types directly
+      if (!isObjectOrArray(a) || !isObjectOrArray(b)) {
         if (a !== b) {
-          return a; // Return only the differing value from json1
+          status = false;
+          return { a, b, status };
         }
-        return null; // No difference
+        return { status };
       }
 
-      const keysA = getFilteredKeys(a);
+      // For arrays, convert to objects with indices as keys
+      if (Array.isArray(a) && Array.isArray(b)) {
+        const maxLength = Math.max(a.length, b.length);
+        for (let i = 0; i < maxLength; i++) {
+          if (i >= a.length || i >= b.length) {
+            diffs[i] = { a: a[i], b: b[i] };
+            status = false;
+          } else {
+            const result = findDifferences(a[i], b[i]);
+            if (!result.status) {
+              diffs[i] = result;
+              status = false;
+            }
+          }
+        }
+        return { status, differences: diffs };
+      }
 
-      for (let key of keysA) {
-        if (!(key in b)) {
-          differences[key] = a[key]; // Key exists in json1 but not in json2
+      // For objects, recursively compare each property
+      const aKeys = getFilteredKeys(a);
+      const bKeys = getFilteredKeys(b);
+      const allKeys = new Set([...aKeys, ...bKeys]);
+
+      for (const key of allKeys) {
+        if (!aKeys.includes(key) || !bKeys.includes(key)) {
+          diffs[key] = { a: a[key], b: b[key] };
+          status = false;
         } else {
-          const diff = findDifferences(a[key], b[key]);
-          if (diff !== null) {
-            differences[key] = diff; // Collect only the differing values
+          const result = findDifferences(a[key], b[key]);
+          if (!result.status) {
+            diffs[key] = result;
+            status = false;
           }
         }
       }
 
-      return Object.keys(differences).length ? differences : null;
+      return { status, differences: diffs };
     };
 
-    const differences = findDifferences(json1, json2);
+    const result = findDifferences(json1, json2);
     return {
-      status: !!differences, // true if there are differences, false if none
-      differences: differences || {}, // Return only the differences from json1
+      status: result.status,
+      differences: result.differences || {},
     };
+  }
+
+  /**
+   * Get button data by button ID
+   * @param buttonId ID of the button to retrieve
+   * @returns Promise with button data response
+   */
+  async getButtonData(buttonId: string): Promise<ButtonResponse<any>> {
+    return this.makeRequest(env.getbtndata, {
+      buttonid: buttonId,
+      usertoken: this.generateGuid(),
+    });
+  }
+
+  /**
+   * Duplicates a button and optionally renames it
+   * @param buttonId Original button ID to duplicate
+   * @param newName Optional new name for the duplicated button
+   * @returns Promise with the new button data
+   */
+  async duplicateButton(buttonId: string, newName?: string): Promise<ButtonResponse<any>> {
+    try {
+      // Get the original button data
+      const response = await this.getButtonData(buttonId);
+
+      if (!response.success || !response.data?.btndata) {
+        throw new Error("Failed to get original button data");
+      }
+
+      const btnJson = response.data.btndata;
+
+      // Remove properties that shouldn't be copied
+      delete btnJson?.sandboxid;
+
+      // Create new button with duplicated data
+      const newButtonId = this.generateGuid();
+      const jsonDuplicate = {
+        apikey: this.getApiKey(),
+        buttonid: newButtonId,
+        data: btnJson,
+      };
+
+      // If new name is provided, update it
+      if (newName && newName.trim() !== "") {
+        jsonDuplicate.data.name = newName;
+      }
+
+      // Add the duplicated button
+      const duplicateResponse = await this.addButton(jsonDuplicate);
+
+      if (duplicateResponse.success) {
+        // Refresh buttons list
+        this.getButtons().then((buttonsResponse) => {
+          if (buttonsResponse.success && buttonsResponse.data) {
+            dispatchAction(getButtons({ data: buttonsResponse.data.data || [] }));
+          }
+        });
+      }
+
+      return duplicateResponse;
+    } catch (error: any) {
+      console.error("Error duplicating button:", error);
+      return {
+        success: false,
+        error: error.message || "An unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Updates a button's Google Sheet URL
+   * @param buttonId ID of the button to update
+   * @param googleSheetUrl New Google Sheet URL (or empty string to remove)
+   * @returns Promise with button update response
+   */
+  async updateGoogleSheetUrl(buttonId: string, googleSheetUrl: string): Promise<ButtonResponse<any>> {
+    try {
+      // Get current button data
+      const response = await this.getButtonData(buttonId);
+
+      if (!response.success || !response.data?.btndata) {
+        throw new Error("Failed to get button data");
+      }
+
+      const btnJson = response.data.btndata;
+
+      // If URL is empty, remove Google Sheet properties
+      if (googleSheetUrl === "") {
+        delete btnJson.googlesheeturl;
+        delete btnJson.googleSheet;
+        if (btnJson.coverage?.note) {
+          delete btnJson.coverage.note;
+        }
+      } else {
+        btnJson.googlesheeturl = googleSheetUrl;
+      }
+
+      // Update the button
+      const updateData = {
+        apikey: this.getApiKey(),
+        buttonid: buttonId,
+        data: btnJson,
+      };
+
+      return this.updateButton(updateData);
+    } catch (error: any) {
+      console.error("Error updating Google Sheet URL:", error);
+      return {
+        success: false,
+        error: error.message || "An unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Copies a button from sandbox to production environment with optional Google Sheet URL update
+   * @param sandboxButtonId ID of the sandbox button to copy to production
+   * @param googleSheetUrl Optional Google Sheet URL to set for the production button
+   * @returns Promise with response including new button ID and status
+   */
+  async copyToProduction(sandboxButtonId: string, googleSheetUrl?: string, prodApiKey?: string): Promise<ButtonSandboxResponse> {
+    try {
+      // Get sandbox button data
+      const response = await this.getButtonData(sandboxButtonId);
+
+      if (!response.success || !response.data?.btndata) {
+        throw new Error("Failed to get sandbox button data");
+      }
+
+      const btnData = response.data.btndata;
+
+      // Prepare for production
+      btnData.org_info.apikey = this.getApiKey();
+      if (btnData.coverage?.note) {
+        delete btnData.coverage.note;
+      }
+
+      // Create production button payload
+      const productionPayload = {
+        apikey: prodApiKey,
+        buttonid: this.generateGuid(),
+        data: {
+          ...btnData,
+          sandboxid: sandboxButtonId,
+          ...(googleSheetUrl && { googlesheeturl: googleSheetUrl }),
+        },
+      };
+
+      console.log("productionPayload", productionPayload);
+
+      // Copy to production
+      const prodResponse = await this.buttonAddSendboxToProduction(productionPayload);
+
+      if (prodResponse.success && prodResponse.data?.data) {
+        // Optional: Update Google Sheet URL if needed but different from provided
+        if (googleSheetUrl && googleSheetUrl !== btnData.googlesheeturl) {
+          await this.updateGoogleSheetUrl(prodResponse.data.data.buttonid, googleSheetUrl);
+        }
+      }
+
+      return prodResponse;
+    } catch (error: any) {
+      console.error("Error copying to production:", error);
+      return {
+        success: false,
+        error: error.message || "An unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Checks if a button already exists in production
+   * @param sandboxButtonId ID of the sandbox button to check in production
+   * @returns Promise with boolean indicating if button exists
+   */
+  async checkButtonExistsInProduction(sandboxButtonId: string): Promise<ButtonResponse<boolean>> {
+    try {
+      // This is a simplified implementation - you'll need to adjust based on your actual API
+      const buttons = await this.getButtons();
+
+      if (!buttons.success || !buttons.data?.data) {
+        return { success: false, error: "Failed to get buttons list" };
+      }
+
+      // Check if any button has the given sandbox ID
+      const exists = buttons.data.data.some((button: any) => button.sandboxid === sandboxButtonId);
+
+      return { success: true, data: exists };
+    } catch (error: any) {
+      console.error("Error checking button existence:", error);
+      return {
+        success: false,
+        error: error.message || "An unknown error occurred",
+      };
+    }
   }
 }
 
+// Create and export the singleton instance
 export const buttonService = new ButtonService();

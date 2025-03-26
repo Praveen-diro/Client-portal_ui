@@ -18,6 +18,7 @@ import {
   Settings,
   ExternalLink,
   Trash2,
+  X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -110,6 +111,9 @@ export default function ValidationButtons() {
   const [newButtonId, setNewButtonId] = useState<string | null>(null);
   const [adminAccess, setAdminAccess] = useState(true);
 
+  // Add state for copy to production confirmation modal
+  const [showCopyConfirmModal, setShowCopyConfirmModal] = useState(false);
+
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -121,6 +125,19 @@ export default function ValidationButtons() {
   const authMode = useSelector((state: RootState) => state.auth.authMode);
   console.log("auth state mode", authMode);
   console.log("authMode value", authMode);
+
+  // Add state for button operations
+  const [duplicateButtonModalOpen, setDuplicateButtonModalOpen] = useState(false);
+  const [googleSheetModalOpen, setGoogleSheetModalOpen] = useState(false);
+  const [selectedButtonForAction, setSelectedButtonForAction] = useState<string | null>(null);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState("");
+  const [isCopyingToProduction, setIsCopyingToProduction] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [operationResult, setOperationResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showResultMessage, setShowResultMessage] = useState(false);
+
+  // Add state for Custom Success Dialog for Copy to Production
+  const [showSuccessCopyDialog, setShowSuccessCopyDialog] = useState(false);
 
   // Default button template
   const defaultButtonTemplate = {
@@ -524,6 +541,306 @@ export default function ValidationButtons() {
     setNewButtonName("New Button");
   };
 
+  // Handler for duplicating a button
+  const handleDuplicateButton = (buttonId: string) => {
+    // Set button ID and open duplicate modal
+    setSelectedButtonForAction(buttonId);
+    setDuplicateButtonModalOpen(true);
+    setNewButtonName(""); // Reset name field
+    setIsDuplicating(true);
+    setIsCopyingToProduction(false); // Make sure this is false for duplicating
+  };
+
+  // Handler for confirming button duplication
+  const confirmDuplicateButton = async () => {
+    if (!selectedButtonForAction || !newButtonName.trim()) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Use buttonService to duplicate the button
+      const response = await buttonService.duplicateButton(selectedButtonForAction, newButtonName);
+
+      if (response.success && response.data) {
+        // Check if the original button had a Google Sheet URL
+        const originalButton = await buttonService.getButtonData(selectedButtonForAction);
+        if (originalButton.success && originalButton.data?.btndata?.googlesheeturl) {
+          // If it had a Google Sheet URL, show the Google Sheet modal for user to confirm
+          setGoogleSheetUrl(originalButton.data.btndata.googlesheeturl);
+          setSelectedButtonForAction(response.data.buttonid); // Update to new button ID
+          setDuplicateButtonModalOpen(false);
+          setGoogleSheetModalOpen(true);
+        } else {
+          // If no Google Sheet URL, just display success
+          setOperationResult({
+            success: true,
+            message: "Button duplicated successfully!",
+          });
+          setShowResultMessage(true);
+          setDuplicateButtonModalOpen(false);
+
+          // Refresh button list
+          refreshButtonsList();
+        }
+      } else {
+        setOperationResult({
+          success: false,
+          message: `Failed to duplicate button: ${response.error || "Unknown error"}`,
+        });
+        setShowResultMessage(true);
+      }
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: `Error duplicating button: ${error.message || "Unknown error"}`,
+      });
+      setShowResultMessage(true);
+    } finally {
+      setIsLoading(false);
+      setIsDuplicating(false);
+    }
+  };
+
+  // Handler for copying a button to production
+  const handleCopyToProduction = (buttonId: string) => {
+    // Set button ID and prepare for copying to production
+    setSelectedButtonForAction(buttonId);
+    setIsCopyingToProduction(true);
+
+    // Show confirmation modal first
+    setShowCopyConfirmModal(true);
+  };
+
+  // Function to handle confirmed copy to production
+  const handleConfirmCopyToProduction = () => {
+    setShowCopyConfirmModal(false);
+
+    if (selectedButtonForAction) {
+      // First check if the button has a Google Sheet URL
+      checkButtonGoogleSheet(selectedButtonForAction);
+    }
+  };
+
+  // Function to cancel copy to production
+  const handleCancelCopyToProduction = () => {
+    setShowCopyConfirmModal(false);
+    setIsCopyingToProduction(false);
+    setSelectedButtonForAction(null);
+  };
+
+  // Helper to check if button has Google Sheet URL
+  const checkButtonGoogleSheet = async (buttonId: string) => {
+    setIsLoading(true);
+    try {
+      const buttonData = await buttonService.getButtonData(buttonId);
+
+      if (buttonData.success && buttonData.data?.btndata) {
+        const btnData = buttonData.data.btndata;
+
+        // If button has Google Sheet URL, show modal to confirm/edit
+        if (btnData.googlesheeturl) {
+          setGoogleSheetUrl(btnData.googlesheeturl);
+          setGoogleSheetModalOpen(true);
+        } else {
+          // No Google Sheet URL, copy directly
+          copyButtonToProduction(buttonId);
+        }
+      } else {
+        setOperationResult({
+          success: false,
+          message: `Failed to get button data: ${buttonData.error || "Unknown error"}`,
+        });
+        setShowResultMessage(true);
+        setIsCopyingToProduction(false);
+      }
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: `Error getting button data: ${error.message || "Unknown error"}`,
+      });
+      setShowResultMessage(true);
+      setIsCopyingToProduction(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper to perform the actual copy to production
+  const copyButtonToProduction = async (buttonId: string, sheetUrl?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+
+      if (response.success) {
+        if (response.data?.message === "button already exists") {
+          setOperationResult({
+            success: false,
+            message: "Button already exists in production",
+          });
+          setShowResultMessage(true);
+        } else {
+          // Set success message
+          setOperationResult({
+            success: true,
+            message: "Button copied to production successfully!",
+          });
+
+          // Show custom success dialog instead of generic result message
+          setShowSuccessCopyDialog(true);
+
+          // Refresh button list
+          refreshButtonsList();
+        }
+      } else {
+        setOperationResult({
+          success: false,
+          message: `Failed to copy to production: ${response.error || "Unknown error"}`,
+        });
+        setShowResultMessage(true);
+      }
+
+      setGoogleSheetModalOpen(false);
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: `Error copying to production: ${error.message || "Unknown error"}`,
+      });
+      setShowResultMessage(true);
+    } finally {
+      setIsLoading(false);
+      setIsCopyingToProduction(false);
+    }
+  };
+
+  // Handler for updating Google Sheet URL
+  const handleUpdateGoogleSheet = async () => {
+    if (!selectedButtonForAction) return;
+
+    setIsLoading(true);
+    try {
+      if (isCopyingToProduction) {
+        // If copying to production, use the Google Sheet URL in that process
+        await copyButtonToProduction(selectedButtonForAction, googleSheetUrl);
+      } else {
+        // If just updating Google Sheet URL for duplicated button
+        const response = await buttonService.updateGoogleSheetUrl(selectedButtonForAction, googleSheetUrl);
+
+        if (response.success) {
+          setOperationResult({
+            success: true,
+            message: "Google Sheet URL updated successfully!",
+          });
+
+          // Refresh button list
+          refreshButtonsList();
+        } else {
+          setOperationResult({
+            success: false,
+            message: `Failed to update Google Sheet URL: ${response.error || "Unknown error"}`,
+          });
+        }
+
+        setShowResultMessage(true);
+        setGoogleSheetModalOpen(false);
+      }
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: `Error updating Google Sheet URL: ${error.message || "Unknown error"}`,
+      });
+      setShowResultMessage(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper to refresh buttons list
+  const refreshButtonsList = async () => {
+    try {
+      const buttonsResponse = await buttonService.getButtons();
+      if (buttonsResponse.success && buttonsResponse.data) {
+        // Update Redux store
+        dispatch(getButtons({ data: buttonsResponse.data.data || [] }));
+
+        // Format buttons for UI display
+        const buttonsData = buttonsResponse.data.data || [];
+        const formattedButtons = buttonsData.map((button: any) => {
+          const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
+          let lastModified = "Recently";
+          if (button.btndata?.eptime) {
+            const buttonDate = new Date(timestamp);
+            const now = new Date();
+            const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 1) {
+              lastModified = "Today";
+            } else if (diffDays === 1) {
+              lastModified = "Yesterday";
+            } else if (diffDays < 7) {
+              lastModified = `${diffDays} Days ago`;
+            } else {
+              const diffWeeks = Math.floor(diffDays / 7);
+              lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
+            }
+          }
+
+          return {
+            id: button.buttonid,
+            name: button.btndata?.name || "Unnamed Button",
+            category: button.btndata?.coverage?.category || "Other",
+            documentType: button.btndata?.type || "Other",
+            invites: button.invited || 0,
+            documents: button.docreceived || 0,
+            lastModified: lastModified,
+            timestamp: timestamp,
+          };
+        });
+
+        formattedButtons.sort((a: FormattedButton, b: FormattedButton) => b.timestamp - a.timestamp);
+        setButtons(formattedButtons);
+      }
+    } catch (error) {
+      console.error("Error refreshing buttons list:", error);
+    }
+  };
+
+  // Handler for deleting a button
+  const handleDeleteButton = async (buttonId: string) => {
+    if (!buttonId) return;
+
+    setIsLoading(true);
+    try {
+      const response = await buttonService.deleteButton(buttonId);
+
+      if (response.success) {
+        setOperationResult({
+          success: true,
+          message: "Button deleted successfully",
+        });
+
+        // Refresh button list
+        refreshButtonsList();
+      } else {
+        setOperationResult({
+          success: false,
+          message: `Failed to delete button: ${response.error || "Unknown error"}`,
+        });
+      }
+
+      setShowResultMessage(true);
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: `Error deleting button: ${error.message || "Unknown error"}`,
+      });
+      setShowResultMessage(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-none">
@@ -859,7 +1176,7 @@ export default function ValidationButtons() {
                           <div className="flex justify-center mb-5">
                             <div className="relative">
                               <motion.div
-                                className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center"
+                                className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center"
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{
@@ -882,7 +1199,7 @@ export default function ValidationButtons() {
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
-                                    className="text-green-600 dark:text-green-400"
+                                    className="text-blue-600 dark:text-blue-400"
                                   >
                                     <motion.path
                                       d="M22 9L12 19L6 13"
@@ -1061,6 +1378,603 @@ export default function ValidationButtons() {
                             </motion.div>
                           </motion.div>
                         </div>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Duplicate Button Modal */}
+              <Dialog
+                open={duplicateButtonModalOpen}
+                onOpenChange={(open) => {
+                  setDuplicateButtonModalOpen(open);
+                  if (!open) {
+                    // Clean up state when modal is closed
+                    setNewButtonName("");
+                    setSelectedButtonForAction(null);
+                    setIsDuplicating(false);
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3, type: "spring", stiffness: 150 }}
+                    className="relative mx-auto w-full"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-background/0 blur-3xl rounded-[40px] opacity-30 transform -rotate-3 scale-105"></div>
+
+                    <motion.div
+                      className="relative bg-background/95 backdrop-blur-sm dark:bg-[#0a0e1a] rounded-2xl shadow-xl overflow-hidden border border-border/70 dark:border-border/30 dark:ring-1 dark:ring-slate-600/25"
+                      initial={{ scale: 0.98 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1, duration: 0.2 }}
+                    >
+                      {/* Animated Particles Background */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {[...Array(12)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute rounded-full bg-blue-500/20"
+                            style={{
+                              width: Math.random() * 40 + 10,
+                              height: Math.random() * 40 + 10,
+                              left: `${Math.random() * 100}%`,
+                              top: `${Math.random() * 100}%`,
+                            }}
+                            animate={{
+                              y: [0, -60],
+                              x: [0, Math.random() * 30 - 15],
+                              opacity: [0, 0.3, 0],
+                              scale: [0.8, 1.2, 0.5],
+                            }}
+                            transition={{
+                              duration: 8 + Math.random() * 4,
+                              repeat: Infinity,
+                              delay: Math.random() * 5,
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="flex flex-row">
+                        {/* Left side - Visual */}
+                        <motion.div
+                          className="relative py-8 px-5 text-center w-2/5 flex flex-col justify-center items-center bg-[#0a101b] dark:bg-[#070b16]"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2, duration: 0.3 }}
+                        >
+                          <div className="flex justify-center mb-5">
+                            <div className="relative">
+                              <motion.div
+                                className="h-16 w-16 rounded-full bg-[#1a2c52] flex items-center justify-center"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{
+                                  type: "spring",
+                                  damping: 10,
+                                  stiffness: 200,
+                                  delay: 0.2,
+                                }}
+                              >
+                                <motion.div
+                                  initial={{ opacity: 0, rotate: -30 }}
+                                  animate={{ opacity: 1, rotate: 0 }}
+                                  transition={{ delay: 0.4, duration: 0.4 }}
+                                >
+                                  <Clipboard className="h-9 w-9 text-[#4d7cfe]" strokeWidth={1.5} />
+                                </motion.div>
+                              </motion.div>
+                              <motion.div
+                                className="absolute inset-0 rounded-full border-2 border-blue-500/40"
+                                initial={{ scale: 1.2, opacity: 0 }}
+                                animate={{ scale: 1.4, opacity: 0 }}
+                                transition={{
+                                  duration: 1.5,
+                                  repeat: Infinity,
+                                  repeatType: "loop",
+                                  ease: "easeOut",
+                                  delay: 1,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <motion.h3
+                            className="text-xl font-medium text-white mb-2"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3, duration: 0.3 }}
+                          >
+                            Duplicate Button
+                          </motion.h3>
+                        </motion.div>
+
+                        {/* Right side - Settings and Actions */}
+                        <div className="px-6 py-8 w-3/5 bg-[#131e35] dark:bg-[#0c1220]">
+                          {/* Title and Description */}
+                          <DialogHeader className="p-0 text-left">
+                            <motion.div
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.4, duration: 0.3 }}
+                            >
+                              <DialogTitle className="text-xl font-semibold text-white">Duplicate Button</DialogTitle>
+                            </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.45, duration: 0.3 }}
+                            >
+                              <DialogDescription className="text-gray-400">
+                                Enter a name for the duplicated button
+                              </DialogDescription>
+                            </motion.div>
+                          </DialogHeader>
+
+                          <motion.div
+                            className="h-1 w-24 bg-gradient-to-r from-blue-500/0 via-blue-500 to-blue-500/0 rounded-full my-4"
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 96, opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.4 }}
+                          />
+
+                          {/* Input Field */}
+                          <motion.div
+                            className="my-6"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.6, duration: 0.3 }}
+                          >
+                            <motion.div
+                              className="relative"
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.7, duration: 0.3 }}
+                              whileHover={{ scale: 1.01 }}
+                            >
+                              <Input
+                                value={newButtonName}
+                                onChange={(e) => setNewButtonName(e.target.value)}
+                                placeholder="New Button Name"
+                                className="w-full pr-8 transition-all border-slate-700 bg-slate-800/50 text-white focus-visible:ring-blue-400/30 focus-visible:border-blue-400/60 h-10 text-base"
+                                autoFocus
+                              />
+                              <motion.div
+                                className="absolute right-3 top-2.5"
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.8, duration: 0.3 }}
+                              >
+                                <FileText className="h-4 w-4 text-gray-400" />
+                              </motion.div>
+                            </motion.div>
+
+                            <AnimatePresence>
+                              {!newButtonName.trim() && (
+                                <motion.p
+                                  className="mt-2 text-sm text-red-500 dark:text-red-400"
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                >
+                                  Please provide a name for your button
+                                </motion.p>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+
+                          {/* Info text */}
+                          <motion.div
+                            className="mb-6"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.8, duration: 0.3 }}
+                          >
+                            <p className="text-sm text-gray-400">The unique button name helps identify your button</p>
+                          </motion.div>
+
+                          {/* Action buttons */}
+                          <motion.div
+                            className="flex gap-4"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.9, duration: 0.3 }}
+                          >
+                            <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                variant="outline"
+                                onClick={() => setDuplicateButtonModalOpen(false)}
+                                className="w-full dark:border-slate-600 dark:hover:bg-slate-800/70 h-10 text-white bg-slate-800/60 hover:bg-slate-700/60"
+                              >
+                                Cancel
+                              </Button>
+                            </motion.div>
+                            <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                onClick={confirmDuplicateButton}
+                                disabled={isLoading || !newButtonName.trim()}
+                                className="w-full relative overflow-hidden h-10 font-medium bg-blue-500 hover:bg-blue-600 text-white"
+                              >
+                                {isLoading ? (
+                                  <span className="flex items-center justify-center">
+                                    <svg
+                                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                      ></path>
+                                    </svg>
+                                    Processing...
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span className="relative z-10">Duplicate</span>
+                                    <motion.div
+                                      className="absolute inset-0 bg-primary-foreground/10"
+                                      initial={{ x: "-100%" }}
+                                      whileHover={{ x: "0%" }}
+                                      transition={{ duration: 0.4, ease: "easeOut" }}
+                                    />
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          </motion.div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Google Sheet URL Modal */}
+              <Dialog
+                open={googleSheetModalOpen}
+                onOpenChange={(open) => {
+                  setGoogleSheetModalOpen(open);
+                  if (!open) {
+                    // Clean up state when modal is closed
+                    if (!isCopyingToProduction && !isDuplicating) {
+                      setGoogleSheetUrl("");
+                      setSelectedButtonForAction(null);
+                    }
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{isCopyingToProduction ? "Copy to Production" : "Update Google Sheet URL"}</DialogTitle>
+                    <DialogDescription>
+                      {isCopyingToProduction
+                        ? "Modify or confirm the Google Sheet URL for the production button"
+                        : "Enter the Google Sheet URL for this button"}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4 py-4">
+                    <Input
+                      value={googleSheetUrl}
+                      onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                      placeholder="Google Sheet URL"
+                      className="col-span-3"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setGoogleSheetModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleUpdateGoogleSheet} disabled={isLoading}>
+                      {isLoading ? "Processing..." : isCopyingToProduction ? "Copy to Production" : "Update"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Result Message Dialog */}
+              <Dialog
+                open={showResultMessage}
+                onOpenChange={(open) => {
+                  setShowResultMessage(open);
+                  if (!open) {
+                    // Clean up operation state when modal is closed
+                    setOperationResult(null);
+                    setIsCopyingToProduction(false);
+                    setIsDuplicating(false);
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{operationResult?.success ? "Success" : "Error"}</DialogTitle>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <p className={operationResult?.success ? "text-blue-600" : "text-red-600"}>{operationResult?.message}</p>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => setShowResultMessage(false)}>Close</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Copy to Production Confirmation Dialog */}
+              <Dialog
+                open={showCopyConfirmModal}
+                onOpenChange={(open) => {
+                  setShowCopyConfirmModal(open);
+                  if (!open) {
+                    setIsCopyingToProduction(false);
+                    setSelectedButtonForAction(null);
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3, type: "spring", stiffness: 150 }}
+                    className="relative mx-auto"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-background/0 blur-3xl rounded-[40px] opacity-30 transform -rotate-3 scale-105"></div>
+
+                    <motion.div
+                      className="relative bg-background/95 backdrop-blur-sm dark:bg-[#0e1320] rounded-2xl shadow-xl overflow-hidden border border-border/70 dark:border-border dark:ring-1 dark:ring-slate-600/25"
+                      initial={{ scale: 0.98 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1, duration: 0.2 }}
+                    >
+                      {/* Content */}
+                      <div className="p-6">
+                        <DialogHeader className="p-0 mb-4 flex flex-col items-center space-y-1">
+                          <motion.div
+                            className="flex justify-center mb-6"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.3 }}
+                          >
+                            <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                              <ExternalLink className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                            </div>
+                          </motion.div>
+
+                          <DialogTitle asChild>
+                            <motion.h2
+                              className="text-xl font-semibold text-center mb-2"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3, duration: 0.3 }}
+                            >
+                              Copy to Production
+                            </motion.h2>
+                          </DialogTitle>
+                        </DialogHeader>
+
+                        <motion.div
+                          className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500/0 via-blue-500 to-blue-500/0 rounded-full my-3"
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 96, opacity: 1 }}
+                          transition={{ delay: 0.4, duration: 0.4 }}
+                        />
+
+                        <motion.p
+                          className="text-center mb-6 text-muted-foreground"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5, duration: 0.3 }}
+                        >
+                          Are you sure you want to copy this button to production?
+                        </motion.p>
+
+                        <motion.div
+                          className="flex gap-4 justify-center"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.6, duration: 0.3 }}
+                        >
+                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Button variant="outline" onClick={handleCancelCopyToProduction} className="font-medium px-6">
+                              Cancel
+                            </Button>
+                          </motion.div>
+                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Button
+                              onClick={handleConfirmCopyToProduction}
+                              disabled={isLoading}
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-6 ml-4"
+                            >
+                              {isLoading ? (
+                                <span className="flex items-center justify-center">
+                                  <svg
+                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                  Processing...
+                                </span>
+                              ) : (
+                                "Yes"
+                              )}
+                            </Button>
+                          </motion.div>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Custom Success Dialog for Copy to Production */}
+              <Dialog
+                open={showSuccessCopyDialog}
+                onOpenChange={(open) => {
+                  setShowSuccessCopyDialog(open);
+                }}
+              >
+                <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3, type: "spring", stiffness: 150 }}
+                    className="relative mx-auto"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-green-500/20 to-background/0 blur-3xl rounded-[40px] opacity-30 transform -rotate-3 scale-105"></div>
+
+                    <motion.div
+                      className="relative bg-background/95 backdrop-blur-sm dark:bg-[#0e1320] rounded-2xl shadow-xl overflow-hidden border border-border/70 dark:border-border dark:ring-1 dark:ring-slate-600/25"
+                      initial={{ scale: 0.98 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1, duration: 0.2 }}
+                    >
+                      {/* Content */}
+                      <div className="p-6">
+                        <DialogHeader className="p-0 mb-4 flex flex-col items-center space-y-1">
+                          <motion.div
+                            className="flex justify-center mb-6"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.3 }}
+                          >
+                            <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3, duration: 0.3, type: "spring" }}
+                              >
+                                <svg
+                                  width="32"
+                                  height="32"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="text-blue-600 dark:text-blue-400"
+                                >
+                                  <motion.path
+                                    d="M20 6L9 17L4 12"
+                                    initial={{ pathLength: 0 }}
+                                    animate={{ pathLength: 1 }}
+                                    transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
+                                  />
+                                </svg>
+                              </motion.div>
+                            </div>
+                          </motion.div>
+
+                          <DialogTitle asChild>
+                            <motion.h2
+                              className="text-xl font-semibold text-center"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3, duration: 0.3 }}
+                            >
+                              Success
+                            </motion.h2>
+                          </DialogTitle>
+                        </DialogHeader>
+
+                        <motion.div
+                          className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500/0 via-blue-500 to-blue-500/0 rounded-full my-3"
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 96, opacity: 1 }}
+                          transition={{ delay: 0.4, duration: 0.4 }}
+                        />
+
+                        <motion.p
+                          className="text-center mb-6 text-black-500 dark:text-blue-400 font-medium"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5, duration: 0.3 }}
+                        >
+                          Button copied to production successfully!
+                        </motion.p>
+
+                        <motion.div
+                          className="flex justify-center"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.6, duration: 0.3 }}
+                        >
+                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Button
+                              onClick={() => setShowSuccessCopyDialog(false)}
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-2"
+                            >
+                              Close
+                            </Button>
+                          </motion.div>
+                        </motion.div>
+                      </div>
+
+                      {/* Decorative success particles */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {Array.from({ length: 10 }).map((_, i) => {
+                          // Generate random properties for each particle
+                          const size = Math.floor(Math.random() * 8 + 4);
+                          const left = `${Math.floor(Math.random() * 100)}%`;
+                          const top = `${Math.floor(Math.random() * 100)}%`;
+                          const delay = Math.random() * 2;
+                          const duration = 4 + Math.random() * 3;
+
+                          return (
+                            <motion.div
+                              key={i}
+                              className="absolute rounded-full bg-blue-500/30"
+                              style={{
+                                width: size,
+                                height: size,
+                                left: left,
+                                top: top,
+                              }}
+                              initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                              animate={{
+                                opacity: [0, 0.7, 0],
+                                y: -60,
+                                x: Math.random() * 40 - 20,
+                                scale: [0.5, 1, 0.5],
+                              }}
+                              transition={{
+                                duration: duration,
+                                repeat: Infinity,
+                                delay: delay,
+                              }}
+                            />
+                          );
+                        })}
                       </div>
                     </motion.div>
                   </motion.div>
@@ -1259,17 +2173,26 @@ export default function ValidationButtons() {
                                     </DropdownMenuItem>
                                     {authMode === 2 && (
                                       <>
-                                        <DropdownMenuItem className="cursor-pointer">
+                                        <DropdownMenuItem
+                                          onClick={() => handleDuplicateButton(button.id)}
+                                          className="cursor-pointer"
+                                        >
                                           <Clipboard className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
                                           <span>Duplicate</span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem className="cursor-pointer">
+                                        <DropdownMenuItem
+                                          onClick={() => handleCopyToProduction(button.id)}
+                                          className="cursor-pointer"
+                                        >
                                           <ExternalLink className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
                                           <span>Copy to production</span>
                                         </DropdownMenuItem>
                                       </>
                                     )}
-                                    <DropdownMenuItem className="text-red-600 dark:text-rose-400 cursor-pointer">
+                                    <DropdownMenuItem
+                                      onClick={() => handleDeleteButton(button.id)}
+                                      className="text-red-600 dark:text-rose-400 cursor-pointer"
+                                    >
                                       <Trash2 className="h-4 w-4 mr-2 text-red-600 dark:text-rose-400" />
                                       <span>Delete</span>
                                     </DropdownMenuItem>
