@@ -199,6 +199,11 @@ const SwaggerStyle = () => (
       background: #1f2937;
       color: #e5e7eb;
     }
+   
+    .swagger-ui .opblock-summary-operation-id {
+    display: none !important;
+    }
+      
   `}</style>
 );
 
@@ -852,6 +857,14 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
           requestInterceptor={(req: any) => {
             req.showRequestUrl = true;
             req.curlOptions = { formatted: true };
+            
+            // Ensure the server URL is used instead of localhost
+            if (req.url.startsWith('http://localhost')) {
+              // Extract the path portion
+              const path = new URL(req.url).pathname;
+              // Replace with the server URL from the spec
+              req.url = `https://api.dirolabs.com${path}`;
+            }
             
             if (token) {
               req.headers["Authorization"] = ` ${token}`;
