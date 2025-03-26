@@ -114,6 +114,9 @@ export default function ValidationButtons() {
   // Add state for copy to production confirmation modal
   const [showCopyConfirmModal, setShowCopyConfirmModal] = useState(false);
 
+  // Add new state for duplicate success modal
+  const [showDuplicateSuccessModal, setShowDuplicateSuccessModal] = useState(false);
+
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -421,10 +424,49 @@ export default function ValidationButtons() {
         try {
           const buttonsResponse = await buttonService.getButtons();
           if (buttonsResponse.success && buttonsResponse.data) {
+            // Update Redux store
             dispatch(getButtons({ data: buttonsResponse.data.data || [] }));
+
+            // Format buttons for UI display
+            const buttonsData = buttonsResponse.data.data || [];
+            const formattedButtons = buttonsData.map((button: any) => {
+              const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
+              let lastModified = "Recently";
+              if (button.btndata?.eptime) {
+                const buttonDate = new Date(timestamp);
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 1) {
+                  lastModified = "Today";
+                } else if (diffDays === 1) {
+                  lastModified = "Yesterday";
+                } else if (diffDays < 7) {
+                  lastModified = `${diffDays} Days ago`;
+                } else {
+                  const diffWeeks = Math.floor(diffDays / 7);
+                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
+                }
+              }
+
+              return {
+                id: button.buttonid,
+                name: button.btndata?.name || "Unnamed Button",
+                category: button.btndata?.coverage?.category || "Other",
+                documentType: button.btndata?.type || "Other",
+                invites: button.invited || 0,
+                documents: button.docreceived || 0,
+                lastModified: lastModified,
+                timestamp: timestamp,
+              };
+            });
+
+            formattedButtons.sort((a: FormattedButton, b: FormattedButton) => b.timestamp - a.timestamp);
+            setButtons(formattedButtons);
           }
-        } catch (refreshError) {
-          console.error("Error refreshing buttons list:", refreshError);
+        } catch (error) {
+          console.error("Error refreshing buttons list:", error);
         }
       } else {
         console.error("Failed to create button:", response.error);
@@ -572,13 +614,9 @@ export default function ValidationButtons() {
           setDuplicateButtonModalOpen(false);
           setGoogleSheetModalOpen(true);
         } else {
-          // If no Google Sheet URL, just display success
-          setOperationResult({
-            success: true,
-            message: "Button duplicated successfully!",
-          });
-          setShowResultMessage(true);
+          // If no Google Sheet URL, show the new styled success modal instead
           setDuplicateButtonModalOpen(false);
+          setShowDuplicateSuccessModal(true);
 
           // Refresh button list
           refreshButtonsList();
@@ -615,10 +653,18 @@ export default function ValidationButtons() {
   // Function to handle confirmed copy to production
   const handleConfirmCopyToProduction = () => {
     setShowCopyConfirmModal(false);
+    // Remove the loader completely and just show the processing state in the modal
+    // setIsLoading(true); - removing this line
 
+    // Show success dialog immediately with processing state
+    setShowSuccessCopyDialog(true);
+
+    // The copy process will run in the background
     if (selectedButtonForAction) {
-      // First check if the button has a Google Sheet URL
-      checkButtonGoogleSheet(selectedButtonForAction);
+      // Wait a small amount of time to ensure the success dialog shows first
+      setTimeout(() => {
+        checkButtonGoogleSheet(selectedButtonForAction);
+      }, 50);
     }
   };
 
@@ -631,86 +677,73 @@ export default function ValidationButtons() {
 
   // Helper to check if button has Google Sheet URL
   const checkButtonGoogleSheet = async (buttonId: string) => {
-    setIsLoading(true);
     try {
       const buttonData = await buttonService.getButtonData(buttonId);
 
       if (buttonData.success && buttonData.data?.btndata) {
         const btnData = buttonData.data.btndata;
 
-        // If button has Google Sheet URL, show modal to confirm/edit
-        if (btnData.googlesheeturl) {
-          setGoogleSheetUrl(btnData.googlesheeturl);
-          setGoogleSheetModalOpen(true);
-        } else {
-          // No Google Sheet URL, copy directly
-          copyButtonToProduction(buttonId);
-        }
+        // If button has Google Sheet URL, use it directly without showing another modal
+        const googleSheetUrl = btnData.googlesheeturl || "";
+
+        // Copy directly without showing any more dialogs
+        await copyButtonToProductionSilently(buttonId, googleSheetUrl);
       } else {
-        setOperationResult({
-          success: false,
-          message: `Failed to get button data: ${buttonData.error || "Unknown error"}`,
-        });
-        setShowResultMessage(true);
-        setIsCopyingToProduction(false);
+        console.error("Failed to get button data:", buttonData.error);
+        // Clear selectedButtonForAction to show completed state even on error
+        setSelectedButtonForAction(null);
       }
     } catch (error: any) {
-      setOperationResult({
-        success: false,
-        message: `Error getting button data: ${error.message || "Unknown error"}`,
-      });
-      setShowResultMessage(true);
-      setIsCopyingToProduction(false);
-    } finally {
-      setIsLoading(false);
+      console.error("Error in background processing:", error.message);
+      // Clear selectedButtonForAction to show completed state even on error
+      setSelectedButtonForAction(null);
     }
   };
 
-  // Helper to perform the actual copy to production
-  const copyButtonToProduction = async (buttonId: string, sheetUrl?: string) => {
-    setIsLoading(true);
+  // Silent version that doesn't show any UI feedback
+  const copyButtonToProductionSilently = async (buttonId: string, sheetUrl?: string) => {
     try {
       const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
 
       if (response.success) {
-        if (response.data?.message === "button already exists") {
-          setOperationResult({
-            success: false,
-            message: "Button already exists in production",
-          });
-          setShowResultMessage(true);
-        } else {
-          // Set success message
-          setOperationResult({
-            success: true,
-            message: "Button copied to production successfully!",
-          });
-
-          // Show custom success dialog instead of generic result message
-          setShowSuccessCopyDialog(true);
-
-          // Refresh button list
-          refreshButtonsList();
-        }
+        // Just refresh button list silently
+        refreshButtonsList();
+        // Clear selectedButtonForAction to show success state in modal
+        setSelectedButtonForAction(null);
       } else {
-        setOperationResult({
-          success: false,
-          message: `Failed to copy to production: ${response.error || "Unknown error"}`,
-        });
-        setShowResultMessage(true);
+        console.error("Failed to copy to production:", response.error);
+        // Also clear selectedButtonForAction on error to show completed state
+        setSelectedButtonForAction(null);
       }
+    } catch (error: any) {
+      console.error("Error copying to production:", error.message);
+      // Also clear selectedButtonForAction on error to show completed state
+      setSelectedButtonForAction(null);
+    }
+  };
 
+  // Fix the missing copyButtonToProduction function
+  const copyButtonToProduction = async (buttonId: string, sheetUrl?: string) => {
+    try {
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+      if (response.success) {
+        refreshButtonsList();
+      } else {
+        console.error("Failed to copy to production:", response.error);
+      }
+      // Close the Google Sheet modal
       setGoogleSheetModalOpen(false);
     } catch (error: any) {
-      setOperationResult({
-        success: false,
-        message: `Error copying to production: ${error.message || "Unknown error"}`,
-      });
-      setShowResultMessage(true);
-    } finally {
-      setIsLoading(false);
-      setIsCopyingToProduction(false);
+      console.error("Error copying to production:", error.message);
     }
+  };
+
+  // Custom Success Dialog for Copy to Production - show it immediately after confirmation
+  // Only this dialog should be shown to the user
+  const handleCloseSuccessCopyDialog = () => {
+    setShowSuccessCopyDialog(false);
+    setIsCopyingToProduction(false);
+    setSelectedButtonForAction(null);
   };
 
   // Handler for updating Google Sheet URL
@@ -726,11 +759,12 @@ export default function ValidationButtons() {
         // If just updating Google Sheet URL for duplicated button
         const response = await buttonService.updateGoogleSheetUrl(selectedButtonForAction, googleSheetUrl);
 
+        // Close the Google Sheet modal regardless of success
+        setGoogleSheetModalOpen(false);
+
         if (response.success) {
-          setOperationResult({
-            success: true,
-            message: "Google Sheet URL updated successfully!",
-          });
+          // Show the styled success modal instead of the simple message
+          setShowDuplicateSuccessModal(true);
 
           // Refresh button list
           refreshButtonsList();
@@ -739,12 +773,13 @@ export default function ValidationButtons() {
             success: false,
             message: `Failed to update Google Sheet URL: ${response.error || "Unknown error"}`,
           });
+          setShowResultMessage(true);
         }
-
-        setShowResultMessage(true);
-        setGoogleSheetModalOpen(false);
       }
     } catch (error: any) {
+      // Close the Google Sheet modal on error
+      setGoogleSheetModalOpen(false);
+
       setOperationResult({
         success: false,
         message: `Error updating Google Sheet URL: ${error.message || "Unknown error"}`,
@@ -839,6 +874,12 @@ export default function ValidationButtons() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handler for closing the duplicate success modal
+  const handleCloseDuplicateSuccessModal = () => {
+    setShowDuplicateSuccessModal(false);
+    setSelectedButtonForAction(null);
   };
 
   return (
@@ -1408,7 +1449,7 @@ export default function ValidationButtons() {
                     <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-background/0 blur-3xl rounded-[40px] opacity-30 transform -rotate-3 scale-105"></div>
 
                     <motion.div
-                      className="relative bg-background/95 backdrop-blur-sm dark:bg-[#0a0e1a] rounded-2xl shadow-xl overflow-hidden border border-border/70 dark:border-border/30 dark:ring-1 dark:ring-slate-600/25"
+                      className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700/70 dark:ring-1 dark:ring-slate-600/25"
                       initial={{ scale: 0.98 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.1, duration: 0.2 }}
@@ -1443,7 +1484,7 @@ export default function ValidationButtons() {
                       <div className="flex flex-row">
                         {/* Left side - Visual */}
                         <motion.div
-                          className="relative py-8 px-5 text-center w-2/5 flex flex-col justify-center items-center bg-[#0a101b] dark:bg-[#070b16]"
+                          className="relative py-8 px-5 text-center w-2/5 flex flex-col justify-center items-center bg-blue-50 dark:bg-blue-900/20"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.2, duration: 0.3 }}
@@ -1451,7 +1492,7 @@ export default function ValidationButtons() {
                           <div className="flex justify-center mb-5">
                             <div className="relative">
                               <motion.div
-                                className="h-16 w-16 rounded-full bg-[#1a2c52] flex items-center justify-center"
+                                className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center"
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{
@@ -1466,7 +1507,7 @@ export default function ValidationButtons() {
                                   animate={{ opacity: 1, rotate: 0 }}
                                   transition={{ delay: 0.4, duration: 0.4 }}
                                 >
-                                  <Clipboard className="h-9 w-9 text-[#4d7cfe]" strokeWidth={1.5} />
+                                  <Clipboard className="h-9 w-9 text-blue-500 dark:text-blue-400" strokeWidth={1.5} />
                                 </motion.div>
                               </motion.div>
                               <motion.div
@@ -1485,7 +1526,7 @@ export default function ValidationButtons() {
                           </div>
 
                           <motion.h3
-                            className="text-xl font-medium text-white mb-2"
+                            className="text-xl font-medium text-slate-900 dark:text-white mb-2"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3, duration: 0.3 }}
@@ -1495,7 +1536,7 @@ export default function ValidationButtons() {
                         </motion.div>
 
                         {/* Right side - Settings and Actions */}
-                        <div className="px-6 py-8 w-3/5 bg-[#131e35] dark:bg-[#0c1220]">
+                        <div className="px-6 py-8 w-3/5 bg-white dark:bg-slate-900">
                           {/* Title and Description */}
                           <DialogHeader className="p-0 text-left">
                             <motion.div
@@ -1503,14 +1544,16 @@ export default function ValidationButtons() {
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.4, duration: 0.3 }}
                             >
-                              <DialogTitle className="text-xl font-semibold text-white">Duplicate Button</DialogTitle>
+                              <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-white">
+                                Duplicate Button
+                              </DialogTitle>
                             </motion.div>
                             <motion.div
                               initial={{ opacity: 0, x: 10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.45, duration: 0.3 }}
                             >
-                              <DialogDescription className="text-gray-400">
+                              <DialogDescription className="text-slate-500 dark:text-slate-400">
                                 Enter a name for the duplicated button
                               </DialogDescription>
                             </motion.div>
@@ -1537,20 +1580,27 @@ export default function ValidationButtons() {
                               transition={{ delay: 0.7, duration: 0.3 }}
                               whileHover={{ scale: 1.01 }}
                             >
+                              <label
+                                htmlFor="buttonName"
+                                className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300"
+                              >
+                                Button Name
+                              </label>
                               <Input
+                                id="buttonName"
                                 value={newButtonName}
                                 onChange={(e) => setNewButtonName(e.target.value)}
-                                placeholder="New Button Name"
-                                className="w-full pr-8 transition-all border-slate-700 bg-slate-800/50 text-white focus-visible:ring-blue-400/30 focus-visible:border-blue-400/60 h-10 text-base"
+                                placeholder="Enter button name"
+                                className="w-full pr-8 transition-all border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus-visible:ring-blue-400/30 focus-visible:border-blue-400/60 h-10 text-base"
                                 autoFocus
                               />
                               <motion.div
-                                className="absolute right-3 top-2.5"
+                                className="absolute right-3 top-[34px]"
                                 initial={{ opacity: 0, scale: 0 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.8, duration: 0.3 }}
                               >
-                                <FileText className="h-4 w-4 text-gray-400" />
+                                <FileText className="h-4 w-4 text-slate-400" />
                               </motion.div>
                             </motion.div>
 
@@ -1575,7 +1625,10 @@ export default function ValidationButtons() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.8, duration: 0.3 }}
                           >
-                            <p className="text-sm text-gray-400">The unique button name helps identify your button</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center">
+                              <Info className="h-4 w-4 mr-2 text-blue-500" />
+                              The unique button name helps identify your button
+                            </p>
                           </motion.div>
 
                           {/* Action buttons */}
@@ -1589,7 +1642,7 @@ export default function ValidationButtons() {
                               <Button
                                 variant="outline"
                                 onClick={() => setDuplicateButtonModalOpen(false)}
-                                className="w-full dark:border-slate-600 dark:hover:bg-slate-800/70 h-10 text-white bg-slate-800/60 hover:bg-slate-700/60"
+                                className="w-full border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 h-10 text-slate-700 dark:text-slate-300"
                               >
                                 Cancel
                               </Button>
@@ -1839,7 +1892,9 @@ export default function ValidationButtons() {
               <Dialog
                 open={showSuccessCopyDialog}
                 onOpenChange={(open) => {
-                  setShowSuccessCopyDialog(open);
+                  if (!open) {
+                    handleCloseSuccessCopyDialog();
+                  }
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
@@ -1873,24 +1928,48 @@ export default function ValidationButtons() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.3, duration: 0.3, type: "spring" }}
                               >
-                                <svg
-                                  width="32"
-                                  height="32"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-blue-600 dark:text-blue-400"
-                                >
-                                  <motion.path
-                                    d="M20 6L9 17L4 12"
-                                    initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: 1 }}
-                                    transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
-                                  />
-                                </svg>
+                                {/* Show different icons based on processing state */}
+                                {selectedButtonForAction ? (
+                                  <svg
+                                    className="animate-spin h-8 w-8 text-blue-600 dark:text-blue-400"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="3"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                ) : (
+                                  <svg
+                                    width="32"
+                                    height="32"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-blue-600 dark:text-blue-400"
+                                  >
+                                    <motion.path
+                                      d="M20 6L9 17L4 12"
+                                      initial={{ pathLength: 0 }}
+                                      animate={{ pathLength: 1 }}
+                                      transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
+                                    />
+                                  </svg>
+                                )}
                               </motion.div>
                             </div>
                           </motion.div>
@@ -1902,7 +1981,7 @@ export default function ValidationButtons() {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.3, duration: 0.3 }}
                             >
-                              Success
+                              {selectedButtonForAction ? "Processing" : "Success"}
                             </motion.h2>
                           </DialogTitle>
                         </DialogHeader>
@@ -1920,7 +1999,14 @@ export default function ValidationButtons() {
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.5, duration: 0.3 }}
                         >
-                          Button copied to production successfully!
+                          {selectedButtonForAction ? (
+                            <span className="flex flex-col items-center">
+                              <span className="mb-2">Please wait while we copy your button to production...</span>
+                              <span className="text-sm text-muted-foreground">This may take a few moments</span>
+                            </span>
+                          ) : (
+                            "Button copied to production successfully!"
+                          )}
                         </motion.p>
 
                         <motion.div
@@ -1929,14 +2015,16 @@ export default function ValidationButtons() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.6, duration: 0.3 }}
                         >
-                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <Button
-                              onClick={() => setShowSuccessCopyDialog(false)}
-                              className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-2"
-                            >
-                              Close
-                            </Button>
-                          </motion.div>
+                          {!selectedButtonForAction && (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                onClick={handleCloseSuccessCopyDialog}
+                                className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-8 py-2"
+                              >
+                                Close
+                              </Button>
+                            </motion.div>
+                          )}
                         </motion.div>
                       </div>
 
@@ -1975,6 +2063,103 @@ export default function ValidationButtons() {
                             />
                           );
                         })}
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Add the Duplicate Success Dialog */}
+              <Dialog
+                open={showDuplicateSuccessModal}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    handleCloseDuplicateSuccessModal();
+                  }
+                }}
+              >
+                <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.25 }}
+                    className="relative mx-auto"
+                  >
+                    <motion.div
+                      className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                      initial={{ scale: 0.98 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {/* Top accent bar */}
+                      <div className="absolute top-0 inset-x-0 h-0.5 bg-blue-500 dark:bg-blue-600"></div>
+
+                      {/* Content */}
+                      <div className="p-6 relative">
+                        <div className="flex justify-center mb-5">
+                          <motion.div
+                            className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/30"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                              <svg
+                                width="28"
+                                height="28"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-blue-500 dark:text-blue-400"
+                              >
+                                <motion.path
+                                  d="M20 6L9 17L4 12"
+                                  initial={{ pathLength: 0 }}
+                                  animate={{ pathLength: 1 }}
+                                  transition={{ duration: 0.4, ease: "easeOut" }}
+                                />
+                              </svg>
+                            </motion.div>
+                          </motion.div>
+                        </div>
+
+                        <div className="text-center space-y-2 mb-5">
+                          <motion.h3
+                            className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15, duration: 0.25 }}
+                          >
+                            Button Duplicated
+                          </motion.h3>
+
+                          <motion.p
+                            className="text-sm text-slate-600 dark:text-slate-400"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.25, duration: 0.25 }}
+                          >
+                            Your button "{newButtonName}" has been successfully duplicated
+                          </motion.p>
+                        </div>
+
+                        <motion.div
+                          className="flex justify-center"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3, duration: 0.25 }}
+                        >
+                          <Button
+                            onClick={handleCloseDuplicateSuccessModal}
+                            className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-6 py-2"
+                          >
+                            Close
+                          </Button>
+                        </motion.div>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -2157,7 +2342,7 @@ export default function ValidationButtons() {
                                           variant="ghost"
                                           size="icon"
                                           className={`h-8 w-8 rounded-full bg-blue-50 hover:bg-blue-100 shadow-sm mr-8 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all duration-300 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${buttonStyles}`}
-                                          style={{ marginRight: "1rem" }}
+                                          style={{ marginRight: "2rem" }}
                                         >
                                           <Settings
                                             className={`h-4 w-4 text-blue-600 dark:text-sky-400 transition-all duration-500 ease-in-out ${iconStyles}`}

@@ -14,8 +14,9 @@ const nextConfig = {
     serverExternalPackages: [],
     // Add experimental features to support Next.js 15
     experimental: {
-        // Enable modern optimization features
-        optimizeCss: true,
+        // Note: optimizeCss can sometimes cause issues with CSS loading
+        // Removing this to test if it resolves 404 CSS errors
+        // optimizeCss: true,
         // Improve module resolution
         optimizePackageImports: ['react-day-picker', 'date-fns', '@react-pdf-viewer/core', 'lucide-react', 'framer-motion', 'recharts'],
         // Add these additional performance optimizations for Next.js 15
@@ -64,6 +65,16 @@ const nextConfig = {
                 },
             };
         }
+
+        // Add better CSS handling for Next.js development
+        if (dev) {
+            // Ensure CSS processing doesn't fail silently
+            config.infrastructureLogging = {
+                ...config.infrastructureLogging,
+                level: 'error',
+            };
+        }
+
         return config;
     },
     async rewrites() {
