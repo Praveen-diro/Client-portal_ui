@@ -90,10 +90,17 @@
       "required": ["docid"],
       "properties": {
         "docid": {
-          "type": "string",
-          "description": "Session ID of the document to be deleted",
-          "example": "IN-Ab3E"
+          "type": "string", 
+          "description": "unique id for document submitted",
+          "example": "IN-123TXyT"
+        },
+        "session": {
+          "type": "boolean",
+          "example": "false"
         }
+      },
+      "xml": {
+        "name": "PdftojsonRequest"
       }
     },
     "DeletedocumentResponse": {
@@ -112,33 +119,25 @@
     "DocIdWrongResponse": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string",
-          "example": "Error"
-        },
-        "message": {
-          "type": "string",
-          "example": "Document ID is wrong"
-        },
         "error": {
           "type": "boolean",
           "example": true
+        },
+        "message": {
+          "type": "string", 
+          "example": "sessionid does not exist"
         }
       }
     },
     "DocumentDeleted": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string",
-          "example": "Error"
-        },
         "message": {
           "type": "string",
           "example": "Document already deleted"
         },
         "error": {
-          "type": "boolean",
+          "type": "boolean", 
           "example": true
         }
       }
@@ -146,18 +145,14 @@
     "DocIdEmpty": {
       "type": "object",
       "properties": {
-        "status": {
+        "error": {
           "type": "string",
-          "example": "Error"
-        },
-        "message": {
-          "type": "string",
-          "example": "Document ID is empty"
+          "example": "session id can't be null or empty"
         }
       }
     },
     "InvalidRequest": {
-      "type": "object",
+      "type": "object", 
       "properties": {
         "timestamp": {
           "type": "string",
