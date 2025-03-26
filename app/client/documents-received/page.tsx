@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Clock, CheckCircle, XCircle, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
+import { shallowEqual } from "react-redux";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,10 @@ const initialStats = {
 
 export default function DocumentsReceived() {
   const pathname = usePathname();
-  const [shouldAnimate, setShouldAnimate] = useState(true);
+  // Use useRef instead of state for animation flags to prevent unnecessary rerenders
+  const shouldAnimateRef = useRef(true);
+  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
@@ -36,59 +40,104 @@ export default function DocumentsReceived() {
   // Stats state
   const [stats, setStats] = useState(initialStats);
 
-  // Get count data from Redux store for the stats
-  const pendingDocuments = useSelector((state: any) => state.table.pendings);
-  const approvedDocuments = useSelector((state: any) => state.table.approved);
-  const rejectedDocuments = useSelector((state: any) => state.table.rejects);
+  // Use memoized selectors to prevent unnecessary rerenders
+  const pendingDocuments = useSelector((state: any) => state.table.pendings, shallowEqual);
+  const approvedDocuments = useSelector((state: any) => state.table.approved, shallowEqual);
+  const rejectedDocuments = useSelector((state: any) => state.table.rejects, shallowEqual);
+  const totalDocuments = useSelector((state: any) => state.table.totalDocuments, shallowEqual);
 
+  // Optimize the animation effect to reduce rerenders
   useEffect(() => {
-    setShouldAnimate(true);
-    const timer = setTimeout(() => {
-      setShouldAnimate(false);
-    }, 2000);
+    // Clear any existing timeout to prevent memory leaks
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
 
-    return () => clearTimeout(timer);
+    // Set animation flag
+    shouldAnimateRef.current = true;
+
+    // Use ref for timeout to properly clean up
+    animationTimeoutRef.current = setTimeout(() => {
+      shouldAnimateRef.current = false;
+    }, 1000); // Reduced from 2000ms to 1000ms for better performance
+
+    // Clean up on unmount
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+    };
   }, [pathname]);
 
-  // Effect to fetch stats
-  useEffect(() => {
-    fetchStats();
-  }, [pendingDocuments, approvedDocuments, rejectedDocuments]);
-
-  // Fetch stats for all tabs
-  const fetchStats = async () => {
+  // Memoize the fetchStats function to prevent unnecessary recreations
+  const fetchStats = useCallback(async () => {
     try {
       // In a real implementation, you would make an API call to get accurate stats
       // For now, we'll update based on redux state or use default values
+      const pendingCount = totalDocuments?.pendingCount || 0;
+      const approvedCount = totalDocuments?.approvedCount || 0;
+      const rejectedCount = totalDocuments?.rejectedCount || 0;
 
-      const pendingCount = pendingDocuments?.data?.length || 10;
-      const approvedCount = approvedDocuments?.data?.length || 25;
-      const rejectedCount = rejectedDocuments?.data?.length || 5;
-
-      setStats({
+      // Use functional update to ensure we're working with the latest state
+      setStats((prevStats) => ({
         pending: pendingCount,
         approved: approvedCount,
         rejected: rejectedCount,
-      });
+      }));
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
-  };
+  }, [pendingDocuments, approvedDocuments, rejectedDocuments]);
 
-  // Handle tab change
-  const handleTabChange = (tab: string) => {
+  // Effect to fetch stats - now using the memoized fetchStats
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Memoize the tab change handler
+  const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
-  };
+  }, []);
 
-  const initialAnimation = shouldAnimate ? { opacity: 0, x: 200 } : { opacity: 1, x: 0 };
+  // Use useMemo for animation values to prevent recalculations
+  const { initialAnimation, transitionConfig } = useMemo(
+    () => ({
+      initialAnimation: shouldAnimateRef.current ? { opacity: 0, x: 200 } : { opacity: 1, x: 0 },
+      transitionConfig: {
+        type: "spring",
+        stiffness: 70,
+        damping: 25,
+        restDelta: 0.001,
+        mass: 0.5,
+      },
+    }),
+    []
+  );
 
-  const transitionConfig = {
-    type: "spring",
-    stiffness: 70,
-    damping: 25,
-    restDelta: 0.001,
-    mass: 0.5,
-  };
+  // Optimize animations with memoized values
+  const cardAnimations = useMemo(
+    () => [
+      { delay: 0.1, initialAnimation },
+      { delay: 0.2, initialAnimation },
+      { delay: 0.3, initialAnimation },
+    ],
+    [initialAnimation]
+  );
+
+  const tabContentAnimations = useMemo(
+    () => ({
+      initial: { opacity: 0, x: 200 },
+      animate: { opacity: 1, x: 0 },
+      transition: {
+        type: "spring",
+        stiffness: 70,
+        damping: 25,
+        mass: 0.5,
+        delay: 0.3,
+      },
+    }),
+    []
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -100,68 +149,50 @@ export default function DocumentsReceived() {
           <PageHeader title="Documents Received" description="View and manage received documents for verification" />
           <div className="container mx-auto px-6 py-8">
             <div className="grid gap-4 md:grid-cols-3">
-              <motion.div
-                initial={initialAnimation}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  ...transitionConfig,
-                  delay: 0.1,
-                }}
-              >
-                <Card className="relative overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                    <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-                    <Clock className="h-4 w-4 text-yellow-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Awaiting verification</p>
-                    <div className="absolute bottom-0 left-0 h-1 w-full bg-yellow-500/20" />
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={initialAnimation}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  ...transitionConfig,
-                  delay: 0.2,
-                }}
-              >
-                <Card className="relative overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                    <CardTitle className="text-sm font-medium">Approved</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-green-500">{stats.approved}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Verified documents</p>
-                    <div className="absolute bottom-0 left-0 h-1 w-full bg-green-500/20" />
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={initialAnimation}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  ...transitionConfig,
-                  delay: 0.3,
-                }}
-              >
-                <Card className="relative overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                    <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-red-500">{stats.rejected}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Failed verification</p>
-                    <div className="absolute bottom-0 left-0 h-1 w-full bg-red-500/20" />
-                  </CardContent>
-                </Card>
-              </motion.div>
+              {/* Use memoized animations for cards to reduce JS calculations */}
+              {cardAnimations.map((anim, index) => (
+                <motion.div
+                  key={`card-${index}`}
+                  initial={anim.initialAnimation}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    ...transitionConfig,
+                    delay: anim.delay,
+                  }}
+                >
+                  <Card className="relative overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                      <CardTitle className="text-sm font-medium">
+                        {index === 0 ? "Pending Review" : index === 1 ? "Approved" : "Rejected"}
+                      </CardTitle>
+                      {index === 0 ? (
+                        <Clock className="h-4 w-4 text-yellow-500" />
+                      ) : index === 1 ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <div
+                        className={`text-3xl font-bold ${
+                          index === 0 ? "text-yellow-500" : index === 1 ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
+                        {index === 0 ? stats.pending : index === 1 ? stats.approved : stats.rejected}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {index === 0 ? "Awaiting verification" : index === 1 ? "Verified documents" : "Failed verification"}
+                      </p>
+                      <div
+                        className={`absolute bottom-0 left-0 h-1 w-full ${
+                          index === 0 ? "bg-yellow-500/20" : index === 1 ? "bg-green-500/20" : "bg-red-500/20"
+                        }`}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
 
             <motion.div
@@ -211,18 +242,13 @@ export default function DocumentsReceived() {
                   </div>
                 </div>
 
+                {/* Use same memoized animation values for all tab contents */}
                 <TabsContent value="pending" className="space-y-4">
                   <motion.div
                     className="rounded-md border"
-                    initial={{ opacity: 0, x: 200 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 70,
-                      damping: 25,
-                      mass: 0.5,
-                      delay: 0.3,
-                    }}
+                    initial={tabContentAnimations.initial}
+                    animate={tabContentAnimations.animate}
+                    transition={tabContentAnimations.transition}
                   >
                     <PendingDocuments isActive={activeTab === "pending"} searchQuery={searchQuery} />
                   </motion.div>
@@ -231,15 +257,9 @@ export default function DocumentsReceived() {
                 <TabsContent value="approved" className="space-y-4">
                   <motion.div
                     className="rounded-md border"
-                    initial={{ opacity: 0, x: 200 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 70,
-                      damping: 25,
-                      mass: 0.5,
-                      delay: 0.3,
-                    }}
+                    initial={tabContentAnimations.initial}
+                    animate={tabContentAnimations.animate}
+                    transition={tabContentAnimations.transition}
                   >
                     <ApprovedDocuments isActive={activeTab === "approved"} searchQuery={searchQuery} />
                   </motion.div>
@@ -248,15 +268,9 @@ export default function DocumentsReceived() {
                 <TabsContent value="rejected" className="space-y-4">
                   <motion.div
                     className="rounded-md border"
-                    initial={{ opacity: 0, x: 200 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 70,
-                      damping: 25,
-                      mass: 0.5,
-                      delay: 0.3,
-                    }}
+                    initial={tabContentAnimations.initial}
+                    animate={tabContentAnimations.animate}
+                    transition={tabContentAnimations.transition}
                   >
                     <RejectedDocuments isActive={activeTab === "rejected"} searchQuery={searchQuery} />
                   </motion.div>

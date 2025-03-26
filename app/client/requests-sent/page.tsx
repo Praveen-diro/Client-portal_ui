@@ -478,8 +478,8 @@ export default function RequestsSent() {
                 ))}
               </div> */}
 
-              <div className="mt-1 mb-4">
-                <div className="relative w-full max-w-sm">
+              <div className="mt-1 mb-4 flex justify-end">
+                <div className="relative max-w-sm">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <Search className="h-4 w-4 text-gray-400" />
                   </div>
@@ -488,8 +488,7 @@ export default function RequestsSent() {
                       placeholder="Search requests... (minimum 3 characters)"
                       value={searchQuery}
                       onChange={handleSearchInputChange}
-                      style={{ width: "-webkit-fill-available" }}
-                      className="w-[300px]  pr-8 py-2 h-10 bg-background border border-input rounded-md focus-visible:ring-1 focus-visible:ring-primary"
+                      className="w-[300px] pr-8 py-2 h-10 bg-background border border-input rounded-md focus-visible:ring-1 focus-visible:ring-primary"
                     />
                     {searchQuery && (
                       <div className="absolute inset-y-0 right-0 flex items-center mr-2">
@@ -530,15 +529,16 @@ export default function RequestsSent() {
                           ...transitionConfig,
                           delay: 0.45,
                         }}
+                        className="border-b border-border/70 dark:border-border/50 bg-muted/30"
                       >
-                        <TableHead>Session Id</TableHead>
-                        <TableHead>Button</TableHead>
-                        <TableHead>Site</TableHead>
-                        <TableHead>Initiated on</TableHead>
-                        <TableHead>Final status</TableHead>
-                        <TableHead>Exit reason</TableHead>
-                        <TableHead>Track Id</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Session Id</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Button</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Site</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Initiated on</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Final status</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Exit reason</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground">Track Id</TableHead>
+                        <TableHead className="h-11 font-medium text-muted-foreground text-right">Actions</TableHead>
                       </motion.tr>
                     </TableHeader>
                     <TableBody>
@@ -551,22 +551,19 @@ export default function RequestsSent() {
                           </TableCell>
                         </TableRow>
                       ) : error ? (
-                        // Error state
                         <TableRow>
                           <TableCell colSpan={8} className="text-center text-red-500">
                             Error loading requests: {error}
                           </TableCell>
                         </TableRow>
                       ) : requests.length === 0 ? (
-                        // Empty state
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center">
+                          <TableCell colSpan={8} className="h-16 text-center">
                             <h3 className="text-lg font-semibold">No requests found</h3>
                           </TableCell>
                         </TableRow>
                       ) : (
-                        (console.log(requests, "here is the request-sent"),
-                        // Populated state
+                        // Render request items
                         requests.map((request, index) => (
                           <motion.tr
                             key={request.sessionId}
@@ -576,10 +573,10 @@ export default function RequestsSent() {
                               ...transitionConfig,
                               delay: 0.5 + index * 0.05,
                             }}
-                            className="group cursor-pointer relative overflow-hidden hover:bg-gray-100/80 dark:hover:bg-gray-700/30 border-l-0 hover:border-l-4 border-l-transparent hover:border-primary"
+                            className="group cursor-pointer h-16 border-b border-border/60 dark:border-border/40 hover:bg-accent/40"
                           >
                             <TableCell className="font-medium">
-                              <code className="rounded bg-muted px-2 py-1 text-sm">{request.sessionId}</code>
+                              <code className="rounded bg-muted px-2 py-1 text-sm font-mono">{request.sessionId}</code>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -589,7 +586,7 @@ export default function RequestsSent() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <ExternalLink className="h-4 w-4 text-gray-500" />
+                                <ExternalLink className="h-4 w-4 text-muted-foreground" />
                                 {request.site}
                               </div>
                             </TableCell>
@@ -604,15 +601,17 @@ export default function RequestsSent() {
                                 </Badge>
                               </div>
                             </TableCell>
-                            <TableCell>{request.exitReason}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{request.exitReason}</TableCell>
                             <TableCell>
-                              {request.trackId && <code className="rounded bg-muted px-2 py-1 text-sm">{request.trackId}</code>}
+                              {request.trackId && (
+                                <code className="rounded bg-muted px-2 py-1 text-sm font-mono">{request.trackId}</code>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className=" group-hover:opacity-100">
+                                    <Button variant="ghost" size="icon" className="opacity-70 group-hover:opacity-100">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -620,17 +619,15 @@ export default function RequestsSent() {
                                     <DropdownMenuItem onClick={() => handleViewSessionDetails(request.sessionId)}>
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>Download Report</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleOpenReportModal(request.sessionId)}>
                                       Report Issue
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600">Cancel Request</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
                             </TableCell>
                           </motion.tr>
-                        )))
+                        ))
                       )}
                     </TableBody>
                   </Table>

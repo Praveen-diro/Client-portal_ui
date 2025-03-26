@@ -170,7 +170,7 @@ interface Environment {
   getverificationlink: string;
   sessionstats: string;
   getVerifiedCountry: string;
-  btnstatus: string;
+  btnStateList: string;
   linklist: string;
   getverifiedlink: string;
   createsource: string;
@@ -287,7 +287,7 @@ const stage2: Environment = {
   getverificationlink: baseurl.stage2baseurl + "organization-2.0/getverificationlink",
   sessionstats: baseurl.stage2baseurl + "organization-2.0/sessionstats",
   getVerifiedCountry: baseurl.stage2baseurl + "VerifiedCountryDetail-2.0/getVerifiedCountry",
-  btnstatus: baseurl.stage2baseurl + "organization-2.0/buttonstats",
+  btnStateList: baseurl.stage2baseurl + "organization-2.0/buttonstats",
   linklist: baseurl.stage2baseurl + "IdMaster-2.0/link/readall",
   getverifiedlink: baseurl.stage2baseurl + "organization-2.0/getverificationlink",
   createsource: baseurl.stage2baseurl + "IdMaster-2.0/link/create",
@@ -464,7 +464,7 @@ const stage1: Environment = {
   getverificationlink: baseurl.stage1baseurl + "organization-2.0/getverificationlink",
   sessionstats: baseurl.stage1baseurl + "organization-2.0/sessionstats",
   getVerifiedCountry: baseurl.stage1baseurl + "VerifiedCountryDetail-2.0/getVerifiedCountry",
-  btnstatus: baseurl.stage1baseurl + "organization-2.0/buttonstats",
+  btnStateList: baseurl.stage1baseurl + "organization-2.0/buttonstats",
   linklist: baseurl.stage1baseurl + "IdMaster-2.0/link/readall",
   createsource: baseurl.stage1baseurl + "IdMaster-2.0/link/create",
   updatesource: baseurl.stage1baseurl + "IdMaster-2.0/link/update",
@@ -640,7 +640,7 @@ const prodeu: Environment = {
   getverificationlink: baseurl.prodbaseurl + "organization-2.0/getverificationlink",
   sessionstats: baseurl.prodbaseurl + "organization-2.0/sessionstats",
   getVerifiedCountry: baseurl.prodbaseurl + "VerifiedCountryDetail-2.0/getVerifiedCountry",
-  btnstatus: baseurl.prodbaseurl + "organization-2.0/buttonstats",
+  btnStateList: baseurl.prodbaseurl + "organization-2.0/buttonstats",
   linklist: baseurl.prodbaseurl + "IdMaster-2.0/link/readall",
   createsource: baseurl.prodbaseurl + "IdMaster-2.0/link/create",
   updatesource: baseurl.prodbaseurl + "IdMaster-2.0/link/update",

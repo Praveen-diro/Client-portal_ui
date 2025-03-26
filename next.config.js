@@ -1,47 +1,64 @@
 /** @type {import('next').NextConfig} */
+
+// Add bundle analyzer for performance monitoring
+const withBundleAnalyzer = process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({
+        enabled: true,
+    })
+    : (config) => config;
+
 const nextConfig = {
     output: 'standalone',
     experimental: {
         optimizeCss: true,
-    },
-    compress: true,
-    reactStrictMode: true,
-    images: {
-        domains: [],
-    },
-    webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
-        // Add resolver for .jsx
-        config.resolve.extensions.push('.jsx');
-        
-        // Fix swagger-ui-react issues
-        config.module.rules.push({
-            test: /\.(js|mjs|jsx)$/,
-            resolve: {
-                fullySpecified: false,
+        // Improve module resolution
+        optimizePackageImports: ['react-day-picker', 'date-fns', '@react-pdf-viewer/core', 'lucide-react', 'framer-motion', 'recharts'],
+        // Add these additional performance optimizations for Next.js 15
+        serverActions: {
+            bodySizeLimit: '2mb',
+        },
+        // Enable turbopack for faster refresh
+        turbo: {
+            rules: {
+                // Avoid processing certain imports during development
+                // This will make HMR much faster
+                '*.svg': ['url'],
+                '*.png': ['url'],
+                '*.jpg': ['url'],
+                '*.jpeg': ['url'],
+                '*.gif': ['url'],
+                '*.webp': ['url'],
             },
-        });
-        
-        // Allow access to Swagger UI's CSS
-        if (config.module && config.module.rules) {
-            // Find the rule that handles CSS
-            const cssRule = config.module.rules.find(rule => 
-                rule.test && rule.test.toString().includes('.css')
-            );
-            
-            if (cssRule) {
-                // Ensure Swagger UI's CSS is not optimized out
-                const oneOfRules = cssRule.oneOf || [];
-                for (const rule of oneOfRules) {
-                    if (rule.issuer && rule.issuer.and) {
-                        // Add exclusion for swagger-ui CSS
-                        rule.issuer.and = rule.issuer.and.filter(
-                            issuer => !issuer.toString().includes('swagger-ui')
-                        );
-                    }
-                }
-            }
         }
-        
+        // Removed unrecognized experimental features
+    },
+    // Customize webpack config to optimize bundle size
+    webpack: (config, { dev, isServer }) => {
+        // Only run in production client builds
+        if (!dev && !isServer) {
+            // Split chunks more aggressively for better caching
+            config.optimization.splitChunks = {
+                chunks: 'all',
+                maxInitialRequests: 25,
+                minSize: 20000,
+                cacheGroups: {
+                    default: false,
+                    vendors: false,
+                    framework: {
+                        name: 'framework',
+                        test: /[\\/]node_modules[\\/](react|react-dom|next|framer-motion)[\\/]/,
+                        priority: 40,
+                        enforce: true,
+                    },
+                    commons: {
+                        name: 'commons',
+                        test: /[\\/]node_modules[\\/]/,
+                        priority: 30,
+                        reuseExistingChunk: true,
+                    },
+                },
+            };
+        }
         return config;
     },
     async rewrites() {
@@ -68,4 +85,5 @@ const nextConfig = {
     }
 };
 
-module.exports = nextConfig; 
+// Export config with bundle analyzer wrapper
+module.exports = withBundleAnalyzer(nextConfig); 

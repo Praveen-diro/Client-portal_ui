@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Component, ErrorInfo, ReactNode, memo } from "react";
+import { useState, useEffect, useRef, Component, ErrorInfo, ReactNode, memo, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -220,6 +220,309 @@ const PDFViewerComponent = memo(
 
 PDFViewerComponent.displayName = "PDFViewerComponent";
 
+// Extract the entire PDF viewing section into a separate component that won't re-render with other state changes
+const PDFViewerContainer = memo(
+  ({ pdfData, sessionId, mhtFiles }: { pdfData: ArrayBuffer | null; sessionId: string; mhtFiles: string[] }) => {
+    const { theme } = useTheme();
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const pdfContainerRef = useRef<HTMLDivElement>(null);
+    const [translationLoading, setTranslationLoading] = useState(false);
+    const [showTranslationDialog, setShowTranslationDialog] = useState(false);
+    const [translatedPdfData, setTranslatedPdfData] = useState<ArrayBuffer | null>(null);
+    const [translationError, setTranslationError] = useState<string | null>(null);
+    const [numPages, setNumPages] = useState<number | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string>("Initializing...");
+
+    // Create the PDF URL once and store it in a ref to prevent recreation
+    const pdfUrlRef = useRef<string | null>(null);
+
+    // Create the PDF URL once when pdfData changes
+    useEffect(() => {
+      if (pdfData) {
+        try {
+          setDebugInfo("Creating PDF URL from data...");
+          const blob = new Blob([pdfData], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          pdfUrlRef.current = url;
+          setDebugInfo(`PDF URL created successfully: ${url.substring(0, 30)}...`);
+          console.log("PDF URL created:", url);
+        } catch (error) {
+          setDebugInfo(`Error creating PDF URL: ${error}`);
+          console.error("Error creating PDF URL from blob:", error);
+        }
+      } else {
+        setDebugInfo("No PDF data available");
+      }
+
+      // Cleanup function
+      return () => {
+        if (pdfUrlRef.current) {
+          URL.revokeObjectURL(pdfUrlRef.current);
+          console.log("Cleaned up PDF URL");
+        }
+      };
+    }, [pdfData]);
+
+    // Add event listener for fullscreen change
+    useEffect(() => {
+      const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+      };
+
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+      return () => {
+        document.removeEventListener("fullscreenchange", handleFullscreenChange);
+        document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+        document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+        document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      };
+    }, []);
+
+    // Function to handle translating PDF
+    const handleTranslatePdf = async () => {
+      if (!sessionId) return;
+
+      try {
+        setTranslationLoading(true);
+        setTranslationError(null);
+        setShowTranslationDialog(true);
+
+        // API call to translate PDF
+        const response = await fetch(env.translatepdf, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/pdf",
+            Authorization: localStorage.getItem("token") || "",
+          },
+          body: JSON.stringify({
+            targetlanguage: "en",
+            docid: sessionId,
+            filenumber: 1,
+            apikey: localStorage.getItem("apikey") || "",
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Translation failed");
+        }
+
+        const data = await response.arrayBuffer();
+        setTranslatedPdfData(data);
+        setTranslationLoading(false);
+      } catch (err: any) {
+        setTranslationError(err.message || "Translation failed");
+        setTranslationLoading(false);
+      }
+    };
+
+    // Function to handle downloading translated PDF
+    const handleDownloadTranslatedPdf = () => {
+      if (!translatedPdfData) return;
+
+      const blob = new Blob([translatedPdfData], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${sessionId}_translated.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Function to handle fullscreen toggle
+    const toggleFullscreen = () => {
+      if (!pdfContainerRef.current) return;
+
+      if (!isFullscreen) {
+        if (pdfContainerRef.current.requestFullscreen) {
+          pdfContainerRef.current
+            .requestFullscreen()
+            .then(() => setIsFullscreen(true))
+            .catch((err) => console.error("Error attempting to enable fullscreen:", err));
+        } else if ((pdfContainerRef.current as any).webkitRequestFullscreen) {
+          (pdfContainerRef.current as any).webkitRequestFullscreen();
+          setIsFullscreen(true);
+        } else if ((pdfContainerRef.current as any).msRequestFullscreen) {
+          (pdfContainerRef.current as any).msRequestFullscreen();
+          setIsFullscreen(true);
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document
+            .exitFullscreen()
+            .then(() => setIsFullscreen(false))
+            .catch((err) => console.error("Error attempting to exit fullscreen:", err));
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+          setIsFullscreen(false);
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+          setIsFullscreen(false);
+        }
+      }
+    };
+
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* PDF toolbar */}
+        <div className="pdf-toolbar">
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Debug info display */}
+            <div className="mr-auto text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 p-1 rounded">Debug: {debugInfo}</div>
+
+            {mhtFiles.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Download:</span>
+                <div className="flex flex-wrap gap-1">
+                  {mhtFiles.map((key, index) => (
+                    <TooltipProvider key={key}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={`${env.downloadmht}?docid=${sessionId}&filename=${key}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition-colors dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                          >
+                            {index + 1}
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>Download original MHT file {index + 1}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTranslatePdf}
+                disabled={translationLoading}
+                className="h-8 px-3 text-sm border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
+              >
+                <Languages className="mr-2 h-4 w-4" />
+                Translate (En)
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Static PDF viewer that won't re-render with parent component */}
+        <div
+          ref={pdfContainerRef}
+          className={`pdf-container flex-1 overflow-auto bg-gray-100 dark:bg-gray-800 flex justify-center ${
+            isFullscreen ? "fullscreen" : ""
+          }`}
+        >
+          {pdfUrlRef.current ? (
+            <div className="pdf-container-wrapper relative" style={{ width: "100%", height: "100%", minHeight: "600px" }}>
+              {/* Debug indicator */}
+              <div className="absolute top-0 left-0 z-50 bg-blue-500 text-white text-xs p-1 rounded">
+                PDF loaded - {new Date().toLocaleTimeString()}
+              </div>
+
+              <div className={`pdf-iframe-container ${theme === "dark" ? "dark" : ""}`} style={{ height: "100%" }}>
+                <iframe
+                  src={`${pdfUrlRef.current}#zoom=75`}
+                  className="pdf-iframe"
+                  style={{ width: "100%", height: "100%", minHeight: "600px", border: "none" }}
+                  title="PDF Document"
+                />
+                <div className="pdf-page-effect"></div>
+                {theme === "dark" && <div className="pdf-frame-border" />}
+
+                {/* Fullscreen button */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="absolute top-3 right-3 p-2 rounded bg-white/80 hover:bg-white/90 shadow-sm z-10 dark:bg-gray-900/70 dark:hover:bg-gray-900/90"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground dark:text-gray-400">PDF preview not available</p>
+            </div>
+          )}
+        </div>
+
+        {/* Translation Dialog */}
+        <Dialog open={showTranslationDialog} onOpenChange={setShowTranslationDialog}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col dark:bg-gray-800">
+            <DialogHeader>
+              <DialogTitle className="flex justify-between items-center dark:text-white">
+                <span>Translated Document</span>
+                {translatedPdfData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadTranslatedPdf}
+                    className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="flex-grow overflow-auto bg-muted/30 dark:bg-gray-900/50 rounded-md">
+              {translationLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Loader />
+                    <p className="text-muted-foreground">Translating document...</p>
+                  </div>
+                </div>
+              ) : translationError ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center space-y-4">
+                    <XCircle className="h-12 w-12 text-destructive" />
+                    <p className="text-muted-foreground">{translationError}</p>
+                  </div>
+                </div>
+              ) : translatedPdfData ? (
+                <div className="pdf-container h-full flex justify-center">
+                  <PDFDocument
+                    file={URL.createObjectURL(new Blob([translatedPdfData], { type: "application/pdf" }))}
+                    className="w-full"
+                  >
+                    {Array.from(new Array(numPages || 0), (_, index) => (
+                      <div key={`trans_page_${index + 1}`} className="mb-4 flex justify-center">
+                        <PDFPage
+                          pageNumber={index + 1}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                          width={Math.min(window.innerWidth * 0.7, 800)}
+                        />
+                      </div>
+                    ))}
+                  </PDFDocument>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Translated PDF preview not available</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+);
+
+PDFViewerContainer.displayName = "PDFViewerContainer";
+
 export default function PdfViewer() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { toast } = useToast();
@@ -261,6 +564,20 @@ export default function PdfViewer() {
 
   // Theme context
   const { theme, setTheme } = useTheme();
+
+  // Prepare MHT files display
+  const mhtFiles = viewDocData?.file?.mhtmlhashkey ? Object.keys(viewDocData.file.mhtmlhashkey) : [];
+
+  // Create the memoized PDF viewer component instance OUTSIDE of the JSX
+  // AND before any conditional returns to ensure hooks are always called in the same order
+  const memoizedPdfViewer = useMemo(() => {
+    console.log("Creating memoized PDF viewer with:", {
+      pdfDataExists: !!pdfData,
+      sessionId,
+      mhtFilesCount: mhtFiles.length,
+    });
+    return <PDFViewerContainer pdfData={pdfData} sessionId={sessionId as string} mhtFiles={mhtFiles} />;
+  }, [pdfData, sessionId, mhtFiles]);
 
   // Initialize PDF.js worker
   useEffect(() => {
@@ -491,57 +808,6 @@ export default function PdfViewer() {
     URL.revokeObjectURL(url);
   };
 
-  // Function to handle translating PDF
-  const handleTranslatePdf = async () => {
-    if (!sessionId) return;
-
-    try {
-      setTranslationLoading(true);
-      setTranslationError(null);
-      setShowTranslationDialog(true);
-
-      // API call to translate PDF
-      const response = await fetch(env.translatepdf, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/pdf",
-          Authorization: localStorage.getItem("token") || "",
-        },
-        body: JSON.stringify({
-          targetlanguage: "en",
-          docid: sessionId,
-          filenumber: 1,
-          apikey: localStorage.getItem("apikey") || "",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Translation failed");
-      }
-
-      const data = await response.arrayBuffer();
-      setTranslatedPdfData(data);
-      setTranslationLoading(false);
-    } catch (err: any) {
-      setTranslationError(err.message || "Translation failed");
-      setTranslationLoading(false);
-    }
-  };
-
-  // Function to handle downloading translated PDF
-  const handleDownloadTranslatedPdf = () => {
-    if (!translatedPdfData) return;
-
-    const blob = new Blob([translatedPdfData], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${sessionId}_translated.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   // Function to handle field verification
   const handleFieldToggle = (field: string) => {
     setVerifiedFields((prev) => {
@@ -648,41 +914,8 @@ export default function PdfViewer() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  // Function to handle fullscreen toggle
-  const toggleFullscreen = () => {
-    if (!pdfContainerRef.current) return;
-
-    if (!isFullscreen) {
-      if (pdfContainerRef.current.requestFullscreen) {
-        pdfContainerRef.current
-          .requestFullscreen()
-          .then(() => setIsFullscreen(true))
-          .catch((err) => console.error("Error attempting to enable fullscreen:", err));
-      } else if ((pdfContainerRef.current as any).webkitRequestFullscreen) {
-        (pdfContainerRef.current as any).webkitRequestFullscreen();
-        setIsFullscreen(true);
-      } else if ((pdfContainerRef.current as any).msRequestFullscreen) {
-        (pdfContainerRef.current as any).msRequestFullscreen();
-        setIsFullscreen(true);
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document
-          .exitFullscreen()
-          .then(() => setIsFullscreen(false))
-          .catch((err) => console.error("Error attempting to exit fullscreen:", err));
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-        setIsFullscreen(false);
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
   // For development debugging - just to show something is loading
-  console.log("PDF Viewer rendering. SessionId:", sessionId);
+  console.log("PDF Viewer rendering. SessionId:", sessionId, "PDF data exists:", !!pdfData);
 
   // If the document is invalid
   if (docInvalid) {
@@ -743,32 +976,6 @@ export default function PdfViewer() {
       </div>
     );
   }
-
-  // Get document URL/source
-  let pdfSource = null;
-  let pdfUrlCreated = false;
-
-  if (pdfData) {
-    try {
-      // Method 1: Create a blob URL (most common approach)
-      const blob = new Blob([pdfData], { type: "application/pdf" });
-      pdfSource = URL.createObjectURL(blob);
-      pdfUrlCreated = true;
-
-      // Store the URL reference for cleanup
-      pdfUrlRef.current = pdfSource;
-
-      console.log("PDF URL created successfully using Blob method");
-    } catch (error) {
-      console.error("Error creating PDF URL from blob:", error);
-      pdfSource = null;
-    }
-  }
-
-  console.log("PDF source created:", !!pdfSource);
-
-  // Prepare MHT files display
-  const mhtFiles = viewDocData?.file?.mhtmlhashkey ? Object.keys(viewDocData.file.mhtmlhashkey) : [];
 
   return (
     <div className="container mx-auto px-4 mt-6">
@@ -1022,62 +1229,21 @@ export default function PdfViewer() {
             </div>
           </div>
 
-          {/* PDF viewer section */}
-          <div className="flex-1 flex flex-col">
-            {/* PDF toolbar */}
-            <div className="pdf-toolbar">
-              {/* Back button removed from here and moved to top container */}
-              <div className="flex items-center gap-3 ml-auto">
-                {!viewDocData?.data?.shareonlyjson && mhtFiles.length > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">Download:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {mhtFiles.map((key, index) => (
-                        <TooltipProvider key={key}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a
-                                href={`${env.downloadmht}?docid=${sessionId}&filename=${key}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition-colors dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                              >
-                                {index + 1}
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Download original MHT file {index + 1}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  {!viewDocData?.shareonlyjson && viewDocData?.button?.mode?.type !== "capture" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleTranslatePdf}
-                      disabled={translationLoading}
-                      className="h-8 px-3 text-sm border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
-                    >
-                      <Languages className="mr-2 h-4 w-4" />
-                      Translate (En)
-                    </Button>
-                  )}
+          {/* PDF Viewer container */}
+          <div className="flex-1 flex flex-col relative">
+            {pdfData ? (
+              <>
+                {/* For debugging - should be visible if PDF container is rendering but PDF is not */}
+                <div className="absolute top-2 left-2 z-50 bg-white/80 dark:bg-black/50 text-xs p-1 rounded">
+                  PDF Debug: {pdfData ? "Data loaded" : "No data"} | Container rendering
                 </div>
+                {memoizedPdfViewer}
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">No PDF data available to display</p>
               </div>
-            </div>
-
-            {/* Use the memoized PDF viewer component */}
-            <PDFViewerComponent
-              pdfSource={pdfSource}
-              theme={theme}
-              isFullscreen={isFullscreen}
-              toggleFullscreen={toggleFullscreen}
-              pdfContainerRef={pdfContainerRef}
-            />
+            )}
           </div>
         </div>
       </div>
@@ -1113,9 +1279,6 @@ export default function PdfViewer() {
       {/* Rejection Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent className="p-0 max-w-[850px] rounded-xl overflow-hidden border-0 shadow-2xl">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Document Rejection</DialogTitle>
-          </DialogHeader>
           <div className="flex flex-col md:flex-row">
             {/* Left sidebar with decorative elements */}
             <div className="w-full md:w-[280px] bg-gradient-to-b from-[#1E1E2E] to-[#2D2D44] p-6 md:p-8 relative overflow-hidden">
@@ -1232,33 +1395,33 @@ export default function PdfViewer() {
 
                     <div
                       className={`flex items-start p-4 cursor-pointer transition-all rounded-lg ${
-                        rejectReason === "Not a bank statement/utility bill"
+                        rejectReason === "Not a bank statement / utility bill"
                           ? "bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 shadow-sm"
                           : "bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent"
                       }`}
                       onClick={() => {
-                        setRejectReason("Not a bank statement/utility bill");
+                        setRejectReason("Not a bank statement / utility bill");
                         setShowCustomReason(false);
                       }}
                     >
                       <div
                         className={`h-5 w-5 mt-0.5 rounded-full mr-3 flex items-center justify-center border-2 transition-all ${
-                          rejectReason === "Not a bank statement/utility bill"
+                          rejectReason === "Not a bank statement / utility bill"
                             ? "border-blue-500 bg-blue-500 scale-110"
                             : "border-gray-300 dark:border-gray-600"
                         }`}
                       >
-                        {rejectReason === "Not a bank statement/utility bill" && <Check className="h-3 w-3 text-white" />}
+                        {rejectReason === "Not a bank statement / utility bill" && <Check className="h-3 w-3 text-white" />}
                       </div>
                       <div>
                         <p
                           className={`${
-                            rejectReason === "Not a bank statement/utility bill"
+                            rejectReason === "Not a bank statement / utility bill"
                               ? "font-medium text-blue-700 dark:text-blue-400"
                               : "text-gray-700 dark:text-gray-200"
                           }`}
                         >
-                          Not a bank statement/utility bill
+                          Not a bank statement / utility bill
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           The document does not appear to be a valid bank statement or utility bill
@@ -1301,178 +1464,10 @@ export default function PdfViewer() {
                         </p>
                       </div>
                     </div>
-
-                    <div
-                      className={`flex items-start p-4 cursor-pointer transition-all rounded-lg ${
-                        rejectReason === "Need a more recent document"
-                          ? "bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 shadow-sm"
-                          : "bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent"
-                      }`}
-                      onClick={() => {
-                        setRejectReason("Need a more recent document");
-                        setShowCustomReason(false);
-                      }}
-                    >
-                      <div
-                        className={`h-5 w-5 mt-0.5 rounded-full mr-3 flex items-center justify-center border-2 transition-all ${
-                          rejectReason === "Need a more recent document"
-                            ? "border-blue-500 bg-blue-500 scale-110"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
-                      >
-                        {rejectReason === "Need a more recent document" && <Check className="h-3 w-3 text-white" />}
-                      </div>
-                      <div>
-                        <p
-                          className={`${
-                            rejectReason === "Need a more recent document"
-                              ? "font-medium text-blue-700 dark:text-blue-400"
-                              : "text-gray-700 dark:text-gray-200"
-                          }`}
-                        >
-                          Need a more recent document
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          The document is too old and a more recent one is required
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`flex items-start p-4 cursor-pointer transition-all rounded-lg ${
-                        rejectReason === "Other"
-                          ? "bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 shadow-sm"
-                          : "bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border-l-4 border-transparent"
-                      }`}
-                      onClick={() => {
-                        setRejectReason("Other");
-                        setShowCustomReason(true);
-                      }}
-                    >
-                      <div
-                        className={`h-5 w-5 mt-0.5 rounded-full mr-3 flex items-center justify-center border-2 transition-all ${
-                          rejectReason === "Other"
-                            ? "border-blue-500 bg-blue-500 scale-110"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
-                      >
-                        {rejectReason === "Other" && <Check className="h-3 w-3 text-white" />}
-                      </div>
-                      <div>
-                        <p
-                          className={`${
-                            rejectReason === "Other"
-                              ? "font-medium text-blue-700 dark:text-blue-400"
-                              : "text-gray-700 dark:text-gray-200"
-                          }`}
-                        >
-                          Other reason
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Specify a different reason for rejection</p>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
-
-              {showCustomReason && (
-                <div className="mt-6 mb-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Please specify the reason
-                  </label>
-                  <textarea
-                    value={customReason}
-                    onChange={(e) => {
-                      setCustomReason(e.target.value);
-                      setRejectReason(`Other: ${e.target.value}`);
-                    }}
-                    placeholder="Enter the specific reason for rejection..."
-                    className="w-full p-3 min-h-24 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white dark:focus:ring-blue-600"
-                  />
-                </div>
-              )}
-
-              <div className="mt-8 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowRejectDialog(false)}
-                  className="px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={rejectReason === "Other" && !customReason}
-                  className={`px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-sm hover:shadow text-white rounded-lg flex items-center gap-2 font-medium transition-all ${
-                    rejectReason === "Other" && !customReason ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <X className="h-4 w-4" />
-                  Reject Document
-                </button>
-              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Translation Dialog */}
-      <Dialog open={showTranslationDialog} onOpenChange={setShowTranslationDialog}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col dark:bg-gray-800">
-          <DialogHeader>
-            <DialogTitle className="flex justify-between items-center dark:text-white">
-              <span>Translated Document</span>
-              {translatedPdfData && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadTranslatedPdf}
-                  className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-grow overflow-auto bg-muted/30 dark:bg-gray-900/50 rounded-md">
-            {translationLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center space-y-4">
-                  <Loader />
-                  <p className="text-muted-foreground">Translating document...</p>
-                </div>
-              </div>
-            ) : translationError ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center space-y-4">
-                  <XCircle className="h-12 w-12 text-destructive" />
-                  <p className="text-muted-foreground">{translationError}</p>
-                </div>
-              </div>
-            ) : translatedPdfData ? (
-              <div className="pdf-container h-full flex justify-center">
-                <PDFDocument
-                  file={URL.createObjectURL(new Blob([translatedPdfData], { type: "application/pdf" }))}
-                  className="w-full"
-                >
-                  {Array.from(new Array(numPages || 0), (_, index) => (
-                    <div key={`trans_page_${index + 1}`} className="mb-4 flex justify-center">
-                      <PDFPage
-                        pageNumber={index + 1}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                        width={Math.min(window.innerWidth * 0.7, 800)}
-                      />
-                    </div>
-                  ))}
-                </PDFDocument>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">Translated PDF preview not available</p>
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>

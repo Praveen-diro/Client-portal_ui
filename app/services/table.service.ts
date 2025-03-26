@@ -119,7 +119,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "pending",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -138,7 +138,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "approved",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -152,7 +152,7 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
-      offset: params.offset || 0,
+      limit: params.offset || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
@@ -192,41 +192,40 @@ class TableService {
 
   async submitFeedback(data: FeedbackFormData): Promise<TableResponse<any>> {
     const requestData = {
-      apikey: this.getApiKey(),
-      session_id: data.sessionid,
-      comment: data.feedback,
-      rating: data.rating,
+      comment: data.feedback,    
       source: "client portal",
       email: cookies.get("email") as string,
+      sessionId: ""
     };
 
-    return this.makeRequest(env.feedbackUrl, requestData, "submitFeedback");
+    // Use makeRequest without apiKey
+    return apiService.makeRequest(env.feedbackUrl, requestData, "submitFeedback", this.MAX_RETRY_COUNT, false, true);
   }
 
   async deleteSession(sessionid: string): Promise<TableResponse<any>> {
     const data = {
-      apikey: this.getApiKey(),
-      session_id: sessionid,
+      // apikey: this.getApiKey(),
+      docid: sessionid,
+      session: false,
     };
 
     return this.makeRequest(env.deletesession, data, "deleteSession");
   }
 
-  async getPdfToJson(docid: string, redotemplate: boolean = false): Promise<TableResponse<any>> {
+  async getPdfToJson(docid: string): Promise<TableResponse<any>> {
     const data = {
       apikey: this.getApiKey(),
-      doc_id: docid,
-      redoTemplate: redotemplate,
+      docid: docid,
     };
 
     return this.makeRequest(env.pdftojson, data, "getPdfToJson");
   }
 
-  async getExtractTransactionData(data: ExtractTransactionParams): Promise<TableResponse<any>> {
+  async getExtractTransactionData(data: ExtractTransactionParams, requestfromqa: boolean = false): Promise<TableResponse<any>> {
     const requestData = {
       apikey: this.getApiKey(),
-      doc_id: data.docid,
-      session_id: data.sessionid,
+      sessionid: data.sessionid,
+      requestfromqa: requestfromqa,
     };
 
     return this.makeRequest(env.extractTransaction, requestData, "getExtractTransactionData");

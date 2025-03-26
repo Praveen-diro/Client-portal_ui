@@ -51,12 +51,22 @@ class RefreshAuthService {
       const refreshResult = await this.handleRefreshToken();
 
       if (!refreshResult.success) {
-        // Clear user session
-        cookies.clearAll();
-        if (reloadAfterRefresh) {
-          window.location.reload();
+        // Only clear session and reload if not in sandbox/test mode
+        const authMode = cookies.get("authMode");
+        const isSandboxMode = authMode === "2";
+
+        // Only clear cookies if we're in live mode (authMode !== "2") and token refresh failed
+        if (!isSandboxMode) {
+          console.log("Token refresh failed in live mode, clearing cookies");
+          cookies.clearAll();
+          if (reloadAfterRefresh) {
+            window.location.reload();
+          }
+          return;
+        } else {
+          // In sandbox mode, try to continue without clearing cookies
+          console.log("Token refresh failed in sandbox mode, attempting to continue");
         }
-        return;
       }
 
       // Execute the callback function
@@ -69,6 +79,16 @@ class RefreshAuthService {
       return result;
     } catch (error) {
       console.error("Error in refreshAuth:", error);
+
+      // Check if we're in sandbox/test mode
+      const authMode = cookies.get("authMode");
+      const isSandboxMode = authMode === "2";
+
+      // Only clear cookies on error if not in sandbox mode
+      if (!isSandboxMode) {
+        cookies.clearAll();
+      }
+
       throw error;
     }
   }

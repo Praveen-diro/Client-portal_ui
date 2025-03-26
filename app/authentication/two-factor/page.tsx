@@ -167,7 +167,7 @@ export default function TwoFactorPage() {
 
           const scriptTimeout = setTimeout(() => {
             reject(new Error("reCAPTCHA script loading timed out"));
-          }, 8000);
+          }, 15000);
 
           script.onload = () => {
             clearTimeout(scriptTimeout);
@@ -283,18 +283,24 @@ export default function TwoFactorPage() {
     }
   };
 
-  const fetchRecaptchaToken = async (): Promise<string | null> => {
+  const fetchRecaptchaToken = async (retryCount = 0, maxRetries = 2): Promise<string | null> => {
     try {
       console.time("recaptcha-token-fetch");
       if (!recaptchaLoaded.current) {
         console.log("reCAPTCHA not loaded yet, waiting...");
+        // Wait a bit and retry if not loaded yet
+        if (retryCount < maxRetries) {
+          console.log(`Waiting for reCAPTCHA to load, retry ${retryCount + 1}/${maxRetries}`);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          return fetchRecaptchaToken(retryCount + 1, maxRetries);
+        }
         return null;
       }
 
       const token = await new Promise<string>((resolve, reject) => {
         const tokenTimeout = setTimeout(() => {
           reject(new Error("reCAPTCHA token generation timed out"));
-        }, 5000);
+        }, 10000);
 
         window.grecaptcha.ready(async () => {
           try {
@@ -313,6 +319,14 @@ export default function TwoFactorPage() {
       return token;
     } catch (error) {
       console.error("Error fetching reCAPTCHA token:", error);
+
+      // Retry on failure if we haven't exceeded max retries
+      if (retryCount < maxRetries) {
+        console.log(`Retrying reCAPTCHA token fetch, attempt ${retryCount + 1}/${maxRetries}`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return fetchRecaptchaToken(retryCount + 1, maxRetries);
+      }
+
       return null;
     }
   };

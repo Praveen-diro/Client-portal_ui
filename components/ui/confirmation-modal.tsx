@@ -52,6 +52,10 @@ export interface ConfirmationModalProps {
    * Whether the confirmation action is currently loading
    */
   isLoading?: boolean;
+  /**
+   * Whether to disable animations (both confirmation and button bubble animations)
+   */
+  disableAnimation?: boolean;
 }
 
 export function ConfirmationModal({
@@ -66,6 +70,7 @@ export function ConfirmationModal({
   itemDetail,
   variant = "delete",
   isLoading = false,
+  disableAnimation = false,
 }: ConfirmationModalProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [backdropVisible, setBackdropVisible] = useState(false);
@@ -136,11 +141,16 @@ export function ConfirmationModal({
     // Don't do anything if already loading
     if (isLoading) return;
 
-    setIsConfirming(true);
-    setTimeout(() => {
+    if (disableAnimation) {
+      // Call the onConfirm immediately without animation
       onConfirm();
-      setIsConfirming(false);
-    }, 300); // Reduced the delay
+    } else {
+      setIsConfirming(true);
+      setTimeout(() => {
+        onConfirm();
+        setIsConfirming(false);
+      }, 300); // Reduced the delay
+    }
   };
 
   // Default icon based on variant
@@ -178,14 +188,16 @@ export function ConfirmationModal({
           >
             <motion.div
               className="w-full max-w-md"
-              initial={{ y: 50, rotateX: -15, opacity: 0 }}
+              initial={disableAnimation ? { opacity: 1 } : { y: 50, rotateX: -15, opacity: 0 }}
               animate={
-                isConfirming
+                isConfirming && !disableAnimation
                   ? {
                       rotateY: 180,
                       scale: [1, 1.05, 0.95, 0],
                       transition: { duration: 0.8 },
                     }
+                  : disableAnimation
+                  ? { opacity: 1 }
                   : {
                       y: 0,
                       rotateX: 0,
@@ -197,15 +209,19 @@ export function ConfirmationModal({
                       },
                     }
               }
-              exit={{
-                y: 100,
-                opacity: 0,
-                transition: {
-                  type: "spring",
-                  damping: 15,
-                  stiffness: 300,
-                },
-              }}
+              exit={
+                disableAnimation
+                  ? { opacity: 0 }
+                  : {
+                      y: 100,
+                      opacity: 0,
+                      transition: {
+                        type: "spring",
+                        damping: 15,
+                        stiffness: 300,
+                      },
+                    }
+              }
             >
               <div className="overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
                 <div className="relative overflow-hidden">
@@ -254,75 +270,147 @@ export function ConfirmationModal({
                     )}
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
-                      <motion.button
-                        whileHover={{ scale: isLoading ? 1 : 1.03 }}
-                        whileTap={{ scale: isLoading ? 1 : 0.97 }}
-                        onClick={onClose}
-                        disabled={isLoading}
-                        className={`group px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all shadow-sm ${
-                          isLoading ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                      >
-                        {cancelText}
-                      </motion.button>
+                      {disableAnimation ? (
+                        <button
+                          onClick={onClose}
+                          disabled={isLoading}
+                          className={`group px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all shadow-sm ${
+                            isLoading ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          {cancelText}
+                        </button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: isLoading ? 1 : 1.03 }}
+                          whileTap={{ scale: isLoading ? 1 : 0.97 }}
+                          onClick={onClose}
+                          disabled={isLoading}
+                          className={`group px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 transition-all shadow-sm ${
+                            isLoading ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          {cancelText}
+                        </motion.button>
+                      )}
 
-                      <motion.button
-                        whileHover={{ scale: isLoading ? 1 : 1.03 }}
-                        whileTap={{ scale: isLoading ? 1 : 0.97 }}
-                        onClick={handleConfirm}
-                        disabled={isLoading || isConfirming}
-                        className={`relative px-4 py-2.5 rounded-xl bg-gradient-to-r ${
-                          colors.buttonGradient
-                        } text-white font-medium shadow-md hover:shadow-lg focus:outline-none focus:ring-2 ${
-                          colors.ring
-                        } focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all overflow-hidden ${
-                          isLoading ? "opacity-90 cursor-wait" : ""
-                        }`}
-                      >
-                        {isLoading ? (
-                          <span className="flex items-center justify-center">
-                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            {variant === "delete" ? "Deleting..." : "Processing..."}
-                          </span>
-                        ) : isConfirming ? (
-                          <span className="flex items-center justify-center">
-                            <Check className="h-5 w-5 mr-1" />
-                            {variant === "delete" ? "Deleted" : "Confirmed"}
-                          </span>
-                        ) : (
-                          <span className="flex items-center justify-center">
-                            {variant === "delete" && <Trash2 className="h-5 w-5 mr-1.5" />}
-                            {confirmText}
-                          </span>
-                        )}
+                      {disableAnimation ? (
+                        <button
+                          onClick={handleConfirm}
+                          disabled={isLoading || isConfirming}
+                          className={`relative px-4 py-2.5 rounded-xl bg-gradient-to-r ${
+                            colors.buttonGradient
+                          } text-white font-medium shadow-md hover:shadow-lg focus:outline-none focus:ring-2 ${
+                            colors.ring
+                          } focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all overflow-hidden ${
+                            isLoading ? "opacity-90 cursor-wait" : ""
+                          }`}
+                        >
+                          {isLoading ? (
+                            <span className="flex items-center justify-center">
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              {variant === "delete" ? "Deleting..." : "Processing..."}
+                            </span>
+                          ) : isConfirming ? (
+                            <span className="flex items-center justify-center">
+                              <Check className="h-5 w-5 mr-1" />
+                              {variant === "delete" ? "Deleted" : "Confirmed"}
+                            </span>
+                          ) : (
+                            <span className="flex items-center justify-center">
+                              {variant === "delete" && <Trash2 className="h-5 w-5 mr-1.5" />}
+                              {confirmText}
+                            </span>
+                          )}
 
-                        <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <motion.span
-                              key={i}
-                              className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50"
-                              initial={{
-                                x: "50%",
-                                y: "50%",
-                                opacity: 0,
-                              }}
-                              animate={{
-                                x: `${50 + Math.random() * 100 - 50}%`,
-                                y: `${50 + Math.random() * 100 - 50}%`,
-                                opacity: [0, 0.6, 0],
-                                scale: [0, 1.5, 0.5, 0],
-                              }}
-                              transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                                repeatType: "loop",
-                                delay: i * 0.1,
-                                ease: "easeOut",
-                              }}
-                            />
-                          ))}
-                        </span>
-                      </motion.button>
+                          <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                            {!disableAnimation &&
+                              Array.from({ length: 5 }).map((_, i) => (
+                                <motion.span
+                                  key={i}
+                                  className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50"
+                                  initial={{
+                                    x: "50%",
+                                    y: "50%",
+                                    opacity: 0,
+                                  }}
+                                  animate={{
+                                    x: `${50 + Math.random() * 100 - 50}%`,
+                                    y: `${50 + Math.random() * 100 - 50}%`,
+                                    opacity: [0, 0.6, 0],
+                                    scale: [0, 1.5, 0.5, 0],
+                                  }}
+                                  transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                    repeatType: "loop",
+                                    delay: i * 0.1,
+                                    ease: "easeOut",
+                                  }}
+                                />
+                              ))}
+                          </span>
+                        </button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: isLoading ? 1 : 1.03 }}
+                          whileTap={{ scale: isLoading ? 1 : 0.97 }}
+                          onClick={handleConfirm}
+                          disabled={isLoading || isConfirming}
+                          className={`relative px-4 py-2.5 rounded-xl bg-gradient-to-r ${
+                            colors.buttonGradient
+                          } text-white font-medium shadow-md hover:shadow-lg focus:outline-none focus:ring-2 ${
+                            colors.ring
+                          } focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all overflow-hidden ${
+                            isLoading ? "opacity-90 cursor-wait" : ""
+                          }`}
+                        >
+                          {isLoading ? (
+                            <span className="flex items-center justify-center">
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              {variant === "delete" ? "Deleting..." : "Processing..."}
+                            </span>
+                          ) : isConfirming ? (
+                            <span className="flex items-center justify-center">
+                              <Check className="h-5 w-5 mr-1" />
+                              {variant === "delete" ? "Deleted" : "Confirmed"}
+                            </span>
+                          ) : (
+                            <span className="flex items-center justify-center">
+                              {variant === "delete" && <Trash2 className="h-5 w-5 mr-1.5" />}
+                              {confirmText}
+                            </span>
+                          )}
+
+                          <span className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
+                            {!disableAnimation &&
+                              Array.from({ length: 5 }).map((_, i) => (
+                                <motion.span
+                                  key={i}
+                                  className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-50"
+                                  initial={{
+                                    x: "50%",
+                                    y: "50%",
+                                    opacity: 0,
+                                  }}
+                                  animate={{
+                                    x: `${50 + Math.random() * 100 - 50}%`,
+                                    y: `${50 + Math.random() * 100 - 50}%`,
+                                    opacity: [0, 0.6, 0],
+                                    scale: [0, 1.5, 0.5, 0],
+                                  }}
+                                  transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                    repeatType: "loop",
+                                    delay: i * 0.1,
+                                    ease: "easeOut",
+                                  }}
+                                />
+                              ))}
+                          </span>
+                        </motion.button>
+                      )}
                     </div>
                   </div>
                 </div>

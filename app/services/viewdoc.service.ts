@@ -10,6 +10,7 @@ import { apiService, ApiResponse } from "./api.service";
 ls.config.encrypt = true;
 
 export interface ViewDocResponse<T> extends ApiResponse<T> {}
+export interface TableResponse<T> extends ApiResponse<T> {}
 
 interface SessionIdPayload {
   sessionid: string;
@@ -20,11 +21,13 @@ interface lastLinkClickedPayload {
 }
 
 interface VerifyKycPayload {
-  [key: string]: any;
+  [docid: string]: any;
+  apikey: string;
 }
 
 class ViewDocService {
   private subscribers: ((data: any) => void)[] = [];
+  private MAX_RETRY_COUNT: number = 3;
 
   // constructor() {
   //   this.setupCustomAxiosDefaults();
@@ -39,6 +42,10 @@ class ViewDocService {
   //   }
   // }
 
+  private getApiKey(): string {
+    return (cookies.get("apikey") as string) || "";
+  }
+
   subscribe(callback: (data: any) => void): () => void {
     this.subscribers.push(callback);
     return () => {
@@ -48,6 +55,27 @@ class ViewDocService {
 
   private notifySubscribers(data: any): void {
     this.subscribers.forEach((callback) => callback(data));
+  }
+
+  private async makeRequest<T>(url: string, data: any, retryKey?: string): Promise<TableResponse<T>> {
+    // Add apiKey if not already in the data
+    const requestData = data.apikey ? data : { ...data, apikey: this.getApiKey() };
+
+    return apiService.makeRequest<T>(url, requestData, retryKey, this.MAX_RETRY_COUNT, false, true);
+  }
+
+  async searchTable(search: string,limit: number, requesterEmail: string, requesterRole: string, status: string): Promise<TableResponse<any>> {
+    const data = {
+      apikey: this.getApiKey(),
+      search,
+      limit,
+      numberOfRecords: 10,
+      requesterEmail,
+      requesterRole,
+      status,
+    };
+
+    return this.makeRequest(env.userlist, data, "searchTable");
   }
 
   async getDownloadDocument(sessionId: string): Promise<ViewDocResponse<any>> {
@@ -92,7 +120,7 @@ class ViewDocService {
   async approveDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
     // this.setupCustomAxiosDefaults();
 
-    const response = await apiService.makeRefreshAuthRequest(env.verifykyc, json);
+    const response = await apiService.makeRefreshAuthRequest(env.verifykyc, { ...json, apikey: this.getApiKey() });
     this.notifySubscribers({ type: "GET_APPROVE_DATA", data: response.data });
     return response;
   }
@@ -100,7 +128,7 @@ class ViewDocService {
   async rejectDocument(json: VerifyKycPayload): Promise<ViewDocResponse<any>> {
     // this.setupCustomAxiosDefaults();
 
-    const response = await apiService.makeRefreshAuthRequest(env.verifykyc, json);
+    const response = await apiService.makeRefreshAuthRequest(env.verifykyc, { ...json, apikey: this.getApiKey() });
     this.notifySubscribers({ type: "GET_REJECT_DATA", data: response.data });
     return response;
   }

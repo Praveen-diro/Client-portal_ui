@@ -160,15 +160,15 @@ class AuthService {
     }
 
     try {
-      // Set a timeout of 5 seconds for reCAPTCHA validation
+      // Set a timeout of 10 seconds for reCAPTCHA validation
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const result = await axios.post(
         env.recaptcha, // Use the existing recaptcha endpoint from environment
         { token },
         {
-          timeout: 5000,
+          timeout: 10000,
           signal: controller.signal,
         }
       );
@@ -468,8 +468,8 @@ class AuthService {
    * Switches the server mode (between live and sandbox)
    * @param data Object containing email for the account
    */
-  async switchModeServer(data: { email: string }): Promise<void> {
-    const switchPayload = { emailId: data.email };
+  async switchModeServer(data: { email: string; sandbox: string }): Promise<void> {
+    const switchPayload = { emailId: data.email, sandbox: data.sandbox };
 
     try {
       const response = await this.axiosWithRetry(env.switchServer, switchPayload);
@@ -879,7 +879,7 @@ class AuthService {
             data: res.data,
           };
         } else {
-          console.log("sandbox");
+          console.log("sandbox mode detected");
 
           // Explicitly ensure all two-factor flags are cleared
           cookies.remove("isTwoFactor");
@@ -887,18 +887,36 @@ class AuthService {
           cookies.remove("requiresTwoFactor");
           cookies.set("isAuthenticated", "true");
 
+          // Enhanced error logging and property checking
+          if (!res.data) {
+            console.error("Response data is missing entirely");
+          } else if (!res.data.doc) {
+            console.error("Missing doc property in response:", JSON.stringify(res.data));
+          } else if (!res.data.doc.token) {
+            console.error("Missing accesstoken property in doc:", JSON.stringify(res.data.doc));
+          }
+
           // Check if the expected properties exist before dispatching
-          if (!res.data.doc || !res.data.doc.accesstoken) {
-            console.error("Missing expected properties in response:", res.data);
+          if (!res.data.doc || !res.data.doc.token) {
+            console.log("Creating modified payload with default values");
             // Create a modified payload with default values for missing properties
             const modifiedPayload = {
               ...res.data,
               doc: {
                 ...(res.data.doc || {}),
                 accesstoken: res.headers.authorization || "",
+                // Add other potentially missing properties with sensible defaults
+                apikey: res.data.doc?.apikey || res.data.doc?.sandbox?.apikey || "",
+                refreshToken: res.data.doc?.refreshToken || "",
+                sandbox: {
+                  ...(res.data.doc?.sandbox || {}),
+                  apikey: res.data.doc?.sandbox?.apikey || res.data.doc?.apikey || "",
+                  accesstoken: res.data.doc?.sandbox?.accesstoken || res.headers.authorization || "",
+                },
               },
             };
 
+            console.log("Modified payload created:", JSON.stringify(modifiedPayload));
             // Dispatch with the modified payload
             dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: modifiedPayload }));
           } else {
@@ -949,14 +967,6 @@ export const authService = new AuthService();
  */
 export const changeModeLogout = (mode: number): void => {
   authService.changeModeLogout(mode);
-};
-
-/**
- * Switches the server mode (between live and sandbox)
- * @param data Object containing email for the account
- */
-export const switchModeServer = async (data: { email: string }): Promise<void> => {
-  await authService.switchModeServer(data);
 };
 
 /**

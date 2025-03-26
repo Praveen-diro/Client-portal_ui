@@ -61,7 +61,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <>
       <div className="flex h-screen">
         {mounted && auth.isAuthenticated && <Sidebar onExpandedChange={handleSidebarExpand} className="hidden lg:block" />}
-        <div className="flex-1 overflow-auto">
+        <div
+          className="flex-1 overflow-auto"
+          style={{
+            // paddingLeft: mounted && auth.isAuthenticated ? "0" : "0",
+            marginLeft: mounted && auth.isAuthenticated ? (sidebarExpanded ? "200px" : "1rem") : "0",
+            transition: "all 0.3s ease-in-out",
+          }}
+        >
           {children}
 
           {/* Debug component - only in development

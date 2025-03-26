@@ -1,7 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, FileText, Globe, Info, LayoutGrid, Link2, Search, Plus, MoreHorizontal } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Globe,
+  Info,
+  LayoutGrid,
+  Link2,
+  Search,
+  Plus,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -19,42 +31,12 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { PageContainer } from "@/components/ui/page-container";
 import { RootState } from "@/app/store/store";
 import { store } from "@/app/store/store";
+import { orgService } from "@/app/services/org.service";
+import { buttonService } from "@/app/services/button.service";
+import { getOrgItem, setLoading, setError } from "@/app/store/features/organizationSlice";
+import { getButtons } from "@/app/store/features/buttonSlice";
+import Loader from "@/components/ui/loader";
 // import { getUserFromCookies } from "@/app/store/features/authSlice";
-
-const buttons = [
-  {
-    id: 1,
-    name: "Direct link",
-    category: "Address",
-    invites: 0,
-    documents: 5,
-    lastModified: "2 Weeks ago",
-  },
-  {
-    id: 2,
-    name: "Lock navigator",
-    category: "Bank",
-    invites: 0,
-    documents: 0,
-    lastModified: "2 Weeks ago",
-  },
-  {
-    id: 3,
-    name: "Bank download green",
-    category: "Bank",
-    invites: 0,
-    documents: 75,
-    lastModified: "3 Days ago",
-  },
-  {
-    id: 4,
-    name: "Multidownload + Livefeedback",
-    category: "Bank",
-    invites: 0,
-    documents: 5,
-    lastModified: "1 Month ago",
-  },
-];
 
 const statsCards = [
   {
@@ -86,80 +68,131 @@ const statsCards = [
   },
 ];
 
+// Define the type for formatted buttons
+interface FormattedButton {
+  id: string;
+  name: string;
+  category: string;
+  documentType: string;
+  invites: number;
+  documents: number;
+  lastModified: string;
+  timestamp: number;
+}
+
 export default function ValidationButtons() {
+  const [buttons, setButtons] = useState<FormattedButton[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedButton, setSelectedButton] = useState<any>(null);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("activeButtons");
+  const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const dispatch = useDispatch();
 
-  // // Initialize Redux state safely
-  // useEffect(() => {
-  //   // Safely initialize user data from cookies
-  //   dispatch(getUserFromCookies());
-  // }, [dispatch]);
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Add this to access Redux auth state for debugging
   const auth = useSelector((state: RootState) => state.auth);
+  const buttonsData = useSelector((state: RootState) => state.buttons.buttons);
 
-  // Access all slices to ensure they're properly loaded
-  const user = useSelector((state: RootState) => state.user);
-  const buttonSettings = useSelector((state: RootState) => state.buttonSettings);
-  const privacy = useSelector((state: RootState) => state.privacy);
-  const trigger = useSelector((state: RootState) => state.trigger);
+  // Add this effect to call getOrgAccount and getButtons when the page loads
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      dispatch(setLoading(true));
 
-  // Add a debug effect to check Redux state on mount
-  // useEffect(() => {
-  //   console.log("ValidationButtons page - Redux auth state:", {
-  //     isAuthenticated: auth.isAuthenticated,
-  //     email: auth.email,
-  //     roles: auth.roles,
-  //     token: auth.token ? "exists" : "missing",
-  //     apikey: auth.apikey ? "exists" : "missing",
-  //   });
+      // Fetch organization account data
+      try {
+        const orgResponse = await orgService.getOrgAccount();
+        if (orgResponse.success && orgResponse.data) {
+          console.log("Organization account data fetched successfully:", orgResponse.data);
+          dispatch(getOrgItem(orgResponse.data));
+        } else {
+          console.error("Failed to fetch organization account:", orgResponse.error);
+          dispatch(setError(orgResponse.error || "Failed to fetch organization account"));
+        }
+      } catch (error) {
+        console.error("Error fetching organization account:", error);
+        dispatch(setError(error || "An error occurred while fetching organization account"));
+      }
 
-  //   // Log all Redux slices to verify they're loaded
-  //   console.log("ValidationButtons page - Redux slices:", {
-  //     auth: !!auth,
-  //     user: !!user,
-  //     buttonSettings: !!buttonSettings,
-  //     privacy: !!privacy,
-  //     trigger: !!trigger,
-  //   });
+      // Fetch buttons data
+      try {
+        const buttonsResponse = await buttonService.getButtons();
+        if (buttonsResponse.success && buttonsResponse.data) {
+          console.log("Buttons data fetched successfully:", buttonsResponse.data);
 
-  //   // Check cookies directly as well
-  //   console.log("ValidationButtons page - Cookies:", {
-  //     token: Cookies.get("token") ? "exists" : "missing",
-  //     apikey: Cookies.get("apikey") ? "exists" : "missing",
-  //     email: Cookies.get("email"),
-  //     roles: Cookies.get("roles"),
-  //   });
+          // Handle the nested data structure
+          const buttonsData = buttonsResponse.data.data || [];
 
-  //   // Force connection with Redux DevTools for this specific page
-  //   if (typeof window !== "undefined") {
-  //     // Force Redux store to be accessible to DevTools
-  //     // @ts-ignore
-  //     if (!window.__REDUX_STORE__) {
-  //       // @ts-ignore
-  //       window.__REDUX_STORE__ = store;
-  //     }
+          if (buttonsData.length > 0) {
+            // Dispatch buttons data to Redux store
+            dispatch(getButtons({ data: buttonsData }));
 
-  //     // Force DevTools connection
-  //     // @ts-ignore
-  //     if (window.__REDUX_DEVTOOLS_EXTENSION__) {
-  //       try {
-  //         // @ts-ignore
-  //         window.__REDUX_DEVTOOLS_EXTENSION__.connect();
-  //         console.log("Redux DevTools connection refreshed for validation-buttons page");
-  //       } catch (err) {
-  //         console.error("Failed to connect to Redux DevTools:", err);
-  //       }
-  //     }
-  //   }
-  // }, [auth, user, buttonSettings, privacy, trigger]);
+            // Format the data for local state display
+            console.log("buttonsData redux", buttonsData);
+            const formattedButtons = buttonsData.map((button: any) => {
+              // Store original timestamp for sorting
+              const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
+
+              // Calculate relative time for display
+              let lastModified = "Recently";
+              if (button.btndata?.eptime) {
+                const buttonDate = new Date(timestamp);
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 1) {
+                  lastModified = "Today";
+                } else if (diffDays === 1) {
+                  lastModified = "Yesterday";
+                } else if (diffDays < 7) {
+                  lastModified = `${diffDays} Days ago`;
+                } else {
+                  const diffWeeks = Math.floor(diffDays / 7);
+                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
+                }
+              }
+
+              return {
+                id: button.buttonid,
+                name: button.btndata?.name || "Unnamed Button",
+                category: button.btndata?.coverage?.category || "Other",
+                documentType: button.btndata?.type || "Other",
+                invites: button.invited || 0,
+                documents: button.docreceived || 0,
+                lastModified: lastModified,
+                timestamp: timestamp, // Add timestamp for sorting
+              };
+            });
+
+            // Sort buttons by timestamp (newest first)
+            formattedButtons.sort((a: FormattedButton, b: FormattedButton) => b.timestamp - a.timestamp);
+
+            setButtons(formattedButtons);
+          } else {
+            console.error("No buttons data found");
+          }
+        } else {
+          console.error("Failed to fetch buttons:", buttonsResponse.error);
+          // Keep the default buttons if there's an error
+        }
+      } catch (error) {
+        console.error("Error fetching buttons:", error);
+        // Keep the default buttons if there's an error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [dispatch]);
 
   useEffect(() => {
     setShouldAnimate(true);
@@ -194,9 +227,28 @@ export default function ValidationButtons() {
     setSidebarExpanded(expanded);
   };
 
-  const handleEditButton = (buttonId: number) => {
+  const handleEditButton = (buttonId: string) => {
     router.push(`/client/validation-buttons/button-settings/${buttonId}`);
   };
+
+  // Add pagination handler functions
+  const handleNextPage = () => {
+    if (currentPage < Math.ceil(buttons.length / itemsPerPage)) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // Calculate current items to display
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentButtons = buttons.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(buttons.length / itemsPerPage);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -290,109 +342,149 @@ export default function ValidationButtons() {
                 }}
                 className="rounded-lg border bg-card shadow-sm mt-6"
               >
-                <Table>
-                  <TableHeader>
-                    <motion.tr
-                      className="hover:bg-transparent"
-                      initial={initialAnimation}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{
-                        ...transitionConfig,
-                        delay: 0.4,
-                      }}
-                    >
-                      <TableHead>Name</TableHead>
-                      <TableHead>Category & Type</TableHead>
-                      <TableHead>Invites waiting</TableHead>
-                      <TableHead>Documents received</TableHead>
-                      <TableHead>Last modified</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </motion.tr>
-                  </TableHeader>
-                  <TableBody>
-                    {buttons.map((button, index) => (
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="mb-4">
+                      <Loader />
+                    </div>
+                    <p className="text-muted-foreground">Loading buttons data...</p>
+                  </div>
+                ) : buttons.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="rounded-full bg-muted p-3 mb-4">
+                      <FileText className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">No buttons found</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
                       <motion.tr
-                        key={`button-${button.id}`}
-                        className="group hover:bg-muted/50"
+                        className="hover:bg-transparent"
                         initial={initialAnimation}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{
                           ...transitionConfig,
-                          delay: 0.5 + index * 0.05,
+                          delay: 0.4,
                         }}
                       >
-                        <TableCell className="font-medium">{button.name}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Download
-                              className={`h-4 w-4 ${button.category === "Address" ? "text-green-500" : "text-blue-500"}`}
-                            />
-                            <Badge
-                              variant="outline"
-                              className={
-                                button.category === "Address"
-                                  ? "border-green-500 text-green-700"
-                                  : "border-blue-500 text-blue-700"
-                              }
-                            >
-                              {button.category}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {button.invites > 0 ? (
-                            <Badge variant="secondary">{button.invites}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">No invites</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold">{button.documents}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{button.lastModified}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                  <Link2 className="h-4 w-4 text-blue-500" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Copy link</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                  <Info className="h-4 w-4 text-blue-500" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>View details</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditButton(button.id)}>Edit Button</DropdownMenuItem>
-                                <DropdownMenuItem>View Analytics</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Delete Button</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Document Type</TableHead>
+                        <TableHead>Invites waiting</TableHead>
+                        <TableHead>Documents received</TableHead>
+                        <TableHead>Last modified</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </motion.tr>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {currentButtons.map((button, index) => (
+                        <motion.tr
+                          key={`button-${button.id}`}
+                          className="group hover:bg-muted/50 border-b"
+                          initial={initialAnimation}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            ...transitionConfig,
+                            delay: 0.5 + index * 0.05,
+                          }}
+                        >
+                          <TableCell className="font-medium">{button.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">{button.category}</Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{button.documentType}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {button.invites > 0 ? (
+                              <Badge variant="secondary">{button.invites}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">No invites</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold">{button.documents}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{button.lastModified}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <Link2 className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Copy link</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <Info className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View details</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditButton(button.id)}>Edit Button</DropdownMenuItem>
+                                  <DropdownMenuItem>View Analytics</DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600">Delete Button</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+
+                {buttons.length > itemsPerPage && (
+                  <div className="flex items-center justify-center px-4 py-6">
+                    <div className="flex items-center border rounded-full overflow-hidden bg-card shadow-md w-64">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${
+                          currentPage === 1
+                            ? "text-muted cursor-not-allowed"
+                            : "text-foreground hover:bg-primary/10 hover:text-primary"
+                        }`}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </button>
+                      <div className="px-4 border-l border-r border-border font-semibold text-sm text-primary">{currentPage}</div>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${
+                          currentPage === totalPages
+                            ? "text-muted cursor-not-allowed"
+                            : "text-foreground hover:bg-primary/10 hover:text-primary"
+                        }`}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>

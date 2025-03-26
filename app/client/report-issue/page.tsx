@@ -1,8 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Send, AlertCircle } from "lucide-react";
+import { Send, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
+import { submitFeedback } from "@/app/store/features/tableSlice";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,9 +12,37 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Sidebar } from "@/components/ui/sidebar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ReportIssuePage() {
+  const dispatch = useAppDispatch();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [email, setEmail] = useState("praveen@diro.io");
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!comment.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(submitFeedback({
+        sessionId: "REPORT_ISSUE",
+        comment,
+        rating: 1,
+        email
+      })).unwrap();
+      
+      setShowSuccess(true);
+      setComment("");
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const transitionConfig = {
     type: "spring",
@@ -77,37 +107,57 @@ export default function ReportIssuePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <motion.div variants={formContainer} initial="hidden" animate="show" className="space-y-6">
-                    <motion.div variants={formItem} className="space-y-2">
-                      <Label htmlFor="email">Email address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        defaultValue="praveen@diro.io"
-                        className="h-9"
-                      />
-                    </motion.div>
+                  {showSuccess ? (
+                    <Alert className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                      <AlertDescription>Thank you for your feedback! Your issue has been reported successfully.</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <motion.form onSubmit={handleSubmit} variants={formContainer} initial="hidden" animate="show" className="space-y-6">
+                      <motion.div variants={formItem} className="space-y-2">
+                        <Label htmlFor="email">Email address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Enter your email"
+                          className="h-9"
+                          required
+                        />
+                      </motion.div>
 
-                    <motion.div variants={formItem} className="space-y-2">
-                      <Label htmlFor="comment">Comment</Label>
-                      <Textarea
-                        id="comment"
-                        placeholder="Please describe your issue in detail"
-                        className="min-h-[150px] resize-none"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Include any relevant details that might help us understand and resolve your issue faster.
-                      </p>
-                    </motion.div>
+                      <motion.div variants={formItem} className="space-y-2">
+                        <Label htmlFor="comment">Comment</Label>
+                        <Textarea
+                          id="comment"
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          placeholder="Please describe your issue in detail"
+                          className="min-h-[150px] resize-none"
+                          required
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Include any relevant details that might help us understand and resolve your issue faster.
+                        </p>
+                      </motion.div>
 
-                    <motion.div variants={formItem} className="flex justify-end">
-                      <Button className="w-full sm:w-auto">
-                        <Send className="mr-2 h-4 w-4" />
-                        Submit Report
-                      </Button>
-                    </motion.div>
-                  </motion.div>
+                      <motion.div variants={formItem} className="flex justify-end">
+                        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-4 w-4" />
+                              Submit Report
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                    </motion.form>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
