@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Send, AlertCircle, Loader2 } from "lucide-react";
+import { Send, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { submitFeedback } from "@/app/store/features/tableSlice";
@@ -107,57 +107,63 @@ export default function ReportIssuePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {showSuccess ? (
-                    <Alert className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                      <AlertDescription>Thank you for your feedback! Your issue has been reported successfully.</AlertDescription>
+                  {showSuccess && (
+                    <Alert className="mb-6 bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <AlertDescription className="ml-2">
+                        Thank you for your feedback! Your issue has been reported successfully.
+                      </AlertDescription>
                     </Alert>
-                  ) : (
-                    <motion.form onSubmit={handleSubmit} variants={formContainer} initial="hidden" animate="show" className="space-y-6">
-                      <motion.div variants={formItem} className="space-y-2">
-                        <Label htmlFor="email">Email address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Enter your email"
-                          className="h-9"
-                          required
-                        />
-                      </motion.div>
-
-                      <motion.div variants={formItem} className="space-y-2">
-                        <Label htmlFor="comment">Comment</Label>
-                        <Textarea
-                          id="comment"
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          placeholder="Please describe your issue in detail"
-                          className="min-h-[150px] resize-none"
-                          required
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          Include any relevant details that might help us understand and resolve your issue faster.
-                        </p>
-                      </motion.div>
-
-                      <motion.div variants={formItem} className="flex justify-end">
-                        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Submitting...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="mr-2 h-4 w-4" />
-                              Submit Report
-                            </>
-                          )}
-                        </Button>
-                      </motion.div>
-                    </motion.form>
                   )}
+                  <motion.form onSubmit={handleSubmit} variants={formContainer} initial="hidden" animate="show" className="space-y-6">
+                    <motion.div variants={formItem} className="space-y-2">
+                      <Label htmlFor="email">Email address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        className="h-9"
+                        required
+                      />
+                    </motion.div>
+
+                    <motion.div variants={formItem} className="space-y-2">
+                      <Label htmlFor="comment">Comment</Label>
+                      <Textarea
+                        id="comment"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="Please describe your issue in detail"
+                        className="min-h-[150px] resize-none"
+                        required
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Include any relevant details that might help us understand and resolve your issue faster.
+                      </p>
+                    </motion.div>
+
+                    <motion.div variants={formItem} className="flex justify-end">
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmitting} 
+                        className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Submit Report
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.form>
                 </CardContent>
               </Card>
             </motion.div>
