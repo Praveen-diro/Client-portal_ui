@@ -61,8 +61,27 @@ const SwaggerStyle = () => (
     .swagger-ui .servers,
     .swagger-ui .filter-container,
     .swagger-ui .information-container,
-    .swagger-ui .topbar,
-    .swagger-ui .info .title { display: none; }
+    .swagger-ui .topbar { display: none; }
+    
+    /* Show request URL */
+    .swagger-ui .request-url {
+      display: block !important;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+    }
+
+    /* Show response headers */
+    .swagger-ui .response-col_headers {
+      display: block !important;
+    }
+    
+    .swagger-ui .response-col_headers td.response-col_headers__cell {
+      padding: 8px;
+      border: 1px solid #e9ecef;
+    }
     
     .swagger-ui .opblock {
       margin: 0 0 15px;
@@ -166,6 +185,19 @@ const SwaggerStyle = () => (
     .dark .swagger-ui .model-box {
       background: #1f2937;
       border-color: #374151;
+    }
+
+    /* Dark mode adjustments */
+    .dark .swagger-ui .request-url {
+      background: #1f2937;
+      border-color: #374151;
+      color: #e5e7eb;
+    }
+
+    .dark .swagger-ui .response-col_headers td.response-col_headers__cell {
+      border-color: #374151;
+      background: #1f2937;
+      color: #e5e7eb;
     }
   `}</style>
 );
@@ -750,6 +782,54 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
       )}
       
       <div className="mt-0">
+        <style jsx global>{`
+          /* Light theme styles */
+          .swagger-ui .request-url {
+            display: block !important;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa !important;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            color: #333 !important;
+            font-family: monospace;
+          }
+
+          .swagger-ui .request-url span,
+          .swagger-ui .request-url pre.microlight {
+            color: #333 !important;
+            background: transparent !important;
+          }
+
+          .swagger-ui .response-col_headers {
+            display: block !important;
+          }
+
+          .swagger-ui .response-col_headers td.response-col_headers__cell {
+            padding: 8px;
+            border: 1px solid #e9ecef;
+            background: #fff;
+            color: #333;
+          }
+
+          /* Dark theme overrides */
+          .dark .swagger-ui .request-url {
+            background: #41444e !important;
+            border-color: #555;
+            color: #fff !important;
+          }
+
+          .dark .swagger-ui .request-url span,
+          .dark .swagger-ui .request-url pre.microlight {
+            color: #fff !important;
+          }
+
+          .dark .swagger-ui .response-col_headers td.response-col_headers__cell {
+            background: #41444e;
+            border-color: #555;
+            color: #fff;
+          }
+        `}</style>
         <DynamicSwaggerUI
           spec={unifiedSpec}
           docExpansion="list"
@@ -762,8 +842,17 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
           defaultModelRendering="model"
           tagsSorter="alpha"
           persistAuthorization={true}
+          displayOperationId={true}
+          filter={true}
+          withCredentials={true}
+          syntaxHighlight={{
+            activated: true,
+            theme: "agate"
+          }}
           requestInterceptor={(req: any) => {
-            // Always add Authorization header
+            req.showRequestUrl = true;
+            req.curlOptions = { formatted: true };
+            
             if (token) {
               req.headers["Authorization"] = ` ${token}`;
             }
@@ -786,6 +875,12 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
             }
             
             return req;
+          }}
+          responseInterceptor={(res: any) => {
+            if (res.headers) {
+              res.showHeaders = true;
+            }
+            return res;
           }}
         />
       </div>
