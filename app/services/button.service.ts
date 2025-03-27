@@ -118,7 +118,7 @@ class ButtonService {
   }
 
   async getButton(buttonId: string): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.userlist, { buttonid: buttonId });
+    return this.makeRequest(env.getbtndata, { buttonid: buttonId });
   }
 
   async addButton(buttonData: any): Promise<ButtonResponse<any>> {

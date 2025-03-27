@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, AlertTriangle, X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -196,14 +196,24 @@ function Modal({
   return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }
 
-export function ModeToggle() {
+// Define ModeToggle component with ref
+export interface ModeToggleRef {
+  toggleModal: () => void;
+}
+
+export interface ModeToggleProps {
+  className?: string;
+  onToggleStart?: () => void;
+  onToggleEnd?: () => void;
+}
+
+export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ className, onToggleStart, onToggleEnd }, ref) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [reloadCountdown, setReloadCountdown] = useState(0);
   const AuthReducer = useAppSelector((state: RootState) => state.auth.user);
-  console.log("here is the state", AuthReducer);
 
   // Get current authMode from cookies
   const getAuthMode = () => {
@@ -215,6 +225,16 @@ export function ModeToggle() {
       return false;
     }
   };
+
+  // Function to toggle the modal - can be called from parent
+  const toggleModal = () => {
+    setShowConfirmModal(true);
+  };
+
+  // Expose the toggleModal method via ref
+  useImperativeHandle(ref, () => ({
+    toggleModal,
+  }));
 
   // Function to set API key based on environment
   const setApiKeyForEnvironment = (isTest: boolean) => {
@@ -247,22 +267,20 @@ export function ModeToggle() {
         setReloadCountdown(reloadCountdown - 1);
 
         if (reloadCountdown === 1) {
+          if (onToggleEnd) onToggleEnd();
           window.location.reload();
         }
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [reloadCountdown]);
-
-  const handleToggleClick = () => {
-    setShowConfirmModal(true);
-  };
+  }, [reloadCountdown, onToggleEnd]);
 
   const handleModeSwitch = async (confirmed: boolean) => {
     setShowConfirmModal(false);
 
     if (confirmed) {
+      if (onToggleStart) onToggleStart();
       setIsLoading(true);
       const currentAuthMode = getAuthMode();
       const newMode = !currentAuthMode;
@@ -301,6 +319,7 @@ export function ModeToggle() {
         // Close error modal after delay
         setTimeout(() => {
           setShowSuccessModal(false);
+          if (onToggleEnd) onToggleEnd();
         }, 2000);
       } finally {
         setIsLoading(false);
@@ -312,10 +331,10 @@ export function ModeToggle() {
   const isTestMode = getAuthMode();
 
   return (
-    <>
+    <div className={className}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Test Mode</span>
-        <FancyToggle checked={isTestMode} onChange={handleToggleClick} disabled={isLoading} />
+        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Test Mode</span>
+        <FancyToggle checked={isTestMode} onChange={toggleModal} disabled={isLoading} className="relative z-10" />
       </div>
 
       {/* Confirmation Modal */}
@@ -344,6 +363,6 @@ export function ModeToggle() {
           </p>
         )}
       </Modal>
-    </>
+    </div>
   );
-}
+});

@@ -21,7 +21,7 @@ export function PageContainer({ children, sidebarExpanded }: PageContainerProps)
       className="flex-1 overflow-auto"
       initial={false}
       animate={{
-        marginLeft: sidebarExpanded ? "256px" : "80px",
+        marginLeft: sidebarExpanded ? "256px" : "50px",
       }}
       transition={containerTransition}
     >

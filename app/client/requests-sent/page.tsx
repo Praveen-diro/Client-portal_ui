@@ -443,7 +443,7 @@ export default function RequestsSent() {
         <TooltipProvider>
           <div className="flex-1 relative">
             <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
-            <div className="container mx-auto px-6 py-8">
+            <div className="container mx-auto px-8 py-8">
               {/* <div className="grid gap-4 md:grid-cols-3">
                 {stats.map((card, index) => (
                   <motion.div

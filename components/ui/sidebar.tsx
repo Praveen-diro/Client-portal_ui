@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { ModeToggle } from "./mode-toggle";
+import { ModeToggle, ModeToggleRef } from "./mode-toggle";
+import { cookies } from "@/app/services/cookie.service";
 
 interface SidebarProps {
   onExpandedChange?: (expanded: boolean) => void;
@@ -33,12 +34,44 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [activeItem, setActiveItem] = useState(pathname);
-  const [isOpen, setIsOpen] = useState(false); // For mobile drawer
   const [isExpanded, setIsExpanded] = useState(false); // For hover expansion
   const [tooltipInfo, setTooltipInfo] = useState<{ show: boolean; text: string; y: number } | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Reference to ModeToggle component
+  const modeToggleRef = useRef<ModeToggleRef>(null);
+
+  // Get current test mode status
+  const getTestMode = useCallback(() => {
+    try {
+      const testMode = cookies.get("testMode");
+      return testMode === "true";
+    } catch (error) {
+      console.error("Error getting test mode from cookies:", error);
+      return false;
+    }
+  }, []);
+
+  // Fetch the current test mode on mount
+  useEffect(() => {
+    if (mounted) {
+      setIsTestMode(getTestMode());
+    }
+  }, [mounted, getTestMode]);
+
+  // Handle test mode toggle
+  const handleTestModeToggle = useCallback(() => {
+    if (isToggling) return;
+
+    // Use the ModeToggle's toggleModal method when in collapsed mode
+    if (!isExpanded && modeToggleRef.current) {
+      modeToggleRef.current.toggleModal();
+    }
+  }, [isExpanded, isToggling]);
 
   // Initialize component
   useEffect(() => {
@@ -72,38 +105,19 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     }
   }, [isExpanded, onExpandedChange]);
 
-  // Handle clicks outside to close sidebar on mobile
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node) && isMobile && isOpen) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, isMobile]);
-
-  // Toggle sidebar open/close (mobile)
-  const toggleSidebar = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
-  // Handle mouse enter for hover expansion
+  // Handle mouse enter for hover expansion - only on large screens
   const handleMouseEnter = useCallback(() => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
 
-    if (isExpanded) return;
+    if (isExpanded || isMobile) return;
 
     // Small delay to prevent accidental triggers
     hoverTimeoutRef.current = setTimeout(() => {
       setIsExpanded(true);
     }, 50);
-  }, [isExpanded]);
+  }, [isExpanded, isMobile]);
 
   // Handle mouse leave for hover collapse
   const handleMouseLeave = useCallback(() => {
@@ -125,17 +139,14 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       e.preventDefault();
       setActiveItem(href);
       router.push(href);
-      if (isMobile) {
-        setIsOpen(false);
-      }
     },
-    [router, isMobile]
+    [router]
   );
 
   // Show tooltip
   const showTooltip = useCallback(
     (text: string, e: React.MouseEvent) => {
-      if (!isExpanded) {
+      if (!isExpanded && isMobile) {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setTooltipInfo({
           show: true,
@@ -144,7 +155,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         });
       }
     },
-    [isExpanded]
+    [isExpanded, isMobile]
   );
 
   // Hide tooltip
@@ -218,36 +229,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile toggle button */}
-      <motion.button
-        onClick={toggleSidebar}
-        className={cn(
-          "lg:hidden fixed z-50 bottom-6 right-6 p-3 rounded-full",
-          "bg-primary text-primary-foreground shadow-md",
-          isOpen && "rotate-90"
-        )}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Menu className="h-6 w-6" />
-      </motion.button>
-
-      {/* Overlay for mobile */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="fixed inset-0 bg-background/80 z-40 lg:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Tooltip for collapsed state
+      {/* Tooltip for collapsed state */}
       <AnimatePresence>
         {tooltipInfo?.show && (
           <motion.div
@@ -262,7 +244,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
             <div className="absolute top-1/2 -left-1 h-2 w-2 bg-popover transform rotate-45 -translate-y-1/2" />
           </motion.div>
         )}
-      </AnimatePresence> */}
+      </AnimatePresence>
 
       {/* Sidebar with hover functionality */}
       <motion.div
@@ -270,14 +252,14 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-50",
+          "fixed top-0 bottom-0 left-0 z-40",
           "bg-card/90 backdrop-blur-lg border-r border-border/20 flex flex-col overflow-hidden",
-          !isOpen && "-translate-x-full lg:translate-x-0",
           "shadow-xl",
           className
         )}
+        style={{ top: 0 }}
         animate={{
-          width: isExpanded ? (isMobile ? 320 : 280) : 72,
+          width: isExpanded && !isMobile ? 280 : 72,
         }}
         transition={{
           type: "spring",
@@ -287,7 +269,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         }}
       >
         {/* Logo section */}
-        <div className="flex items-center p-5 h-[80px] border-b border-border/10 relative">
+        <div className="flex items-center h-[40px] px-3 py-2 border-b border-border/10">
           <div className="flex items-center gap-3 overflow-hidden">
             <motion.img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo_dirosvg-SlKV6MwAd8fixuyjmkq61ZTjUPmRnk.png"
@@ -298,7 +280,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
             />
 
             {/* Only render logo text when expanded */}
-            {isExpanded && (
+            {isExpanded && !isMobile && (
               <motion.div
                 className="flex flex-col overflow-hidden flex-shrink-0"
                 initial={{ opacity: 0, x: -10 }}
@@ -316,26 +298,10 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               </motion.div>
             )}
           </div>
-
-          {/* Mobile close button */}
-          {isExpanded && (
-            <motion.button
-              onClick={toggleSidebar}
-              className="ml-auto p-2 rounded-full lg:hidden hover:bg-accent/50"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </motion.button>
-          )}
         </div>
 
         {/* Navigation items - flat list with increased height */}
-        <div className={cn("flex-1 overflow-y-auto py-6", isExpanded ? "px-4" : "px-2")}>
+        <div className={cn("flex-1 overflow-y-auto py-6", isExpanded && !isMobile ? "px-4" : "px-2")}>
           <div className="space-y-2">
             {navItems.map((item) => {
               const isActive = activeItem === item.href;
@@ -345,22 +311,22 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                     className={cn(
                       "relative flex items-center rounded-xl overflow-hidden",
                       "h-14 transition-all duration-200",
-                      isExpanded ? "px-4" : "justify-center",
+                      isExpanded && !isMobile ? "px-4" : "justify-center",
                       isActive
                         ? "text-primary bg-primary/10 font-medium shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
                     )}
                     whileHover={{
-                      scale: isExpanded ? 1.02 : 1.15,
-                      x: isExpanded ? 2 : 0,
+                      scale: isExpanded && !isMobile ? 1.02 : 1.15,
+                      x: isExpanded && !isMobile ? 2 : 0,
                     }}
                     transition={{
                       type: "spring",
                       stiffness: 400,
-                      damping: isExpanded ? 20 : 17,
+                      damping: isExpanded && !isMobile ? 20 : 17,
                     }}
-                    onMouseEnter={!isExpanded ? (e) => showTooltip(item.label, e) : undefined}
-                    onMouseLeave={!isExpanded ? hideTooltip : undefined}
+                    onMouseEnter={!isExpanded && isMobile ? (e) => showTooltip(item.label, e) : undefined}
+                    onMouseLeave={!isExpanded && isMobile ? hideTooltip : undefined}
                   >
                     {/* Active indicator */}
                     {isActive && (
@@ -375,15 +341,15 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                     <div
                       className={cn(
                         "flex items-center justify-center flex-shrink-0",
-                        isExpanded ? "h-10 w-10 mr-4 rounded-lg" : "h-12 w-12",
+                        isExpanded && !isMobile ? "h-10 w-10 mr-4 rounded-lg" : "h-12 w-12",
                         isActive ? "text-primary" : ""
                       )}
                     >
-                      <item.icon className={isExpanded ? "h-[22px] w-[22px]" : "h-6 w-6"} />
+                      <item.icon className={isExpanded && !isMobile ? "h-[22px] w-[22px]" : "h-6 w-6"} />
                     </div>
 
-                    {/* Only render label when sidebar is expanded */}
-                    {isExpanded && (
+                    {/* Only render label when sidebar is expanded and not on mobile */}
+                    {isExpanded && !isMobile && (
                       <motion.span
                         className="text-[15px] truncate flex-shrink-0 font-medium"
                         initial={{ opacity: 0, x: -10 }}
@@ -405,20 +371,77 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         </div>
 
         {/* Footer */}
-        <div className={cn("border-t border-border/10 p-4", isExpanded ? "space-y-3" : "space-y-5")}>
+        <div className={cn("border-t border-border/10 p-4", isExpanded && !isMobile ? "space-y-3" : "space-y-5")}>
           {/* Test Mode Toggle */}
           <div
             className={cn(
               "text-muted-foreground hover:text-foreground flex items-center",
-              "h-12 rounded-xl w-full transition-colors duration-200",
-              isExpanded ? "px-4 hover:bg-accent/30" : "justify-center"
+              "h-12 rounded-xl w-full transition-colors duration-200 relative",
+              isExpanded && !isMobile
+                ? "px-4 hover:bg-accent/30 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50"
+                : "justify-center cursor-pointer hover:bg-accent/10 active:bg-accent/20"
             )}
+            onClick={() => {
+              if (!isExpanded && !isToggling) {
+                handleTestModeToggle();
+              }
+            }}
+            onMouseEnter={
+              !isExpanded ? (e) => showTooltip(isTestMode ? "Test Mode: Active" : "Test Mode: Inactive", e) : undefined
+            }
+            onMouseLeave={!isExpanded ? hideTooltip : undefined}
           >
-            <div className={cn("flex items-center justify-center flex-shrink-0", isExpanded ? "h-10 w-10 rounded-lg" : "")}>
-              <Settings className="h-[22px] w-[22px]" />
+            {/* Loading indicator for collapsed mode */}
+            {isToggling && !isExpanded && (
+              <div className="absolute inset-0 bg-white/20 dark:bg-black/20 rounded-xl flex items-center justify-center z-10">
+                <svg
+                  className="animate-spin h-5 w-5 text-indigo-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </div>
+            )}
+
+            <div
+              className={cn(
+                "flex items-center justify-center flex-shrink-0 z-0",
+                isExpanded && !isMobile ? "h-10 w-10 rounded-lg" : "p-2 rounded-full",
+                !isExpanded && "hover:bg-indigo-100/30 dark:hover:bg-indigo-900/30"
+              )}
+            >
+              {isToggling && isExpanded ? (
+                <svg
+                  className="animate-spin h-[22px] w-[22px] text-indigo-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              ) : (
+                <Settings
+                  className={cn(
+                    "h-[22px] w-[22px]",
+                    isTestMode ? "text-indigo-500 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"
+                  )}
+                />
+              )}
             </div>
 
-            {isExpanded && (
+            {isExpanded && !isMobile && (
               <motion.div
                 className="ml-2 flex-1"
                 initial={{ opacity: 0, x: -10 }}
@@ -429,7 +452,11 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                   ease: "easeOut",
                 }}
               >
-                <ModeToggle />
+                <ModeToggle
+                  ref={modeToggleRef}
+                  onToggleStart={() => setIsToggling(true)}
+                  onToggleEnd={() => setIsToggling(false)}
+                />
               </motion.div>
             )}
           </div>
@@ -442,18 +469,31 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               className={cn(
                 "text-muted-foreground hover:text-foreground flex items-center",
                 "h-12 rounded-xl w-full transition-colors duration-200",
-                isExpanded ? "px-4 hover:bg-accent/30" : "justify-center"
+                isExpanded && !isMobile
+                  ? "px-4 hover:bg-accent/30 bg-amber-50/80 dark:bg-blue-950/40 border border-amber-100 dark:border-blue-900/50"
+                  : "justify-center"
               )}
-              whileHover={isExpanded ? { x: 2, scale: 1.02 } : { scale: 1.15 }}
+              whileHover={isExpanded && !isMobile ? { x: 2, scale: 1.02 } : { scale: 1.15 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onMouseEnter={!isExpanded && isMobile ? (e) => showTooltip(action.label, e) : undefined}
+              onMouseLeave={!isExpanded && isMobile ? hideTooltip : undefined}
             >
               {/* Button icon - always visible */}
-              <div className={cn("flex items-center justify-center flex-shrink-0", isExpanded ? "h-10 w-10 rounded-lg" : "")}>
-                {mounted ? <action.icon className="h-[22px] w-[22px]" /> : <div className="h-[22px] w-[22px]" />}
+              <div
+                className={cn(
+                  "flex items-center justify-center flex-shrink-0",
+                  isExpanded && !isMobile ? "h-10 w-10 rounded-lg" : ""
+                )}
+              >
+                {mounted ? (
+                  <action.icon className={`h-[22px] w-[22px] ${theme === "dark" ? "text-amber-400" : "text-blue-500"}`} />
+                ) : (
+                  <div className="h-[22px] w-[22px]" />
+                )}
               </div>
 
-              {/* Only render button label when expanded */}
-              {isExpanded && (
+              {/* Only render button label when expanded and not on mobile */}
+              {isExpanded && !isMobile && (
                 <motion.span
                   className="text-[15px] truncate flex-shrink-0 ml-2 font-medium"
                   initial={{ opacity: 0, x: -10 }}
@@ -471,6 +511,13 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
           ))}
         </div>
       </motion.div>
+
+      {/* Hidden ModeToggle for collapsed state - this is the shared modal */}
+      {!isExpanded && (
+        <div className="hidden">
+          <ModeToggle ref={modeToggleRef} onToggleStart={() => setIsToggling(true)} onToggleEnd={() => setIsToggling(false)} />
+        </div>
+      )}
     </>
   );
 }

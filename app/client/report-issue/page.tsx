@@ -62,7 +62,7 @@ export default function ReportIssuePage() {
             description="We're here to help! Please provide details about the issue you're experiencing."
           />
 
-          <div className="container mx-auto px-6 py-8">
+          <div className="container mx-auto px-8 py-8">
             <motion.div
               initial={{ opacity: 0, x: 200 }}
               animate={{ opacity: 1, x: 0 }}

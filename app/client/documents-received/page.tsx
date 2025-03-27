@@ -147,7 +147,7 @@ export default function DocumentsReceived() {
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex-1">
           <PageHeader title="Documents Received" description="View and manage received documents for verification" />
-          <div className="container mx-auto px-6 py-8">
+          <div className="container mx-auto px-8 py-8">
             <div className="grid gap-4 md:grid-cols-3">
               {/* Use memoized animations for cards to reduce JS calculations */}
               {cardAnimations.map((anim, index) => (

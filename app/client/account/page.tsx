@@ -110,7 +110,7 @@ export default function AccountPage() {
           </motion.div>
 
           <div className="flex-1 overflow-y-auto">
-            <div className="container mx-auto px-6 py-8">
+            <div className="container mx-auto px-8 py-8">
               <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                 <motion.div
                   initial={initialAnimation}

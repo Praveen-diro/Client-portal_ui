@@ -41,7 +41,7 @@ import { store } from "@/app/store/store";
 import { orgService } from "@/app/services/org.service";
 import { buttonService } from "@/app/services/button.service";
 import { getOrgItem, setLoading, setError } from "@/app/store/features/organizationSlice";
-import { getButtons, addButton } from "@/app/store/features/buttonSlice";
+import { getButtons, addButton, getButton } from "@/app/store/features/buttonSlice";
 import Loader from "@/components/ui/loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AnimatePresence } from "framer-motion";
@@ -341,6 +341,8 @@ export default function ValidationButtons() {
   };
 
   const handleEditButton = (buttonId: string) => {
+    // Simply navigate to the settings page
+    // The settings page will handle its own data fetching in its useEffect
     router.push(`/client/validation-buttons/button-settings/${buttonId}`);
   };
 
@@ -891,7 +893,7 @@ export default function ValidationButtons() {
         <TooltipProvider>
           <div className="flex-1 relative">
             <PageHeader title="Verification Buttons" description="Manage and monitor your verification button performance" />
-            <div className="container mx-auto px-6 py-8">
+            <div className="container mx-auto px-8 py-8">
               <motion.div
                 className="flex justify-end mb-6"
                 initial={initialAnimation}
@@ -906,10 +908,10 @@ export default function ValidationButtons() {
                     <TooltipTrigger asChild>
                       <div style={{ cursor: "pointer" }}>
                         <Button
-                          className={`bg-foreground text-background hover:bg-foreground/90 ${
+                          className={`${
                             authMode === 1
-                              ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400 dark:bg-gray-300 hover:bg-gray-400 dark:hover:bg-gray-700"
-                              : ""
+                              ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700"
+                              : "bg-foreground text-background hover:bg-foreground/90"
                           }`}
                           onClick={handleCreateButton}
                           disabled={authMode === 1}
