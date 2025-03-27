@@ -412,6 +412,7 @@ export default function IntegrationsPage() {
                           
                           <motion.li
                             variants={boxVariants}
+                            onClick={() => router.push('/client/integrations/apireference')}
                             className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/80 dark:hover:bg-gray-700/80 hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 cursor-pointer"
                           >
                             <div>
@@ -489,7 +490,7 @@ export default function IntegrationsPage() {
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             <span className="text-blue-500 dark:text-blue-400">•</span>
-                            View API Documentation
+                          Delete data API
                           </motion.li>
                         </ul>
                       </motion.div>

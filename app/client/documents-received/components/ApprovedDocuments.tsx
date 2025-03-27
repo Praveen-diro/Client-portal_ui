@@ -33,6 +33,7 @@ import {
   extractTransactionData,
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
+import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -1162,8 +1163,10 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
         }}
       />
 
-      {/* Note: Modal components for document view, report issue, 
-      and JSON conversion would need to be implemented separately */}
+      <ReportIssueModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
 
       {/* Add this to your global CSS or add it inline */}
       <style jsx>{`

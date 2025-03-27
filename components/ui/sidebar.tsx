@@ -21,6 +21,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "./mode-toggle";
+import { ReportIssueModal } from "./report-issue-modal";
 
 interface SidebarProps {
   onExpandedChange?: (expanded: boolean) => void;
@@ -39,6 +40,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Initialize component
   useEffect(() => {
@@ -123,6 +125,11 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   const handleNavigation = useCallback(
     (href: string, e: React.MouseEvent) => {
       e.preventDefault();
+      if (href === "support") {
+        setIsReportModalOpen(true);
+        setActiveItem("support");
+        return;
+      }
       setActiveItem(href);
       router.push(href);
       if (isMobile) {
@@ -131,6 +138,13 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     },
     [router, isMobile]
   );
+
+  // Update active item when modal closes
+  useEffect(() => {
+    if (!isReportModalOpen && activeItem === "support") {
+      setActiveItem(pathname);
+    }
+  }, [isReportModalOpen, pathname, activeItem]);
 
   // Show tooltip
   const showTooltip = useCallback(
@@ -199,7 +213,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       id: "help",
       icon: LifeBuoy,
       label: "Support",
-      href: "/client/report-issue",
+      href: "support",
     },
   ];
 
@@ -218,6 +232,12 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
 
   return (
     <>
+      {/* Report Issue Modal */}
+      <ReportIssueModal 
+        isOpen={isReportModalOpen} 
+        onClose={() => setIsReportModalOpen(false)} 
+      />
+
       {/* Mobile toggle button */}
       <motion.button
         onClick={toggleSidebar}
@@ -238,10 +258,10 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
         {isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6, backdropFilter: "blur(4px)" }}
+            animate={{ opacity: 0.6 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="fixed inset-0 bg-background/80 z-40 lg:hidden"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setIsOpen(false)}
           />
         )}

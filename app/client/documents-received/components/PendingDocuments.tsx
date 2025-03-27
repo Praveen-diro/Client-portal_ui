@@ -44,6 +44,7 @@ import {
   extractTransactionData,
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
+import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -810,6 +811,11 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
             variant: "default",
           });
         }}
+      />
+
+      <ReportIssueModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
       />
 
       {/* Any style elements or closing JSX tags */}

@@ -34,6 +34,7 @@ import {
   extractTransactionData,
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
+import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -137,6 +138,9 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
 
   // Add a new state for JSON modal loading
   const [jsonLoading, setJsonLoading] = useState(false);
+
+  // Add a new state for report modal
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Verification cell helper
   const verificationCell = (doc: any) => {
@@ -415,8 +419,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   const handleOpenReportModal = (sessionId: string) => {
     setCurrentSessionId(sessionId);
     setSessionDetailsModalOpen(false); // Close the session details modal
-    // Assuming you will implement the report modal functionality
-    console.log("Open report modal for session:", sessionId);
+    setReportModalOpen(true);
   };
 
   return (
@@ -780,6 +783,12 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
             variant: "default",
           });
         }}
+      />
+
+      {/* Report Issue Modal */}
+      <ReportIssueModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
       />
 
       {/* Add this to your global CSS or add it inline */}
