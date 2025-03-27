@@ -194,8 +194,10 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "coverage",
       icon: Earth,
-      label: "Coverage",
-      href: "/coverage",
+      label: "Coverage", 
+      href: "https://diro.live/see-coverage/",
+      target: "_blank",
+      rel: "noopener noreferrer"
     },
     {
       id: "integrations",
