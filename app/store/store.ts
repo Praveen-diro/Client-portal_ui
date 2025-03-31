@@ -9,6 +9,7 @@ import organizationReducer from "./features/organizationSlice";
 import billingReducer from "./features/billingSlice";
 import viewDocReducer from "./features/viewDocSlice";
 import buttonReducer from "./features/buttonSlice";
+import sourceReducer from "./features/sourceSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
 // Create the root reducer separately so we can extract the RootState type
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   billing: billingReducer,
   viewDoc: viewDocReducer,
   buttons: buttonReducer,
+  source: sourceReducer,
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
@@ -85,6 +87,7 @@ if (
       "./features/billingSlice",
       "./features/viewDocSlice",
       "./features/buttonSlice",
+      "./features/sourceSlice",
     ],
     () => {
       store.replaceReducer(rootReducer);
