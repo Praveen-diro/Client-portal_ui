@@ -26,15 +26,37 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const isDark = theme === "dark";
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim()) return;
+    
+    // Reset validation errors
+    setEmailError(null);
+    setCommentError(null);
+    setError(null);
+    
+    // Validate email
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+    
+    // Validate comment length
+    if (comment.trim().length < 10) {
+      setCommentError("Please provide at least 10 characters");
+      return;
+    }
 
     setIsSubmitting(true);
-    setError(null);
     try {
       await dispatch(submitFeedback({
         sessionId: "REPORT_ISSUE",
@@ -144,15 +166,26 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
                         </motion.div>
                         <motion.h2 
                           className={cn(
-                            "text-lg font-semibold mt-3",
+                            "text-lg font-semibold mt-3 mb-1",
                             isDark ? "text-gray-100" : "text-gray-900"
                           )}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 }}
                         >
-                          Report an Issue
+                          Submit Your Issue
                         </motion.h2>
+                        <motion.p
+                          className={cn(
+                            "text-sm text-center max-w-sm mx-auto mb-2",
+                            isDark ? "text-gray-400" : "text-gray-600"
+                          )}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                        >
+                          We're here to help! Please provide details about the issue you're experiencing.
+                        </motion.p>
                       </div>
 
                       <motion.button 
@@ -290,16 +323,26 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
                           id="email"
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            setEmailError(null);
+                          }}
                           placeholder="Enter your email"
                           className={cn(
                             "h-10 text-sm border focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 rounded-lg transition-all duration-200",
+                            emailError ? "border-red-500 ring-2 ring-red-500/20" : "",
                             isDark 
                               ? "bg-[#111827] border-gray-700 text-gray-300 placeholder:text-gray-500" 
                               : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
                           )}
                           required
                         />
+                        {emailError && (
+                          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {emailError}
+                          </p>
+                        )}
                       </motion.div>
 
                       <motion.div 
@@ -322,16 +365,30 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
                         <Textarea
                           id="comment"
                           value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          placeholder="Please provide as much detail as possible..."
+                          onChange={(e) => {
+                            setComment(e.target.value);
+                            setCommentError(null);
+                          }}
+                          placeholder="Please describe your issue in detail"
                           className={cn(
-                            "text-sm border focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 rounded-lg resize-none min-h-[80px] transition-all duration-200",
+                            "text-sm border focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 rounded-lg resize-none min-h-[120px] transition-all duration-200",
+                            commentError ? "border-red-500 ring-2 ring-red-500/20" : "",
                             isDark 
                               ? "bg-[#111827] border-gray-700 text-gray-300 placeholder:text-gray-500" 
                               : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
                           )}
                           required
                         />
+                        {commentError ? (
+                          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {commentError}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                         Include any relevant details that might help us understand and resolve your issue faster.
+                          </p>
+                        )}
                       </motion.div>
 
                       <motion.div 
@@ -345,7 +402,7 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
                           type="submit"
                           disabled={isSubmitting}
                           className={cn(
-                            "text-sm h-10 px-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium",
+                            "text-sm h-10 px-8 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium",
                             isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:from-blue-600 hover:to-blue-700"
                           )}
                           whileHover={{ scale: 1.02 }}
@@ -359,7 +416,7 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              Submit Report
+                              Submit report
                             </>
                           )}
                         </motion.button>
