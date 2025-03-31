@@ -133,7 +133,7 @@ export default function IntegrationsPage() {
         <div className="flex-1 relative">
           <PageHeader title="Integrations" description="Manage your integration settings and connections" />
 
-          <motion.div initial="hidden" animate="show" variants={containerVariants} className="container mx-auto px-6 py-8">
+          <motion.div initial="hidden" animate="show" variants={containerVariants} className="container mx-auto px-8 py-8">
             <motion.div variants={tableVariants}>
               <motion.div
                 variants={tableVariants}

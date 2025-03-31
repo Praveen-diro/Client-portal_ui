@@ -59,14 +59,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   // Always render the children on the server, then handle conditional rendering on the client after hydration
   return (
     <>
-      <div className="flex h-screen">
+      <div className="relative w-full h-screen overflow-hidden">
         {mounted && auth.isAuthenticated && <Sidebar onExpandedChange={handleSidebarExpand} className="hidden lg:block" />}
-        <div
-          className="flex-1 overflow-auto"
+        <main
+          className="h-full w-full overflow-auto"
           style={{
-            // paddingLeft: mounted && auth.isAuthenticated ? "0" : "0",
-            marginLeft: mounted && auth.isAuthenticated ? (sidebarExpanded ? "200px" : "1rem") : "0",
-            transition: "all 0.3s ease-in-out",
+            paddingLeft: mounted && auth.isAuthenticated ? (sidebarExpanded ? "280px" : "-10px") : "0",
+            transition: "padding 0.5s ease-in-out",
           }}
         >
           {children}
@@ -90,7 +89,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               </pre>
             </div>
           )} */}
-        </div>
+        </main>
       </div>
     </>
   );

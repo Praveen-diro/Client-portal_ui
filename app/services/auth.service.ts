@@ -285,7 +285,7 @@ class AuthService {
           "Content-Type": "application/json",
           "Idempotency-Key": idempotencyKey,
         },
-        withCredentials: true,
+        // withCredentials: true,
       });
 
       // Handle different response scenarios

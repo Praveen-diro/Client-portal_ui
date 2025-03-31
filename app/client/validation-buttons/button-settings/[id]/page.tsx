@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +62,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
+import { buttonService } from "@/app/services/button.service";
+import { getButton } from "@/app/store/features/buttonSlice";
 import {
   setAutoDeletion,
   setShareOnlyJson,
@@ -87,6 +89,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatePresence } from "framer-motion";
 import React from "react";
+import Loader from "@/components/ui/loader";
 
 // Add import for BasicTab component
 import { BasicTab } from "../../components/BasicTab";
@@ -199,6 +202,36 @@ export default function EditButton() {
   const params = useParams() as PageParams;
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch button data when component mounts or buttonId changes
+  useEffect(() => {
+    const buttonId = params.id;
+    if (!buttonId) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    buttonService
+      .getButtonData(buttonId.toString())
+      .then((response) => {
+        if (response.success && response.data) {
+          console.log("Button settings: data retrieved successfully", response.data);
+          dispatch(getButton(response.data));
+        } else {
+          console.error("Failed to get button data:", response.error || "Unknown error");
+          setError("Failed to load button data. Please try again.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error retrieving button data:", error);
+        setError("An error occurred while loading button data.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [params.id, dispatch]);
 
   // Get all state from buttonSettings
   const { basic, privacy, trigger, display, rejection, advanced } = useAppSelector((state) => state.buttonSettings);
@@ -516,144 +549,165 @@ export default function EditButton() {
           </div>
 
           {/* Content */}
-          <div className="container mx-auto px-6 py-8">
-            <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="space-y-8">
-              <div className="relative">
-                <TabsList className="relative z-10 bg-white dark:bg-gray-900 p-1 rounded-xl shadow-lg">
-                  {TABS.map((tab, index) => (
-                    <TabsTrigger
-                      key={index}
-                      value={index.toString()}
-                      className="relative data-[state=active]:text-primary data-[state=active]:bg-primary/10 transition-all duration-200"
+          <div className="container mx-auto px-8 py-8">
+            {isLoading ? (
+              <div className="flex items-center justify-center min-h-screen">
+                <Loader />
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center min-h-screen p-4">
+                <Alert variant="destructive" className="max-w-md">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                  <Button className="mt-4" variant="outline" onClick={() => router.push("/client/validation-buttons")}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Buttons
+                  </Button>
+                </Alert>
+              </div>
+            ) : (
+              <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="space-y-8">
+                <div className="relative">
+                  <TabsList className="relative z-10 bg-white dark:bg-gray-900 p-1 rounded-xl shadow-lg">
+                    {TABS.map((tab, index) => (
+                      <TabsTrigger
+                        key={index}
+                        value={index.toString()}
+                        className="relative data-[state=active]:text-primary data-[state=active]:bg-primary/10 transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-2 px-1">
+                          {renderTabIcon(tab)}
+                          <span>{tab.name}</span>
+                        </div>
+                        {activeTab === index && (
+                          <motion.div
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
+                            layoutId="activeTab"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+
+                <div className="relative" style={{ minHeight: "400px" }}>
+                  <AnimatePresence initial={false} mode="wait">
+                    <motion.div
+                      key={activeTab}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid grid-cols-1 lg:grid-cols-3 gap-8"
                     >
-                      <div className="flex items-center gap-2 px-1">
-                        {renderTabIcon(tab)}
-                        <span>{tab.name}</span>
-                      </div>
-                      {activeTab === index && (
-                        <motion.div
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
-                          layoutId="activeTab"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      {/* Existing tab content */}
+                      {activeTab === 0 && (
+                        <BasicTab
+                          verificationMethod={basic.verificationMethod}
+                          directUrlEnabled={basic.directUrlEnabled}
+                          selectedCountry={basic.selectedCountry}
+                          limitCountryEnabled={basic.limitCountryEnabled}
+                          selectedCountries={basic.selectedCountries}
+                          allowSubmissionOverride={basic.allowSubmissionOverride}
+                          allowMissingStatements={basic.allowMissingStatements}
+                          onVerificationMethodChange={handleVerificationMethodChange}
+                          onDirectUrlChange={handleDirectUrlChange}
+                          onSelectedCountryChange={(value) => dispatch(setSelectedCountry(value))}
+                          onLimitCountryEnabledChange={(checked) => {
+                            dispatch(setLimitCountryEnabled(checked));
+                            if (!checked) {
+                              dispatch(setSelectedCountries([]));
+                            }
+                          }}
+                          onSelectedCountriesChange={(value) => dispatch(setSelectedCountries(value))}
+                          onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowSubmissionOverride(checked))}
+                          onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatements(checked))}
+                          params={params}
                         />
                       )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
 
-              <div className="relative" style={{ minHeight: "400px" }}>
-                <AnimatePresence initial={false} mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-                  >
-                    {/* Existing tab content */}
-                    {activeTab === 0 && (
-                      <BasicTab
-                        verificationMethod={basic.verificationMethod}
-                        directUrlEnabled={basic.directUrlEnabled}
-                        selectedCountry={basic.selectedCountry}
-                        limitCountryEnabled={basic.limitCountryEnabled}
-                        selectedCountries={basic.selectedCountries}
-                        allowSubmissionOverride={basic.allowSubmissionOverride}
-                        allowMissingStatements={basic.allowMissingStatements}
-                        onVerificationMethodChange={handleVerificationMethodChange}
-                        onDirectUrlChange={handleDirectUrlChange}
-                        onSelectedCountryChange={(value) => dispatch(setSelectedCountry(value))}
-                        onLimitCountryEnabledChange={(checked) => {
-                          dispatch(setLimitCountryEnabled(checked));
-                          if (!checked) {
-                            dispatch(setSelectedCountries([]));
+                      {activeTab === 1 && <IntegrationTab verificationMethod={basic.verificationMethod} />}
+
+                      {activeTab === 2 && (
+                        <PrivacyTab
+                          {...privacy}
+                          onAutoDeletionChange={(checked) => dispatch(setAutoDeletion({ enabled: checked }))}
+                          onShareOnlyJsonChange={(checked) => dispatch(setShareOnlyJson(checked))}
+                          onShowFieldLabelsChange={(checked) => dispatch(setShowFieldLabels(checked))}
+                          onDisableWebpagePromptsChange={(checked) => dispatch(setDisableWebpagePrompts(checked))}
+                          onShowDetailedJsonChange={(checked) => dispatch(setShowDetailedJson(checked))}
+                          onTransactionsExtractionChange={(checked) => dispatch(setTransactionsExtraction(checked))}
+                        />
+                      )}
+
+                      {activeTab === 3 && (
+                        <TriggersEmailTab
+                          {...trigger}
+                          onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
+                          onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
+                          onSubmissionNotificationViaEmailChange={(checked) =>
+                            dispatch(setSubmissionNotificationViaEmail(checked))
                           }
-                        }}
-                        onSelectedCountriesChange={(value) => dispatch(setSelectedCountries(value))}
-                        onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowSubmissionOverride(checked))}
-                        onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatements(checked))}
-                        params={params}
-                      />
-                    )}
+                          onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
+                          onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
+                          onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
+                          onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
+                          onAddGoogleSheetUrlChange={(checked) => dispatch(setAddGoogleSheetUrl(checked))}
+                          onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
+                        />
+                      )}
 
-                    {activeTab === 1 && <IntegrationTab verificationMethod={basic.verificationMethod} />}
+                      {activeTab === 4 && (
+                        <DisplayTab
+                          {...display}
+                          onStartWithFullScreenChange={(checked) =>
+                            dispatch(setDisplaySettings({ startWithFullScreen: checked }))
+                          }
+                          onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showPreview: checked }))}
+                          onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ desktopWarning: value }))}
+                          onDesktopCustomMessageChange={(value) => dispatch(setDisplaySettings({ desktopCustomMessage: value }))}
+                          onColorValueChange={(value) => dispatch(setDisplaySettings({ colorValue: value }))}
+                          onIncludeFaqPageChange={(checked) => dispatch(setDisplaySettings({ includeFaqPage: checked }))}
+                          onIncludeQrCodeChange={(checked) => dispatch(setDisplaySettings({ includeQrCode: checked }))}
+                          onNoPasswordTextChange={(value) => dispatch(setDisplaySettings({ noPasswordText: value }))}
+                          onStrongPrivacyTextChange={(value) => dispatch(setDisplaySettings({ strongPrivacyText: value }))}
+                          onSecureTextChange={(value) => dispatch(setDisplaySettings({ secureText: value }))}
+                          onDataPurgeTextChange={(value) => dispatch(setDisplaySettings({ dataPurgeText: value }))}
+                          onLoginTextChange={(value) => dispatch(setDisplaySettings({ loginText: value }))}
+                          onInstructionTextChange={(value) => dispatch(setDisplaySettings({ instructionText: value }))}
+                          onSuccessHeadingChange={(value) => dispatch(setDisplaySettings({ successHeading: value }))}
+                          onSuccessMessageChange={(value) => dispatch(setDisplaySettings({ successMessage: value }))}
+                          onFailureHeadingChange={(value) => dispatch(setDisplaySettings({ failureHeading: value }))}
+                          onFailureMessageChange={(value) => dispatch(setDisplaySettings({ failureMessage: value }))}
+                          onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ organizationName: value }))}
+                        />
+                      )}
 
-                    {activeTab === 2 && (
-                      <PrivacyTab
-                        {...privacy}
-                        onAutoDeletionChange={(checked) => dispatch(setAutoDeletion({ enabled: checked }))}
-                        onShareOnlyJsonChange={(checked) => dispatch(setShareOnlyJson(checked))}
-                        onShowFieldLabelsChange={(checked) => dispatch(setShowFieldLabels(checked))}
-                        onDisableWebpagePromptsChange={(checked) => dispatch(setDisableWebpagePrompts(checked))}
-                        onShowDetailedJsonChange={(checked) => dispatch(setShowDetailedJson(checked))}
-                        onTransactionsExtractionChange={(checked) => dispatch(setTransactionsExtraction(checked))}
-                      />
-                    )}
+                      {activeTab === 5 && (
+                        <RejectionTab
+                          disallowedDocTypes={rejection.disallowedDocTypes}
+                          onDisallowedDocTypesChange={(value) => dispatch(setDisallowedDocTypes(value))}
+                        />
+                      )}
 
-                    {activeTab === 3 && (
-                      <TriggersEmailTab
-                        {...trigger}
-                        onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
-                        onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
-                        onSubmissionNotificationViaEmailChange={(checked) => dispatch(setSubmissionNotificationViaEmail(checked))}
-                        onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
-                        onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
-                        onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
-                        onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
-                        onAddGoogleSheetUrlChange={(checked) => dispatch(setAddGoogleSheetUrl(checked))}
-                        onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
-                      />
-                    )}
-
-                    {activeTab === 4 && (
-                      <DisplayTab
-                        {...display}
-                        onStartWithFullScreenChange={(checked) => dispatch(setDisplaySettings({ startWithFullScreen: checked }))}
-                        onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showPreview: checked }))}
-                        onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ desktopWarning: value }))}
-                        onDesktopCustomMessageChange={(value) => dispatch(setDisplaySettings({ desktopCustomMessage: value }))}
-                        onColorValueChange={(value) => dispatch(setDisplaySettings({ colorValue: value }))}
-                        onIncludeFaqPageChange={(checked) => dispatch(setDisplaySettings({ includeFaqPage: checked }))}
-                        onIncludeQrCodeChange={(checked) => dispatch(setDisplaySettings({ includeQrCode: checked }))}
-                        onNoPasswordTextChange={(value) => dispatch(setDisplaySettings({ noPasswordText: value }))}
-                        onStrongPrivacyTextChange={(value) => dispatch(setDisplaySettings({ strongPrivacyText: value }))}
-                        onSecureTextChange={(value) => dispatch(setDisplaySettings({ secureText: value }))}
-                        onDataPurgeTextChange={(value) => dispatch(setDisplaySettings({ dataPurgeText: value }))}
-                        onLoginTextChange={(value) => dispatch(setDisplaySettings({ loginText: value }))}
-                        onInstructionTextChange={(value) => dispatch(setDisplaySettings({ instructionText: value }))}
-                        onSuccessHeadingChange={(value) => dispatch(setDisplaySettings({ successHeading: value }))}
-                        onSuccessMessageChange={(value) => dispatch(setDisplaySettings({ successMessage: value }))}
-                        onFailureHeadingChange={(value) => dispatch(setDisplaySettings({ failureHeading: value }))}
-                        onFailureMessageChange={(value) => dispatch(setDisplaySettings({ failureMessage: value }))}
-                        onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ organizationName: value }))}
-                      />
-                    )}
-
-                    {activeTab === 5 && (
-                      <RejectionTab
-                        disallowedDocTypes={rejection.disallowedDocTypes}
-                        onDisallowedDocTypesChange={(value) => dispatch(setDisallowedDocTypes(value))}
-                      />
-                    )}
-
-                    {activeTab === 6 && (
-                      <AdvancedTab
-                        proxyLocation={advanced.proxyLocation}
-                        allowMethodSwitching={advanced.allowMethodSwitching}
-                        onProxyLocationChange={(value) => dispatch(setProxyLocation(value))}
-                        onAllowMethodSwitchingChange={(checked) => dispatch(setAllowMethodSwitching(checked))}
-                        onDelete={() => {
-                          // Handle delete action
-                          console.log("Delete button clicked");
-                        }}
-                      />
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </Tabs>
+                      {activeTab === 6 && (
+                        <AdvancedTab
+                          proxyLocation={advanced.proxyLocation}
+                          allowMethodSwitching={advanced.allowMethodSwitching}
+                          onProxyLocationChange={(value) => dispatch(setProxyLocation(value))}
+                          onAllowMethodSwitchingChange={(checked) => dispatch(setAllowMethodSwitching(checked))}
+                          onDelete={() => {
+                            // Handle delete action
+                            console.log("Delete button clicked");
+                          }}
+                        />
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </Tabs>
+            )}
           </div>
         </div>
       </PageContainer>

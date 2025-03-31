@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, AlertTriangle, X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -196,15 +196,46 @@ function Modal({
   return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }
 
-export function ModeToggle() {
-  const [isTestMode, setIsTestMode] = useState(false);
+// Define ModeToggle component with ref
+export interface ModeToggleRef {
+  toggleModal: () => void;
+}
+
+export interface ModeToggleProps {
+  className?: string;
+  onToggleStart?: () => void;
+  onToggleEnd?: () => void;
+}
+
+export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ className, onToggleStart, onToggleEnd }, ref) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [reloadCountdown, setReloadCountdown] = useState(0);
   const AuthReducer = useAppSelector((state: RootState) => state.auth.user);
-  console.log("here is the state", AuthReducer);
+
+  // Get current authMode from cookies
+  const getAuthMode = () => {
+    try {
+      const testMode = cookies.get("testMode");
+      return testMode === "true";
+    } catch (error) {
+      console.error("Error getting test mode from cookies:", error);
+      return false;
+    }
+  };
+
+  // Function to toggle the modal - can be called from parent
+  const toggleModal = () => {
+    setShowConfirmModal(true);
+  };
+
+  // Expose the toggleModal method via ref
+  useImperativeHandle(ref, () => ({
+    toggleModal,
+  }));
+
   // Function to set API key based on environment
   const setApiKeyForEnvironment = (isTest: boolean) => {
     // Set appropriate API key based on environment
@@ -221,14 +252,9 @@ export function ModeToggle() {
   // Load saved mode from cookies on component mount
   useEffect(() => {
     try {
-      const savedMode = cookies.get("testMode");
-      if (savedMode !== null) {
-        const isTest = savedMode === "true";
-        setIsTestMode(isTest);
-
-        // Set API key based on saved mode
-        setApiKeyForEnvironment(isTest);
-      }
+      const isTest = getAuthMode();
+      // Set API key based on saved mode
+      setApiKeyForEnvironment(isTest);
     } catch (error) {
       console.error("Error loading test mode from cookies:", error);
     }
@@ -241,24 +267,23 @@ export function ModeToggle() {
         setReloadCountdown(reloadCountdown - 1);
 
         if (reloadCountdown === 1) {
+          if (onToggleEnd) onToggleEnd();
           window.location.reload();
         }
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [reloadCountdown]);
-
-  const handleToggleClick = () => {
-    setShowConfirmModal(true);
-  };
+  }, [reloadCountdown, onToggleEnd]);
 
   const handleModeSwitch = async (confirmed: boolean) => {
     setShowConfirmModal(false);
 
     if (confirmed) {
+      if (onToggleStart) onToggleStart();
       setIsLoading(true);
-      const newMode = !isTestMode;
+      const currentAuthMode = getAuthMode();
+      const newMode = !currentAuthMode;
 
       // Show success modal immediately with loading state
       setSuccessMessage(`Switching to ${newMode ? "test" : "production"} mode...`);
@@ -274,16 +299,13 @@ export function ModeToggle() {
         // Get email from cookies
         const email = cookies.get("email");
 
-        // Call switchModeServer to change the server mode
+        // Call switchModeServer to change the server mode with the current authMode
         if (email) {
-          await authService.switchModeServer({ email, sandbox: newMode ? "true" : "false" });
+          await authService.switchModeServer({ email, sandbox: currentAuthMode ? "true" : "false" });
           console.log(`Successfully switched to ${newMode ? "test" : "production"} mode on server`);
         } else {
           console.warn("Email not found in cookies, couldn't switch server mode");
         }
-
-        // Update state after successful server mode switch
-        setIsTestMode(newMode);
 
         // Update success message with simpler text
         setSuccessMessage(`Switched to ${newMode ? "test" : "production"} mode successfully!`);
@@ -297,6 +319,7 @@ export function ModeToggle() {
         // Close error modal after delay
         setTimeout(() => {
           setShowSuccessModal(false);
+          if (onToggleEnd) onToggleEnd();
         }, 2000);
       } finally {
         setIsLoading(false);
@@ -304,11 +327,14 @@ export function ModeToggle() {
     }
   };
 
+  // Get current auth mode for rendering
+  const isTestMode = getAuthMode();
+
   return (
-    <>
+    <div className={className}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Test Mode</span>
-        <FancyToggle checked={isTestMode} onChange={handleToggleClick} disabled={isLoading} />
+        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Test Mode</span>
+        <FancyToggle checked={isTestMode} onChange={toggleModal} disabled={isLoading} className="relative z-10" />
       </div>
 
       {/* Confirmation Modal */}
@@ -337,6 +363,6 @@ export function ModeToggle() {
           </p>
         )}
       </Modal>
-    </>
+    </div>
   );
-}
+});
