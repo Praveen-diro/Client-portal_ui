@@ -6,6 +6,9 @@ import { Ban, FileText, Plus, X } from "lucide-react";
 
 interface RejectionTabProps {
   disallowedDocTypes: string[];
+  masterFields?: any; // Master fields data from API
+  masterFieldsLoading?: boolean; // Loading state for master fields
+  masterFieldsError?: string; // Error message for master fields
   onDisallowedDocTypesChange: (value: string[]) => void;
 }
 
@@ -72,7 +75,13 @@ const MultiSelect = ({
   );
 };
 
-export const RejectionTab: React.FC<RejectionTabProps> = ({ disallowedDocTypes, onDisallowedDocTypesChange }) => {
+export const RejectionTab: React.FC<RejectionTabProps> = ({
+  disallowedDocTypes,
+  masterFields,
+  masterFieldsLoading,
+  masterFieldsError,
+  onDisallowedDocTypesChange,
+}) => {
   return (
     <div className="lg:col-span-3">
       <div className="space-y-6">

@@ -16,6 +16,9 @@ interface TriggersEmailTabProps {
   callbackUrl: string;
   addGoogleSheetUrl: boolean;
   enableSalesforce: boolean;
+  emailReminder?: any; // Email reminder data from API
+  emailReminderLoading?: boolean; // Loading state for email reminder
+  emailReminderError?: string; // Error message for email reminder
   onEmailToOrganizationChange: (value: string) => void;
   onIncludePdfInEmailChange: (checked: boolean) => void;
   onSubmissionNotificationViaEmailChange: (checked: boolean) => void;
@@ -37,6 +40,9 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   callbackUrl,
   addGoogleSheetUrl,
   enableSalesforce,
+  emailReminder,
+  emailReminderLoading,
+  emailReminderError,
   onEmailToOrganizationChange,
   onIncludePdfInEmailChange,
   onSubmissionNotificationViaEmailChange,

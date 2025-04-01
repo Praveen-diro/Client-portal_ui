@@ -1,9 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
-import buttonSettingsReducer from "./features/buttonSettingsSlice";
 import authReducer from "./features/authSlice";
-import privacyReducer from "./features/privacySlice";
-import triggerReducer from "./features/triggerSlice";
 import tableReducer from "./features/tableSlice";
 import organizationReducer from "./features/organizationSlice";
 import billingReducer from "./features/billingSlice";
@@ -15,9 +12,6 @@ import { combineReducers } from "@reduxjs/toolkit";
 const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
-  buttonSettings: buttonSettingsReducer,
-  privacy: privacyReducer,
-  trigger: triggerReducer,
   table: tableReducer,
   organization: organizationReducer,
   billing: billingReducer,
@@ -77,9 +71,6 @@ if (
     [
       "./features/authSlice",
       "./features/userSlice",
-      "./features/buttonSettingsSlice",
-      "./features/privacySlice",
-      "./features/triggerSlice",
       "./features/tableSlice",
       "./features/organizationSlice",
       "./features/billingSlice",

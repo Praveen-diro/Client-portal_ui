@@ -9,7 +9,121 @@ interface Button {
     coverage?: {
       category?: string;
       direct_link?: string;
+      fixedurl?: boolean;
     };
+    name?: string;
+    category?: string;
+    subcategory?: string[];
+    documentCheck?: string[];
+    type?: string;
+    setcolor?: string;
+    direct_link?: string;
+    reject_reasons?: string[];
+    liveFeedbackInstruction?: string;
+    documentexpiryvalue?: string;
+    fullscreenmode?: boolean;
+    engagement_callback?: boolean;
+    include_pdf?: boolean;
+    diro_certificate?: boolean;
+    original_doc?: boolean;
+    proxy?: string;
+    testDocId?: string;
+    multidownload?: boolean;
+    enableCustomTemplate?: boolean;
+    allowMissingStatement?: boolean;
+    allowNonContinuousStatement?: boolean;
+    allowOverridePeriod?: boolean;
+    validDateRange?: any;
+    includeQRCode?: boolean;
+    maxNumberOfFiles?: string;
+    expectedDays?: string;
+    lockurl?: boolean;
+    showpreview?: boolean;
+    livefeedbackMode?: boolean;
+    imageUpload?: boolean;
+    resubmission?: boolean;
+    includeFaqInPdf?: boolean;
+    showgoogle?: boolean;
+    limitcountry?: boolean;
+    mobileview?: string;
+    hybridMode?: boolean;
+    autoNavigation?: boolean;
+    autoConfirmation?: boolean;
+    field_label?: boolean;
+    hidediscover_popup?: boolean;
+    account_details?: boolean;
+    transactionsExtraction?: boolean;
+    url_text?: string;
+    url_class?: string;
+    url_id?: string;
+    expiry?: string;
+    note?: string;
+    emailnotetemplate?: string;
+    emailOrgTemplate?: string;
+    logintext?: string;
+    customMobileWarningText?: string;
+    gototext?: string;
+    successheading?: string;
+    successmessage?: string;
+    failureheading?: string;
+    failuremessage?: string;
+    overrideorgname?: string;
+    redirectmessage?: string;
+    nopassword?: string;
+    strongtext?: string;
+    securetext?: string;
+    datapurge?: string;
+    nopassword_heading?: string;
+    strongtext_heading?: string;
+    securetext_heading?: string;
+    datapurge_heading?: string;
+    logourl?: string;
+    logourl2?: string;
+    selectedCountries?: string[];
+    redirecturl?: string;
+    replytoemail?: string;
+    notifysubmissionto?: string;
+    callbackurl?: string;
+    browserconfig?: string;
+    envconfig?: string;
+    warn_case?: any[];
+    reminders?: any[];
+    testreminder?: any[];
+    smtp?: any[];
+    org_info?: string;
+    user_info?: string;
+    autocapture?: boolean;
+    allow_search?: boolean;
+    prompt_for_capture?: boolean;
+    verification_toggle?: boolean;
+    verification_link?: string;
+    uploadVerification_link?: string;
+    fixedurl?: boolean;
+    sandboxid?: string | null;
+    autodeleteenable?: boolean;
+    auto_reject_baddoc?: boolean;
+    shareonlyjson?: boolean;
+    googleSheet?: boolean;
+    enableSalesforce?: boolean;
+    salesforce?: any;
+    googlesheeturl?: string;
+    sharerequestedfieldsonly?: boolean;
+    notifySubmission?: boolean;
+    autojson?: boolean;
+    country?: string;
+    alpha2code?: string;
+    allowOutsidePeriodFile?: boolean;
+    calculateBalanceAsOnDate?: boolean;
+    extractAllTransaction?: boolean;
+    showDetailedJson?: boolean;
+    mode?: {
+      type?: string;
+    };
+    adminAccess?: boolean;
+    advanceSetting?: boolean;
+    instructionText?: string;
+    desktopWarning?: string;
+    emailToOrganizationEnabled?: boolean;
   };
 }
 
@@ -58,6 +172,8 @@ interface ButtonState {
   deleteTableData: boolean;
   updateTableData: boolean;
   createSource: boolean;
+  verificationCategory?: string;
+  searchResults: any;
 }
 
 const initialState: ButtonState = {
@@ -91,6 +207,7 @@ const initialState: ButtonState = {
   deleteTableData: false,
   updateTableData: false,
   createSource: false,
+  searchResults: null,
 };
 
 const buttonSlice = createSlice({
@@ -103,13 +220,36 @@ const buttonSlice = createSlice({
       state.loading = false;
     },
     getButton: (state, action: PayloadAction<any>) => {
-      Object.assign(state, action.payload);
+      // Store button data in btn property
       state.btn = action.payload.btndata;
       state.loading = false;
     },
     updateButton: (state, action: PayloadAction<any>) => {
-      Object.assign(state, action.payload);
-      state.btn = action.payload.data;
+      // Filter out empty values before updating state
+      const filteredData = Object.fromEntries(
+        Object.entries(action.payload.data || {}).filter(([_, value]) => {
+          // Keep boolean values (including false)
+          if (typeof value === "boolean") return true;
+          // Keep numeric values (including 0)
+          if (typeof value === "number") return true;
+          // Filter out null, undefined, empty strings, empty arrays
+          return (
+            value !== null &&
+            value !== undefined &&
+            (typeof value !== "string" || value !== "") &&
+            (!Array.isArray(value) || value.length > 0)
+          );
+        })
+      );
+
+      // Create a new object with filtered data
+      const updatedPayload = {
+        ...action.payload,
+        data: filteredData,
+      };
+
+      Object.assign(state, updatedPayload);
+      state.btn = updatedPayload.data;
       state.btnsuccess = true;
       state.loading = false;
     },
@@ -121,7 +261,7 @@ const buttonSlice = createSlice({
     getButtons: (state, action: PayloadAction<{ data: Button[] }>) => {
       console.log("action.payload?.data", action.payload?.data);
       // Save the buttons array directly to state
-      state.buttons = action.payload.data;
+      state.buttons = action.payload.data || [];
       state.firstbtnid = action.payload.data[0]?.buttonid || null;
       state.loading = false;
     },
@@ -166,7 +306,7 @@ const buttonSlice = createSlice({
         err: null,
       };
     },
-    getCountryList: (state, action: PayloadAction<any>) => {
+    getCountryListData: (state, action: PayloadAction<any>) => {
       state.countryList = {
         loader: false,
         data: action.payload,
@@ -266,6 +406,175 @@ const buttonSlice = createSlice({
     createSource: (state) => {
       state.createSource = !state.createSource;
     },
+    setBtn: (state, action: PayloadAction<any>) => {
+      state.btn = action.payload;
+    },
+    setName: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.name = action.payload;
+      }
+    },
+    setType: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.mode.type = action.payload;
+      }
+    },
+    setFixedUrl: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.coverage.fixedurl = action.payload;
+      }
+    },
+    setCountry: (state, action: PayloadAction<string | { uniquekey: string; alpha2code: string; countryName: string }>) => {
+      console.log("action.payload setCountry", action.payload);
+      if (state.btn?.btndata) {
+        if (typeof action.payload === "string") {
+          // For backward compatibility
+          state.btn.btndata.country = action.payload;
+          state.btn.btndata.countryUniqueKey = action.payload;
+        } else {
+          // Store all three pieces of information
+          state.btn.btndata.countryUniqueKey = action.payload.uniquekey;
+          state.btn.btndata.alpha2code = action.payload.alpha2code;
+          state.btn.btndata.country = action.payload.countryName;
+        }
+      }
+    },
+    setLimitCountry: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.limitcountry = action.payload;
+      }
+    },
+    setSelectedCountries: (state, action: PayloadAction<string[]>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.selectedCountries = action.payload;
+      }
+    },
+    setAllowOverridePeriod: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.allowOverridePeriod = action.payload;
+      }
+    },
+    setAllowMissingStatement: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.allowMissingStatement = action.payload;
+      }
+    },
+    setAutoDeletion: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.autodeleteenable = action.payload;
+      }
+    },
+    setShareOnlyJson: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.shareonlyjson = action.payload;
+      }
+    },
+    setShowFieldLabels: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.field_label = action.payload;
+      }
+    },
+    setDisableWebpagePrompts: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.hidediscover_popup = action.payload;
+      }
+    },
+    setShowDetailedJson: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.showDetailedJson = action.payload;
+      }
+    },
+    setTransactionsExtraction: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.transactionsExtraction = action.payload;
+      }
+    },
+    setEmailToOrganization: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.notifysubmissionto = action.payload;
+      }
+    },
+    setIncludePdfInEmail: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.include_pdf = action.payload;
+      }
+    },
+    setSubmissionNotificationViaEmail: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.notifySubmission = action.payload;
+      }
+    },
+    setEmailToOrganizationEnabled: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.emailToOrganizationEnabled = action.payload;
+      }
+    },
+    setEnableEngagementCallback: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.engagement_callback = action.payload;
+      }
+    },
+    setAutoJson: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.autojson = action.payload;
+      }
+    },
+    setCallbackUrl: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.callbackurl = action.payload;
+      }
+    },
+    setAddGoogleSheetUrl: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.googleSheet = action.payload;
+      }
+    },
+    setEnableSalesforce: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.enableSalesforce = action.payload;
+      }
+    },
+    setRejectReasons: (state, action: PayloadAction<string[]>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.reject_reasons = action.payload;
+      }
+    },
+    setProxy: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.proxy = action.payload;
+      }
+    },
+    setHybridMode: (state, action: PayloadAction<boolean>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.hybridMode = action.payload;
+      }
+    },
+    setVerificationCategory: (state, action: PayloadAction<string>) => {
+      state.verificationCategory = action.payload;
+      if (state.btn?.btndata) {
+        state.btn.btndata.coverage.category = action.payload;
+      }
+    },
+    setVerificationSubCategory: (state, action: PayloadAction<string[]>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.subcategory = action.payload;
+      }
+    },
+    setDisplaySettings: (state, action: PayloadAction<Record<string, any>>) => {
+      const settings = action.payload;
+
+      // Update btndata if it exists
+      if (state.btn?.btndata) {
+        Object.keys(settings).forEach((key) => {
+          if (key !== "btn") {
+            state.btn.btndata[key] = settings[key];
+          }
+        });
+      }
+    },
+    setFullTextSearchData: (state, action: PayloadAction<any>) => {
+      state.searchResults = action.payload;
+    },
   },
 });
 
@@ -284,7 +593,7 @@ export const {
   getEmailReminderData,
   testEmailReminder,
   loadCountryList,
-  getCountryList,
+  getCountryListData,
   errCountryList,
   loadCountryLinks,
   getCountryLinks,
@@ -299,6 +608,37 @@ export const {
   deleteTableDataSuccess,
   updateTableData,
   createSource,
+  setBtn,
+  setName,
+  setType,
+  setFixedUrl,
+  setCountry,
+  setLimitCountry,
+  setSelectedCountries,
+  setAllowOverridePeriod,
+  setAllowMissingStatement,
+  setAutoDeletion,
+  setShareOnlyJson,
+  setShowFieldLabels,
+  setDisableWebpagePrompts,
+  setShowDetailedJson,
+  setTransactionsExtraction,
+  setEmailToOrganization,
+  setIncludePdfInEmail,
+  setSubmissionNotificationViaEmail,
+  setEmailToOrganizationEnabled,
+  setEnableEngagementCallback,
+  setAutoJson,
+  setCallbackUrl,
+  setAddGoogleSheetUrl,
+  setEnableSalesforce,
+  setRejectReasons,
+  setProxy,
+  setHybridMode,
+  setVerificationCategory,
+  setVerificationSubCategory,
+  setDisplaySettings,
+  setFullTextSearchData,
 } = buttonSlice.actions;
 
 export default buttonSlice.reducer;

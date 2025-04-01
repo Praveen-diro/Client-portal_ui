@@ -134,19 +134,110 @@ class ApiService {
    */
   async makeRefreshAuthRequest<T>(url: string, data: any): Promise<ApiResponse<T>> {
     try {
-      const response = await refreshAuthService.refreshAuth<AxiosResponse<T>>(async () => {
-        return await axios.post<T>(url, data);
-      }, false);
+      // First attempt the request without automatic token refresh
+      axiosService.setupAxiosDefaults();
+      const response = await axios.post<T>(url, data);
 
       return {
         success: true,
-        data: response?.data,
+        data: response.data,
       };
     } catch (error: any) {
+      // Only attempt token refresh for 401/403 errors
+      if (cookies.get("refreshToken") && (error.response?.status === 401 || error.response?.status === 403)) {
+        try {
+          // Attempt to refresh the token
+          await refreshAuthService.refreshAuth(async () => {
+            return { success: true };
+          }, false);
+
+          // Retry the request with the new token
+          axiosService.setupAxiosDefaults();
+          const response = await axios.post<T>(url, data);
+
+          return {
+            success: true,
+            data: response.data,
+          };
+        } catch (refreshError) {
+          console.error("Failed to refresh token:", refreshError);
+        }
+      }
+
       console.error("Request failed:", error);
       return {
         success: false,
         error: error.message || "An unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Makes a GET API request using refreshAuth to handle token refresh
+   * @param url The API endpoint URL
+   * @param params Optional query parameters
+   * @returns Promise with standardized API response
+   */
+  async makeRefreshAuthGetRequest<T>(url: string, params: Record<string, any> = {}): Promise<ApiResponse<T>> {
+    // Convert params to query string
+    const queryString = Object.entries(params)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join("&");
+
+    // Build full URL with query parameters
+    const fullUrl = `${url}${queryString ? `?${queryString}` : ""}`;
+
+    try {
+      // First attempt the request without automatic token refresh
+      axiosService.setupAxiosDefaults();
+      const response = await axios.get<T>(fullUrl);
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      // Handle network errors specifically
+      if (error.message === "Network Error") {
+        console.error(`Network error during request to ${url}:`, error);
+        return {
+          success: false,
+          error: {
+            message: "Unable to connect to the server. Please check your internet connection or try again later.",
+            statusCode: "NETWORK_ERROR",
+            originalError: error.message,
+          },
+        };
+      }
+
+      // Only attempt token refresh for 401/403 errors
+      if (cookies.get("refreshToken") && (error.response?.status === 401 || error.response?.status === 403)) {
+        try {
+          // Attempt to refresh the token
+          await refreshAuthService.refreshAuth(async () => {
+            return { success: true };
+          }, false);
+
+          // Retry the request with the new token
+          axiosService.setupAxiosDefaults();
+          const response = await axios.get<T>(fullUrl);
+
+          return {
+            success: true,
+            data: response.data,
+          };
+        } catch (refreshError) {
+          console.error("Failed to refresh token:", refreshError);
+        }
+      }
+
+      console.error(`GET request failed to ${url}:`, error);
+      return {
+        success: false,
+        error: error.response?.data || {
+          message: error.message || "An unknown error occurred",
+          statusCode: error.response?.status || "UNKNOWN_ERROR",
+        },
       };
     }
   }

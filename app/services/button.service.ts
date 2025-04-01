@@ -6,6 +6,7 @@ import { cookies } from "./cookie.service";
 import { apiService, ApiResponse } from "./api.service";
 import { dispatchAction } from "../store/hooks";
 import { updateButton, getButtons } from "../store/features/buttonSlice";
+import axios from "axios";
 
 if (!env.consoleLog) {
   GlobalDebug(false);
@@ -109,6 +110,17 @@ class ButtonService {
     return apiService.makeRefreshAuthRequest<T>(url, requestData);
   }
 
+  /**
+   * Makes a GET request to the specified URL with proper authentication and API key handling
+   * @param url The endpoint URL to make the GET request to
+   * @param params Optional query parameters to include (API key will be added automatically)
+   * @returns Promise with ButtonResponse containing the data or error
+   */
+  private async makeGetRequest<T>(url: string, params: Record<string, any> = {}): Promise<ButtonResponse<T>> {
+    // Use the API service's makeRefreshAuthGetRequest method for token refresh capabilities
+    return apiService.makeRefreshAuthGetRequest<T>(url);
+  }
+
   async logout(): Promise<void> {
     cookies.clearAll();
   }
@@ -134,11 +146,11 @@ class ButtonService {
   }
 
   async getCountryList(): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.country_with_states, {});
+    return this.makeGetRequest(env.verifiedcountrylist, {});
   }
 
   async getCountryLinks(data: CountryLinkData): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.banklinks, data);
+    return this.makeRequest(env.fulltextsearch, data, true);
   }
 
   async createTableData(data: TableData): Promise<ButtonResponse<any>> {
@@ -154,11 +166,25 @@ class ButtonService {
   }
 
   async getMasterFields(): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.getmasterfields, {});
+    return this.makeGetRequest(env.getmasterfields);
   }
 
   async getEmailReminder(): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.getemailreminder, {});
+    return this.makeGetRequest(env.getemailreminder);
+  }
+
+  /**
+   * Performs a full text search on links using the specified search criteria
+   * @param searchQuery The text to search for
+   * @param options Optional search parameters like filters or pagination
+   * @returns Promise with search results
+   */
+  async fullTextSearch(searchQuery: string, options: Record<string, any> = {}): Promise<ButtonResponse<any>> {
+    const data = {
+      searchText: searchQuery,
+      ...options,
+    };
+    return this.makeRequest(env.fulltextsearch, data);
   }
 
   async testEmailReminder(data: any): Promise<ButtonResponse<any>> {

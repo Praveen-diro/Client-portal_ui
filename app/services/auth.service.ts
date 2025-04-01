@@ -29,6 +29,7 @@ import {
   loginSandboxTwoFactor,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
+import { apiService } from "./api.service";
 
 // Add a router reference that can be set from components
 let globalRouter: any = null;
@@ -348,11 +349,8 @@ class AuthService {
 
     this.isLoadingCountries = true;
     try {
-      const response = await axios.get(env.verifiedcountrylist, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Use apiService's makeRefreshAuthGetRequest for consistent token handling
+      const response = await apiService.makeRefreshAuthGetRequest(env.verifiedcountrylist);
       store.dispatch(getCountries(response.data));
     } catch (error) {
       console.error("Error fetching countries:", error);

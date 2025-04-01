@@ -470,7 +470,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                 "text-muted-foreground hover:text-foreground flex items-center",
                 "h-12 rounded-xl w-full transition-colors duration-200",
                 isExpanded && !isMobile
-                  ? "px-4 hover:bg-accent/30 bg-amber-50/80 dark:bg-blue-950/40 border border-amber-100 dark:border-blue-900/50"
+                  ? "px-4 hover:bg-accent/30 bg-indigo-50/80 dark:bg-blue-950/40 border border-indigo-100 dark:border-blue-900/50"
                   : "justify-center"
               )}
               whileHover={isExpanded && !isMobile ? { x: 2, scale: 1.02 } : { scale: 1.15 }}
@@ -486,7 +486,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                 )}
               >
                 {mounted ? (
-                  <action.icon className={`h-[22px] w-[22px] ${theme === "dark" ? "text-amber-400" : "text-blue-500"}`} />
+                  <action.icon className={`h-[22px] w-[22px] ${theme === "dark" ? "text-blue-400" : "text-indigo-500"}`} />
                 ) : (
                   <div className="h-[22px] w-[22px]" />
                 )}
