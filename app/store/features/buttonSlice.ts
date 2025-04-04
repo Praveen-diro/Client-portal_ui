@@ -79,7 +79,15 @@ interface Button {
     datapurge_heading?: string;
     logourl?: string;
     logourl2?: string;
-    selectedCountries?: string[];
+    selectedCountries?: Array<
+      | string
+      | {
+          flag?: string;
+          label: string;
+          uniquekey?: string;
+          value: string;
+        }
+    >;
     redirecturl?: string;
     replytoemail?: string;
     notifysubmissionto?: string;
@@ -333,7 +341,7 @@ const buttonSlice = createSlice({
       state.countryLinks = {
         searching: action.payload.searching,
         loader: false,
-        data: action.payload.res,
+        data: action.payload.res.data.data,
         err: null,
       };
       if (state.btn?.coverage) {
@@ -444,10 +452,31 @@ const buttonSlice = createSlice({
         state.btn.btndata.limitcountry = action.payload;
       }
     },
-    setSelectedCountries: (state, action: PayloadAction<string[]>) => {
-      if (state.btn?.btndata) {
-        state.btn.btndata.selectedCountries = action.payload;
+    setSelectedCountries: (
+      state,
+      action: PayloadAction<Array<string | { flag?: string; label: string; uniquekey?: string; value: string }>>
+    ) => {
+      console.log("Redux reducer: setSelectedCountries called with values:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
       }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current selectedCountries value:", state.btn.btndata.selectedCountries);
+
+      // Update the state with the new value
+      state.btn.btndata.selectedCountries = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated selectedCountries value:", state.btn.btndata.selectedCountries);
     },
     setAllowOverridePeriod: (state, action: PayloadAction<boolean>) => {
       if (state.btn?.btndata) {
@@ -488,6 +517,29 @@ const buttonSlice = createSlice({
       if (state.btn?.btndata) {
         state.btn.btndata.transactionsExtraction = action.payload;
       }
+    },
+    setShowGoogleSearch: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setShowGoogleSearch called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current showgoogle value:", state.btn.btndata.showgoogle);
+
+      // Update the state with the new value
+      state.btn.btndata.showgoogle = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated showgoogle value:", state.btn.btndata.showgoogle);
     },
     setEmailToOrganization: (state, action: PayloadAction<string>) => {
       if (state.btn?.btndata) {
@@ -560,6 +612,15 @@ const buttonSlice = createSlice({
         state.btn.btndata.subcategory = action.payload;
       }
     },
+    setFixedUrlAddress: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        if (!state.btn.btndata.coverage) {
+          state.btn.btndata.coverage = {};
+        }
+        // Only store as direct_link
+        state.btn.btndata.coverage.direct_link = action.payload;
+      }
+    },
     setDisplaySettings: (state, action: PayloadAction<Record<string, any>>) => {
       const settings = action.payload;
 
@@ -571,6 +632,173 @@ const buttonSlice = createSlice({
           }
         });
       }
+    },
+    setExpiry: (state, action: PayloadAction<string>) => {
+      console.log("Redux reducer: setExpiry called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current expiry value:", state.btn.btndata.expiry);
+
+      // Special handling for empty string - we'll store null instead
+      // This allows us to differentiate between "no value set" and "user intentionally cleared"
+      if (action.payload === "") {
+        state.btn.btndata.expiry = null;
+      } else {
+        // Update the state with the new value
+        state.btn.btndata.expiry = action.payload;
+      }
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated expiry value:", state.btn.btndata.expiry);
+    },
+    setResubmission: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setResubmission called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current resubmission value:", state.btn.btndata.resubmission);
+
+      // Update the state with the new value
+      state.btn.btndata.resubmission = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated resubmission value:", state.btn.btndata.resubmission);
+    },
+    setLiveFeedback: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setLiveFeedback called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current livefeedback value:", state.btn.btndata.livefeedbackMode);
+
+      // Update the state with the new value
+      state.btn.btndata.livefeedbackMode = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated livefeedback value:", state.btn.btndata.livefeedbackMode);
+    },
+    setMultiDownload: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setMultiDownload called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current multidownload value:", state.btn.btndata.multidownload);
+
+      // Update the state with the new value
+      state.btn.btndata.multidownload = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated multidownload value:", state.btn.btndata.multidownload);
+    },
+    setImageUpload: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setImageUpload called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current imageUpload value:", state.btn.btndata.imageUpload);
+
+      // Update the state with the new value
+      state.btn.btndata.imageUpload = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated imageUpload value:", state.btn.btndata.imageUpload);
+    },
+    setExtractAllTransaction: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setExtractAllTransaction called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current extractAllTransaction value:", state.btn.btndata.extractAllTransaction);
+
+      // Update the state with the new value
+      state.btn.btndata.extractAllTransaction = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated extractAllTransaction value:", state.btn.btndata.extractAllTransaction);
+    },
+    setCalculateBalanceAsOnDate: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setCalculateBalanceAsOnDate called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current calculateBalanceAsOnDate value:", state.btn.btndata.calculateBalanceAsOnDate);
+
+      // Update the state with the new value
+      state.btn.btndata.calculateBalanceAsOnDate = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated calculateBalanceAsOnDate value:", state.btn.btndata.calculateBalanceAsOnDate);
     },
     setFullTextSearchData: (state, action: PayloadAction<any>) => {
       state.searchResults = action.payload;
@@ -623,6 +851,7 @@ export const {
   setDisableWebpagePrompts,
   setShowDetailedJson,
   setTransactionsExtraction,
+  setShowGoogleSearch,
   setEmailToOrganization,
   setIncludePdfInEmail,
   setSubmissionNotificationViaEmail,
@@ -637,7 +866,15 @@ export const {
   setHybridMode,
   setVerificationCategory,
   setVerificationSubCategory,
+  setFixedUrlAddress,
   setDisplaySettings,
+  setExpiry,
+  setResubmission,
+  setLiveFeedback,
+  setMultiDownload,
+  setImageUpload,
+  setExtractAllTransaction,
+  setCalculateBalanceAsOnDate,
   setFullTextSearchData,
 } = buttonSlice.actions;
 

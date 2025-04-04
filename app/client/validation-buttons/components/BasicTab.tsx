@@ -6,13 +6,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Link, FileText, Camera, Upload, Globe, AlertCircle, ChevronDown, RefreshCw, Check } from "lucide-react";
+import {
+  Settings,
+  Link,
+  FileText,
+  Camera,
+  Upload,
+  Globe,
+  AlertCircle,
+  ChevronDown,
+  RefreshCw,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { useAppDispatch } from "@/app/store/hooks";
 import { setName } from "@/app/store/features/buttonSlice";
 import { useState, useEffect, useCallback } from "react";
 import { MultiSelectDropdown, OptionType } from "@/components/ui/multi-select-dropdown";
 import { useSelector } from "react-redux";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Data models
 interface BasicTabState {
@@ -28,14 +41,33 @@ interface BasicTabState {
   directUrlEnabled: boolean;
   selectedCountry: string;
   limitCountryEnabled: boolean;
-  selectedCountries: string[];
+  selectedCountries: (string | OptionType)[];
+
+  // Invite Link Settings
+  expiryHours?: string;
 
   // Submission settings
   allowSubmissionOverride: boolean;
   allowMissingStatements: boolean;
+  showGoogleSearch: boolean;
+  resubmission: boolean;
+
+  // Feature toggles
+  livefeedback: boolean;
+  multidownload: boolean;
+  imageUpload: boolean;
+  extractAllTransaction: boolean;
+  calculateBalanceAsOnDate: boolean;
+
+  // Search results
+  searchResults?: any[];
+  searchLoading?: boolean;
 
   // Others
   params: { id: string };
+
+  // URL
+  direct_link?: string;
 }
 
 // All handler types defined together
@@ -47,10 +79,20 @@ interface BasicTabHandlers {
   onDirectUrlChange: (checked: boolean) => void;
   onSelectedCountryChange: (value: string) => void;
   onLimitCountryEnabledChange: (checked: boolean) => void;
-  onSelectedCountriesChange: (countries: string[]) => void;
+  onSelectedCountriesChange: (countries: (string | OptionType)[]) => void;
   onAllowSubmissionOverrideChange: (checked: boolean) => void;
   onAllowMissingStatementsChange: (checked: boolean) => void;
+  onShowGoogleSearchChange: (checked: boolean) => void;
+  onResubmissionChange: (checked: boolean) => void;
+  onExpiryHoursChange?: (value: string) => void;
+  onUrlChange?: (url: string) => void;
   onFetchCountryLinks?: (countryUniqueKey: string, category: string) => Promise<any>;
+  onLiveFeedbackChange: (checked: boolean) => void;
+  onMultiDownloadChange: (checked: boolean) => void;
+  // New handlers for the three additional toggles
+  onImageUploadChange: (checked: boolean) => void;
+  onExtractAllTransactionChange: (checked: boolean) => void;
+  onCalculateBalanceAsOnDateChange: (checked: boolean) => void;
 }
 
 // Combined props
@@ -90,7 +132,7 @@ const MultiSelect = ({
 
   return (
     <Select
-      value=""
+      value={value.length > 0 ? "_multiple_values_" : "_empty_selection_"}
       onValueChange={(newValue) => {
         if (!value.includes(newValue)) {
           onValueChange([...value, newValue]);
@@ -130,10 +172,21 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     directUrlEnabled,
     selectedCountry,
     limitCountryEnabled,
-    selectedCountries,
+    selectedCountries = [],
     allowSubmissionOverride,
     allowMissingStatements,
+    showGoogleSearch = false,
+    resubmission = false,
+    expiryHours = "", // Default to 30 days (720 hours)
     params,
+    searchResults = [],
+    searchLoading = false,
+    direct_link = "",
+    livefeedback = false,
+    multidownload = false,
+    imageUpload = false,
+    extractAllTransaction = false,
+    calculateBalanceAsOnDate = false,
   } = props;
 
   // Extract all handler props
@@ -148,8 +201,77 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     onSelectedCountriesChange,
     onAllowSubmissionOverrideChange,
     onAllowMissingStatementsChange,
+    onShowGoogleSearchChange,
+    onResubmissionChange,
+    onExpiryHoursChange,
+    onUrlChange,
     onFetchCountryLinks,
+    onLiveFeedbackChange,
+    onMultiDownloadChange,
+    onImageUploadChange,
+    onExtractAllTransactionChange,
+    onCalculateBalanceAsOnDateChange,
   } = props;
+
+  // Debug the Google search props
+  console.log("BasicTab - showGoogleSearch prop:", showGoogleSearch);
+  console.log("BasicTab - onShowGoogleSearchChange handler exists:", !!onShowGoogleSearchChange);
+
+  // Local state for all UI controls
+  const [inputValue, setInputValue] = useState(name || "");
+  const [localShowGoogleSearch, setLocalShowGoogleSearch] = useState(showGoogleSearch);
+  const [localLimitCountryEnabled, setLocalLimitCountryEnabled] = useState(limitCountryEnabled);
+  const [localExpiryHours, setLocalExpiryHours] = useState(expiryHours);
+  const [localResubmission, setLocalResubmission] = useState(resubmission);
+  const [localLiveFeedback, setLocalLiveFeedback] = useState(livefeedback);
+  const [localMultiDownload, setLocalMultiDownload] = useState(multidownload);
+  // New local state for additional toggles
+  const [localImageUpload, setLocalImageUpload] = useState(imageUpload);
+  const [localExtractAllTransaction, setLocalExtractAllTransaction] = useState(extractAllTransaction);
+  const [localCalculateBalanceAsOnDate, setLocalCalculateBalanceAsOnDate] = useState(calculateBalanceAsOnDate);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setInputValue(name || "");
+  }, [name]);
+
+  useEffect(() => {
+    setLocalShowGoogleSearch(showGoogleSearch);
+  }, [showGoogleSearch]);
+
+  useEffect(() => {
+    setLocalLimitCountryEnabled(limitCountryEnabled);
+  }, [limitCountryEnabled]);
+
+  useEffect(() => {
+    setLocalExpiryHours(expiryHours);
+  }, [expiryHours]);
+
+  useEffect(() => {
+    setLocalResubmission(resubmission);
+  }, [resubmission]);
+
+  // New effects to sync local state with props
+  useEffect(() => {
+    setLocalLiveFeedback(livefeedback);
+  }, [livefeedback]);
+
+  useEffect(() => {
+    setLocalMultiDownload(multidownload);
+  }, [multidownload]);
+
+  // New effects to sync local state with props for additional toggles
+  useEffect(() => {
+    setLocalImageUpload(imageUpload);
+  }, [imageUpload]);
+
+  useEffect(() => {
+    setLocalExtractAllTransaction(extractAllTransaction);
+  }, [extractAllTransaction]);
+
+  useEffect(() => {
+    setLocalCalculateBalanceAsOnDate(calculateBalanceAsOnDate);
+  }, [calculateBalanceAsOnDate]);
 
   const dispatch = useAppDispatch();
 
@@ -185,8 +307,6 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
   }, [countries]);
 
   console.log("Country options:1", countryOptions);
-  // State to store the input value while typing
-  const [inputValue, setInputValue] = useState(name);
   // Debounced function to update the Redux store
   const debouncedNameChange = useCallback(
     (value: string) => {
@@ -347,6 +467,133 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     }
   };
 
+  // Add state for selected link
+  const [selectedLink, setSelectedLink] = useState<string>(direct_link || "");
+  const [customUrl, setCustomUrl] = useState<string>(direct_link || "");
+  const [showCustomUrlModal, setShowCustomUrlModal] = useState<boolean>(false);
+  const [isCustomUrlSelected, setIsCustomUrlSelected] = useState<boolean>(
+    direct_link ? !searchResults.some((result) => result.url === direct_link) : false
+  );
+  const [urlError, setUrlError] = useState<string | null>(null);
+
+  // Handle URL changes
+  useEffect(() => {
+    if (selectedLink && onUrlChange && selectedLink !== "add_custom_url") {
+      onUrlChange(selectedLink);
+    }
+  }, [selectedLink, onUrlChange]);
+
+  // Log the countryLinks data when it changes
+  useEffect(() => {
+    if (countryLinksData?.data) {
+      console.log("CountryLinks data updated:", countryLinksData.data);
+    }
+  }, [countryLinksData]);
+
+  // Update customUrl if it's a custom URL
+  useEffect(() => {
+    if (direct_link && !searchResults.some((result) => result.url === direct_link)) {
+      setCustomUrl(direct_link);
+      setIsCustomUrlSelected(true);
+      // Don't set selectedLink to "add_custom_url" to avoid showing the modal automatically
+    } else if (direct_link) {
+      setSelectedLink(direct_link);
+      setIsCustomUrlSelected(false);
+    }
+  }, [direct_link, searchResults]);
+
+  // Validate URL
+  const validateUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Handle saving custom URL from the modal
+  const handleSaveCustomUrl = () => {
+    if (customUrl) {
+      if (validateUrl(customUrl)) {
+        setUrlError(null);
+        if (onUrlChange) {
+          onUrlChange(customUrl);
+          setIsCustomUrlSelected(true);
+          // We don't need to clear selectedLink anymore as the custom URL
+          // will be shown based on isCustomUrlSelected being true
+        }
+        setShowCustomUrlModal(false);
+      } else {
+        setUrlError("Please enter a valid URL including http:// or https://");
+      }
+    }
+  };
+
+  // Update useEffect for country selection to fetch links if verification category exists
+  useEffect(() => {
+    if (selectedCountry && verificationCategory && onFetchCountryLinks) {
+      // Only fetch if we have both a selected country and category
+      console.log(`Fetching links for country ${selectedCountry} and category ${verificationCategory}`);
+      onFetchCountryLinks(selectedCountry, verificationCategory)
+        .then((response) => {
+          console.log("Country links loaded:", response);
+        })
+        .catch((error) => {
+          console.error("Error fetching country links:", error);
+        });
+    }
+  }, [selectedCountry, verificationCategory, onFetchCountryLinks]);
+
+  // Add a render function for the select trigger content
+  const renderSelectTriggerContent = () => {
+    if (isCustomUrlSelected) {
+      return (
+        <div className="flex flex-col truncate">
+          <span className="text-sm truncate">{customUrl}</span>
+        </div>
+      );
+    }
+    if (selectedLink && countryLinksData?.data && Array.isArray(countryLinksData.data)) {
+      const selectedLinkData = countryLinksData.data.find((link: any) => link.link === selectedLink);
+
+      if (selectedLinkData) {
+        return (
+          <div className="flex items-center space-x-2">
+            {selectedLinkData.logo && (
+              <img src={selectedLinkData.logo} alt={selectedLinkData.nickname || "Provider"} className="h-5 w-5 object-contain" />
+            )}
+            <div className="flex flex-col truncate">
+              <span className="text-sm font-medium truncate">{selectedLinkData.nickname || "Provider"}</span>
+              <span className="text-xs text-muted-foreground truncate">{selectedLinkData.link}</span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex flex-col truncate">
+          <span className="text-sm truncate">{selectedLink}</span>
+        </div>
+      );
+    }
+
+    return <SelectValue placeholder="Select Link" />;
+  };
+
+  // Add a state for link reset notification
+  const [linkResetNotice, setLinkResetNotice] = useState<boolean>(false);
+
+  // Show a temporary notification when link is reset due to country change
+  useEffect(() => {
+    if (linkResetNotice) {
+      const timer = setTimeout(() => {
+        setLinkResetNotice(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [linkResetNotice]);
+
   return (
     <>
       <div className="lg:col-span-2 space-y-6">
@@ -503,6 +750,53 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <div className="grid grid-cols-1 gap-6">
                     {/* Search Integration and Invite Link Expiry in one row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Google Search Toggle */}
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg flex flex-col">
+                        <div className="space-y-2 ">
+                          <div className="font-medium">Search Integration</div>
+                          <p className="text-sm text-muted-foreground">Enable Google search for user assistance</p>
+                        </div>
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="space-y-0.5">
+                            <Label>Show Google search</Label>
+                            <p className="text-xs text-muted-foreground">Allows users to search for help during verification</p>
+                          </div>
+                          <FancySwitchToggle
+                            checked={localShowGoogleSearch}
+                            onCheckedChange={(isChecked) => {
+                              console.log("GoogleSearch toggle clicked:", isChecked);
+                              onShowGoogleSearchChange?.(isChecked);
+                              setLocalShowGoogleSearch(isChecked);
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Expiry Setting */}
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
+                        <div className="space-y-1.5 mb-3">
+                          <div className="font-medium">Invite Link Expiry</div>
+                          <p className="text-sm text-muted-foreground">Default is 90 days (2160 hours)</p>
+                        </div>
+                        <div className="flex flex-row items-center gap-2">
+                          <Input
+                            type="number"
+                            className="transition-all focus:ring-2 focus:ring-primary/20"
+                            placeholder="Enter hours"
+                            value={localExpiryHours}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              console.log("Expiry hours changed to:", value);
+                              setLocalExpiryHours(value);
+                              if (onExpiryHoursChange) {
+                                onExpiryHoursChange(value);
+                              }
+                            }}
+                          />
+                          <Badge className="whitespace-nowrap">hours</Badge>
+                        </div>
+                      </div>
+
                       {/* Direct URL Section */}
                       <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
                         <div className="flex items-center justify-between">
@@ -520,54 +814,243 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                             <div>
                               <Label htmlFor="country">Country</Label>
                               <div className="relative mt-1.5">
-                                <Select value={selectedCountry} onValueChange={onSelectedCountryChange}>
+                                <Select
+                                  value={selectedCountry}
+                                  onValueChange={(value) => {
+                                    if (selectedLink || isCustomUrlSelected) {
+                                      // Show reset notification only if there was a selected link
+                                      setLinkResetNotice(true);
+                                    }
+                                    // Clear the selected link when country changes
+                                    setSelectedLink("");
+                                    setIsCustomUrlSelected(false);
+                                    if (customUrl) {
+                                      // Also clear any custom URL if it was set
+                                      setCustomUrl("");
+                                    }
+                                    // Notify parent of cleared URL
+                                    if (onUrlChange) {
+                                      onUrlChange("");
+                                    }
+                                    // Then call the parent handler
+                                    onSelectedCountryChange(value);
+                                  }}
+                                >
                                   <SelectTrigger id="country" className="w-full flex items-center">
-                                    <div className="flex items-center space-x-2">
-                                      {selectedCountry && countryOptions.length > 0 && (
+                                    {selectedCountry && countryOptions.length > 0 ? (
+                                      <div className="flex items-center space-x-2">
                                         <img
                                           src={countryOptions.find((c) => c.value === selectedCountry)?.flag || ""}
                                           alt="Country flag"
                                           className="h-4 w-6"
                                         />
-                                      )}
+                                        <span>{countryOptions.find((c) => c.value === selectedCountry)?.label || ""}</span>
+                                      </div>
+                                    ) : (
                                       <SelectValue placeholder="Select a country" />
-                                    </div>
+                                    )}
                                   </SelectTrigger>
                                   <SelectContent className="max-h-[400px]">
-                                    {countryOptions.map((country) => (
-                                      <SelectItem key={country.value} value={country.value} className="py-2">
-                                        <div className="flex items-center space-x-2">
-                                          <img src={country.flag} alt={country.label} className="h-4 w-6" />
-                                          <span>{country.label}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
+                                    {countryOptions
+                                      .filter((country) => country.value && country.value.trim() !== "") // Filter out empty values
+                                      .map((country) => (
+                                        <SelectItem key={country.value} value={country.value} className="py-2">
+                                          <div className="flex items-center space-x-2">
+                                            <img src={country.flag} alt={country.label} className="h-4 w-6" />
+                                            <span>{country.label}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
                                   </SelectContent>
                                 </Select>
-
-                                {isLoadingCountryLinks && (
-                                  <div className="mt-2 text-sm text-primary flex items-center">
-                                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                                    <span>Loading country links...</span>
-                                  </div>
-                                )}
-
-                                {countryLinksError && (
-                                  <div className="mt-2 text-sm text-destructive flex items-center">
-                                    <AlertCircle className="h-3 w-3 mr-1" />
-                                    <span>
-                                      {typeof countryLinksError === "string" ? countryLinksError : "Failed to load country links"}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {countryLinksData.data && !isLoadingCountryLinks && (
-                                  <div className="mt-2 text-sm text-green-600 flex items-center">
-                                    <Check className="h-3 w-3 mr-1" />
-                                    <span>Country links loaded successfully</span>
-                                  </div>
-                                )}
                               </div>
+
+                              {/* Links Dropdown */}
+                              {directUrlEnabled && selectedCountry && (
+                                <div className="mt-4">
+                                  <div className="flex justify-between items-center">
+                                    <Label htmlFor="link-selection">Select Link</Label>
+                                    {linkResetNotice && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-amber-50 text-amber-700 border-amber-200 animate-pulse"
+                                      >
+                                        Link reset due to country change
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="relative mt-1.5">
+                                    <Select
+                                      value={isCustomUrlSelected ? "custom_url_selected" : selectedLink || ""}
+                                      onValueChange={(value) => {
+                                        if (value === "add_custom_url") {
+                                          // When "Add custom URL" is clicked, show the modal
+                                          setShowCustomUrlModal(true);
+                                          // Don't change the current selection value
+                                          return;
+                                        } else {
+                                          setSelectedLink(value);
+                                          setIsCustomUrlSelected(false);
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger id="link-selection" className="w-full">
+                                        {renderSelectTriggerContent()}
+                                      </SelectTrigger>
+                                      <SelectContent
+                                        className="max-h-[300px] overflow-y-auto"
+                                        side="bottom"
+                                        position="popper"
+                                        sideOffset={4}
+                                      >
+                                        <div className="py-1 px-1">
+                                          <SelectItem
+                                            value="add_custom_url"
+                                            className="py-2 cursor-pointer rounded hover:bg-slate-100 dark:hover:bg-slate-800 mb-1"
+                                          >
+                                            <div className="flex items-center text-primary font-medium">
+                                              <ExternalLink className="h-4 w-4 mr-2" />
+                                              Add custom URL
+                                            </div>
+                                          </SelectItem>
+                                        </div>
+
+                                        {isCustomUrlSelected && (
+                                          <div className="py-1 px-1">
+                                            <SelectItem
+                                              value="custom_url_selected"
+                                              className="py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                            >
+                                              <div className="flex items-start w-full">
+                                                <span className="text-sm truncate">{customUrl}</span>
+                                              </div>
+                                            </SelectItem>
+                                          </div>
+                                        )}
+
+                                        {isLoadingCountryLinks ? (
+                                          <div className="flex items-center justify-center py-3">
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin text-primary" />
+                                            <span>Loading links...</span>
+                                          </div>
+                                        ) : countryLinksError ? (
+                                          <div className="flex items-center justify-center py-3 text-destructive">
+                                            <AlertCircle className="h-4 w-4 mr-2" />
+                                            <span>Error loading links</span>
+                                          </div>
+                                        ) : countryLinksData?.data &&
+                                          Array.isArray(countryLinksData.data) &&
+                                          countryLinksData.data.length > 0 ? (
+                                          <div className="py-1 px-1">
+                                            <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                                              Available links
+                                            </div>
+                                            {countryLinksData.data.map((link: any, index: number) => (
+                                              <SelectItem
+                                                key={`link-${index}`}
+                                                value={link.link || `link-${index}`}
+                                                className="py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                              >
+                                                <div className="flex items-start space-x-2 w-full">
+                                                  {link.logo && (
+                                                    <img
+                                                      src={link.logo}
+                                                      alt={link.nickname || "Provider logo"}
+                                                      className="h-5 w-5 object-contain flex-shrink-0 mt-0.5"
+                                                    />
+                                                  )}
+                                                  <div className="flex flex-col items-start">
+                                                    <span className="text-sm font-medium">{link.nickname || "Provider"}</span>
+                                                    <span className="text-xs text-muted-foreground truncate max-w-[250px] text-left">
+                                                      {link.link}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </div>
+                                        ) : searchResults && searchResults.length > 0 ? (
+                                          <div className="py-1 px-1">
+                                            <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                                              Search results
+                                            </div>
+                                            {searchResults.map((result, index) => (
+                                              <SelectItem
+                                                key={index}
+                                                value={result.url || `link-${index}`}
+                                                className="py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                              >
+                                                <div className="flex flex-col items-start w-full">
+                                                  <span className="text-sm truncate">{result.url}</span>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center justify-center py-3 text-muted-foreground">
+                                            No links found
+                                          </div>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+
+                                    {/* Custom URL Modal */}
+                                    <Dialog open={showCustomUrlModal} onOpenChange={setShowCustomUrlModal}>
+                                      <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                          <DialogTitle className="flex items-center gap-2">
+                                            <ExternalLink className="h-5 w-5 text-primary" />
+                                            Add custom URL
+                                          </DialogTitle>
+                                          <DialogDescription>
+                                            Enter a custom URL to use for this verification button.
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <form
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            handleSaveCustomUrl();
+                                          }}
+                                        >
+                                          <div className="grid gap-4 py-4">
+                                            <div className="space-y-2">
+                                              <Label htmlFor="custom-url-input">URL</Label>
+                                              <Input
+                                                id="custom-url-input"
+                                                placeholder="Enter custom URL"
+                                                value={customUrl}
+                                                onChange={(e) => {
+                                                  const value = e.target.value;
+                                                  setCustomUrl(value);
+                                                  // Clear error when typing
+                                                  if (urlError) setUrlError(null);
+                                                }}
+                                                className={`w-full ${urlError ? "border-red-500 focus:ring-red-500/20" : ""}`}
+                                                autoFocus
+                                              />
+                                              <p className={`text-xs ${urlError ? "text-red-500" : "text-muted-foreground"}`}>
+                                                {urlError || "Please enter a valid URL including http:// or https://"}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <DialogFooter className="flex space-x-2 justify-end">
+                                            <Button type="button" variant="outline" onClick={() => setShowCustomUrlModal(false)}>
+                                              Cancel
+                                            </Button>
+                                            <Button
+                                              type="submit"
+                                              disabled={!customUrl}
+                                              className="bg-primary text-white hover:bg-primary/90"
+                                            >
+                                              Add
+                                            </Button>
+                                          </DialogFooter>
+                                        </form>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -580,19 +1063,32 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                             <span className="font-medium">Region Limitation</span>
                             <span className="text-sm text-muted-foreground">Restrict access to specific countries</span>
                           </div>
-                          <FancySwitchToggle checked={limitCountryEnabled} onCheckedChange={onLimitCountryEnabledChange} />
+                          <FancySwitchToggle
+                            checked={localLimitCountryEnabled}
+                            onCheckedChange={(isChecked) => {
+                              console.log("LimitCountry toggle clicked:", isChecked);
+                              onLimitCountryEnabledChange?.(isChecked);
+                              setLocalLimitCountryEnabled(isChecked);
+                            }}
+                          />
                         </div>
 
-                        {limitCountryEnabled && (
+                        {localLimitCountryEnabled && (
                           <div className="space-y-3 mt-2 pl-1">
                             <Label className="text-sm">Selected Countries</Label>
                             <div className="flex flex-wrap gap-1.5 mb-3 min-h-8">
                               {selectedCountries.length > 0 ? (
-                                selectedCountries.map((countryKey) => {
-                                  const country = countryOptions.find((c) => c.value === countryKey);
+                                selectedCountries.map((countryItem, index) => {
+                                  // Use the country object directly instead of finding it by key
+                                  const countryKey = typeof countryItem === "string" ? countryItem : countryItem.value;
+                                  const country =
+                                    typeof countryItem === "string"
+                                      ? countryOptions.find((c) => c.value === countryItem)
+                                      : countryItem;
+
                                   return (
                                     <Badge
-                                      key={countryKey}
+                                      key={countryKey || index}
                                       variant="outline"
                                       className="flex items-center gap-1 py-1 px-2 bg-primary/5 hover:bg-primary/10"
                                     >
@@ -602,7 +1098,11 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                                       <span>{country?.label || countryKey}</span>
                                       <button
                                         onClick={() =>
-                                          onSelectedCountriesChange(selectedCountries.filter((c) => c !== countryKey))
+                                          onSelectedCountriesChange(
+                                            selectedCountries.filter((c) =>
+                                              typeof c === "string" ? c !== countryKey : c.value !== countryKey
+                                            )
+                                          )
                                         }
                                         className="ml-1 hover:text-destructive"
                                       >
@@ -618,42 +1118,21 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
 
                             <MultiSelectDropdown
                               options={countryOptions}
-                              selected={selectedCountries}
-                              onChange={onSelectedCountriesChange}
+                              selected={selectedCountries.map((c) => (typeof c === "string" ? c : c.value))}
+                              onChange={(values) => {
+                                // Convert selected values to full country objects
+                                const fullCountries = values.map((value) => {
+                                  const countryObj = countryOptions.find((c) => c.value === value);
+                                  return countryObj || value;
+                                });
+                                onSelectedCountriesChange(fullCountries);
+                              }}
                               placeholder="Select countries"
                               className="w-full"
                               emptyMessage="No countries available"
                             />
                           </div>
                         )}
-                      </div>
-                      {/* Google Search Toggle */}
-                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg flex flex-col">
-                        <div className="space-y-2 ">
-                          <div className="font-medium">Search Integration</div>
-                          <p className="text-sm text-muted-foreground">Enable Google search for user assistance</p>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label>Show Google search</Label>
-                          <FancySwitchToggle />
-                        </div>
-                      </div>
-
-                      {/* Expiry Setting */}
-                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
-                        <div className="space-y-1.5 mb-3">
-                          <div className="font-medium">Invite Link Expiry</div>
-                          <p className="text-sm text-muted-foreground">Default is 30 days (720 hours)</p>
-                        </div>
-                        <div className="flex flex-row items-center gap-2">
-                          <Input
-                            type="number"
-                            className="transition-all focus:ring-2 focus:ring-primary/20"
-                            placeholder="Enter hours"
-                            defaultValue="720"
-                          />
-                          <Badge className="whitespace-nowrap">hours</Badge>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -682,14 +1161,24 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                     <div className="space-y-4">
                       <h3 className="text-base font-medium text-muted-foreground">Submission Settings</h3>
 
-                      <div className="flex items-center gap-2 p-2 rounded-md ">
+                      <div className="flex items-center gap-2 p-2 rounded-md">
                         <FancySwitchToggle checked={allowSubmissionOverride} onCheckedChange={onAllowSubmissionOverrideChange} />
-                        <Label>Allow submission by overriding conditions</Label>
+                        <div className="space-y-0.5">
+                          <Label>Allow submission override period</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Allows users to submit documents outside the defined verification period
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 p-2 rounded-md">
                         <FancySwitchToggle checked={allowMissingStatements} onCheckedChange={onAllowMissingStatementsChange} />
-                        <Label>Allow missing statements within the expected period</Label>
+                        <div className="space-y-0.5">
+                          <Label>Allow missing statements within the expected period</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Accepts incomplete document sets with gaps in the date range
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -748,7 +1237,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <Label>Allow Resubmission</Label>
                   <p className="text-sm text-muted-foreground">Enable resubmission with same track ID</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localResubmission}
+                  onCheckedChange={(isChecked) => {
+                    console.log("Resubmission toggle clicked:", isChecked);
+                    onResubmissionChange?.(isChecked);
+                    setLocalResubmission(isChecked);
+                  }}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3">
@@ -756,7 +1252,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <Label>Extract all transactions</Label>
                   <p className="text-sm text-muted-foreground">Include all transaction data from documents</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localExtractAllTransaction}
+                  onCheckedChange={(isChecked) => {
+                    console.log("ExtractAllTransaction toggle clicked:", isChecked);
+                    onExtractAllTransactionChange?.(isChecked);
+                    setLocalExtractAllTransaction(isChecked);
+                  }}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3">
@@ -767,7 +1270,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   </div>
                   <p className="text-sm text-muted-foreground">Calculate account balance based on submission date</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localCalculateBalanceAsOnDate}
+                  onCheckedChange={(isChecked) => {
+                    console.log("CalculateBalanceAsOnDate toggle clicked:", isChecked);
+                    onCalculateBalanceAsOnDateChange?.(isChecked);
+                    setLocalCalculateBalanceAsOnDate(isChecked);
+                  }}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3">
@@ -775,7 +1285,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <Label>Image Upload</Label>
                   <p className="text-sm text-muted-foreground">Allow image uploads during verification</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localImageUpload}
+                  onCheckedChange={(isChecked) => {
+                    console.log("ImageUpload toggle clicked:", isChecked);
+                    onImageUploadChange?.(isChecked);
+                    setLocalImageUpload(isChecked);
+                  }}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3">
@@ -783,7 +1300,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <Label>Multi-download</Label>
                   <p className="text-sm text-muted-foreground">Allow multiple documents download</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localMultiDownload}
+                  onCheckedChange={(isChecked) => {
+                    console.log("MultiDownload toggle clicked:", isChecked);
+                    onMultiDownloadChange?.(isChecked);
+                    setLocalMultiDownload(isChecked);
+                  }}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between py-3">
@@ -791,7 +1315,14 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   <Label>Live Feedback</Label>
                   <p className="text-sm text-muted-foreground">Enable real-time verification feedback</p>
                 </div>
-                <FancySwitchToggle />
+                <FancySwitchToggle
+                  checked={localLiveFeedback}
+                  onCheckedChange={(isChecked) => {
+                    console.log("LiveFeedback toggle clicked:", isChecked);
+                    onLiveFeedbackChange?.(isChecked);
+                    setLocalLiveFeedback(isChecked);
+                  }}
+                />
               </div>
             </div>
           </CardContent>

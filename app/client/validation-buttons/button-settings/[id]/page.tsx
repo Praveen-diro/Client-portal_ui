@@ -43,7 +43,6 @@ import {
   getMasterFieldData,
   getEmailReminderData,
   getCountryListData,
-  setFullTextSearchData,
   setBtn,
   setName,
   setType,
@@ -77,6 +76,16 @@ import {
   getCountryLinks,
   errCountryLinks,
   loadCountryLinks,
+  setFixedUrlAddress,
+  setShowGoogleSearch,
+  setExpiry,
+  setResubmission,
+  setLiveFeedback,
+  setMultiDownload,
+  setImageUpload,
+  setExtractAllTransaction,
+  setCalculateBalanceAsOnDate,
+  setFullTextSearchData,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -208,6 +217,7 @@ export default function EditButton() {
       .then((response) => {
         if (response.success && response.data) {
           console.log("Button settings: data retrieved successfully", response.data);
+          console.log("Initial showgoogle value:", response.data?.btndata?.showgoogle);
 
           // Store the complete button data including any nested structure
           dispatch(getButton(response.data));
@@ -260,6 +270,11 @@ export default function EditButton() {
 
   // Get all state from buttonSettings
   const buttonSettings = useAppSelector((state) => state.buttons?.btn?.btndata);
+
+  // Monitor changes to buttonSettings.showgoogle
+  useEffect(() => {
+    console.log("buttonSettings.showgoogle changed to:", buttonSettings?.showgoogle);
+  }, [buttonSettings?.showgoogle]);
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -380,52 +395,17 @@ export default function EditButton() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>(undefined);
 
+  // Initialize search results state
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchFullTextSearch = async () => {
-      setSearchLoading(true);
-      setSearchError(undefined);
-
-      try {
-        // Execute search with default query - can be customized as needed
-        const searchQuery = "verification";
-        const response = await buttonService.fullTextSearch(searchQuery);
-
-        if (!isMounted) return;
-
-        if (response.success && response.data) {
-          console.log("Full text search completed successfully", response.data);
-          setSearchResults(response.data.data || []);
-          // Dispatch setFullTextSearchData action for Redux
-          dispatch(setFullTextSearchData(response.data.data || []));
-        } else {
-          console.error("Failed to perform full text search:", response.error || "Unknown error");
-          setSearchError("Failed to load search results");
-        }
-      } catch (error) {
-        if (!isMounted) return;
-
-        console.error("Error performing full text search:", error);
-        setSearchError("An error occurred while searching");
-      } finally {
-        if (isMounted) {
-          setSearchLoading(false);
-        }
-      }
-    };
-
-    // Perform search after master fields are loaded
-    if (!masterFieldsLoading) {
-      fetchFullTextSearch();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [masterFieldsLoading, dispatch]);
+    // Initialize search state, but don't perform search
+    setSearchResults([]);
+    setSearchLoading(false);
+    setSearchError(undefined);
+  }, []);
 
   console.log("buttonSettings data", buttonSettings);
+  // Debug the showgoogle property
+  console.log("showgoogle property:", buttonSettings?.showgoogle);
 
   // Render content based on loading and error state
   const renderContent = () => {
@@ -489,8 +469,16 @@ export default function EditButton() {
                   allowSubmissionOverride={buttonSettings?.allowOverridePeriod}
                   allowMissingStatements={buttonSettings?.allowMissingStatement}
                   params={params}
+                  searchResults={searchResults}
+                  searchLoading={searchLoading}
+                  direct_link={buttonSettings?.coverage?.direct_link}
+                  showGoogleSearch={buttonSettings?.showgoogle}
+                  expiryHours={
+                    buttonSettings?.expiry === undefined || buttonSettings?.expiry === null ? "2160" : buttonSettings.expiry
+                  }
                   // Handler props (callbacks)
                   onNameChange={(value) => dispatch(setName(value))}
+                  onUrlChange={handleUrlChange}
                   onVerificationMethodChange={(value) => {
                     dispatch(setType(value));
                     // Reset related states when verification method changes
@@ -505,12 +493,29 @@ export default function EditButton() {
                     dispatch(setFixedUrl(checked));
                     if (!checked) {
                       dispatch(setCountry(""));
+                      // Clear search results when direct URL is disabled
+                      setSearchResults([]);
+                    } else if (checked && buttonSettings?.countryUniqueKey) {
+                      // If enabling direct URL and country is already selected, set empty search results
+                      const countriesData = store.getState().buttons.countryList.data;
+                      if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
+                        const selectedCountry = countriesData.data.data.find(
+                          (country: any) => country.uniquekey === buttonSettings.countryUniqueKey
+                        );
+
+                        if (selectedCountry) {
+                          // Set country as search result when direct URL is enabled
+                          setSearchResults([selectedCountry]);
+                        }
+                      }
                     }
                   }}
                   onSelectedCountryChange={(value) => handleCountryChange(value)}
                   onLimitCountryEnabledChange={(checked) => {
+                    console.log("Parent: dispatching setLimitCountry with value:", checked);
                     dispatch(setLimitCountry(checked));
                     if (!checked) {
+                      // Clear selected countries when toggle is turned off
                       dispatch(setSelectedCountries([]));
                       if (buttonSettings.btn?.btndata) {
                         const updatedBtnData = {
@@ -523,10 +528,128 @@ export default function EditButton() {
                         dispatch(setBtn(updatedBtnData));
                       }
                     }
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - limitcountry value:", store.getState().buttons?.btn?.btndata?.limitcountry);
+                      console.log("Selected countries:", store.getState().buttons?.btn?.btndata?.selectedCountries);
+                    }, 100);
                   }}
-                  onSelectedCountriesChange={(values) => dispatch(setSelectedCountries(values))}
+                  onSelectedCountriesChange={(values) => {
+                    console.log("Parent: dispatching setSelectedCountries with values:", values);
+                    // Instead of extracting just country keys, now we'll store the full country objects
+                    // Transform any string values to full country objects
+                    const fullCountryObjects = values.map((country) => {
+                      if (typeof country === "string") {
+                        // Find the complete country object from available options
+                        const countriesData = store.getState().buttons.countryList.data;
+                        if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
+                          const countryObj = countriesData.data.data.find((c: any) => c.uniquekey === country);
+                          if (countryObj) {
+                            // Return a properly formatted country object
+                            return {
+                              flag: countryObj.flag || `https://flagcdn.com/w40/${countryObj.alpha2code.toLowerCase()}.png`,
+                              label: countryObj.country,
+                              uniquekey: countryObj.uniquekey,
+                              value: countryObj.alpha2code,
+                            };
+                          }
+                        }
+                        return country; // Fallback to string if object not found
+                      }
+                      return country; // Already an object
+                    });
+
+                    dispatch(setSelectedCountries(fullCountryObjects));
+
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - selectedCountries:",
+                        store.getState().buttons?.btn?.btndata?.selectedCountries
+                      );
+                    }, 100);
+                  }}
                   onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowOverridePeriod(checked))}
                   onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatement(checked))}
+                  onShowGoogleSearchChange={(checked) => {
+                    console.log("Parent: dispatching setShowGoogleSearch with value:", checked);
+                    dispatch(setShowGoogleSearch(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - showgoogle value:", store.getState().buttons?.btn?.btndata?.showgoogle);
+                    }, 100);
+                  }}
+                  onExpiryHoursChange={(value) => {
+                    console.log("Parent: dispatching setExpiry with value:", value);
+                    dispatch(setExpiry(value));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - expiry value:", store.getState().buttons?.btn?.btndata?.expiry);
+                    }, 100);
+                  }}
+                  resubmission={buttonSettings?.resubmission}
+                  onResubmissionChange={(checked) => {
+                    console.log("Parent: dispatching setResubmission with value:", checked);
+                    dispatch(setResubmission(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - resubmission value:", store.getState().buttons?.btn?.btndata?.resubmission);
+                    }, 100);
+                  }}
+                  livefeedback={buttonSettings?.livefeedbackMode}
+                  onLiveFeedbackChange={(checked) => {
+                    console.log("Parent: dispatching setLiveFeedback with value:", checked);
+                    dispatch(setLiveFeedback(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - livefeedback value:",
+                        store.getState().buttons?.btn?.btndata?.livefeedbackMode
+                      );
+                    }, 100);
+                  }}
+                  multidownload={buttonSettings?.multidownload}
+                  onMultiDownloadChange={(checked) => {
+                    console.log("Parent: dispatching setMultiDownload with value:", checked);
+                    dispatch(setMultiDownload(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - multidownload value:", store.getState().buttons?.btn?.btndata?.multidownload);
+                    }, 100);
+                  }}
+                  imageUpload={buttonSettings?.imageUpload}
+                  onImageUploadChange={(checked) => {
+                    console.log("Parent: dispatching setImageUpload with value:", checked);
+                    dispatch(setImageUpload(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log("After dispatch - imageUpload value:", store.getState().buttons?.btn?.btndata?.imageUpload);
+                    }, 100);
+                  }}
+                  extractAllTransaction={buttonSettings?.extractAllTransaction}
+                  onExtractAllTransactionChange={(checked) => {
+                    console.log("Parent: dispatching setExtractAllTransaction with value:", checked);
+                    dispatch(setExtractAllTransaction(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - extractAllTransaction value:",
+                        store.getState().buttons?.btn?.btndata?.extractAllTransaction
+                      );
+                    }, 100);
+                  }}
+                  calculateBalanceAsOnDate={buttonSettings?.calculateBalanceAsOnDate}
+                  onCalculateBalanceAsOnDateChange={(checked) => {
+                    console.log("Parent: dispatching setCalculateBalanceAsOnDate with value:", checked);
+                    dispatch(setCalculateBalanceAsOnDate(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - calculateBalanceAsOnDate value:",
+                        store.getState().buttons?.btn?.btndata?.calculateBalanceAsOnDate
+                      );
+                    }, 100);
+                  }}
                 />
               )}
               {activeTab === 1 && <IntegrationTab verificationMethod={buttonSettings.type} />}
@@ -752,15 +875,6 @@ export default function EditButton() {
     dispatch(setVerificationSubCategory(values));
   };
 
-  const handleDirectUrlChange = (checked: boolean) => {
-    // Update fixedurl directly
-    dispatch(setFixedUrl(checked));
-
-    if (!checked) {
-      dispatch(setCountry(""));
-    }
-  };
-
   const handleCountryChange = (uniqueKey: string) => {
     // Find the selected country from the countryList data
     const countriesData = store.getState().buttons.countryList.data;
@@ -777,6 +891,15 @@ export default function EditButton() {
           })
         );
 
+        // Get country name for search
+        const countryName = selectedCountry.country;
+
+        // Check if direct URL is enabled
+        if (buttonSettings?.coverage?.fixedurl) {
+          // Set country as search result when direct URL is enabled
+          setSearchResults([selectedCountry]);
+        }
+
         // Also fetch country links if a category is selected
         const verificationCategory = buttonSettings?.coverage?.category;
         if (verificationCategory) {
@@ -785,9 +908,11 @@ export default function EditButton() {
 
           // Prepare payload with uniquekey
           const payload = {
-            cat: verificationCategory,
-            key: selectedCountry.uniquekey, // Use uniquekey instead of alpha2code
-            searching: false,
+            category: verificationCategory,
+            country: selectedCountry.uniquekey, // Use uniquekey instead of alpha2code
+            index: 0,
+            offset: 100,
+            search: "",
           };
 
           console.log("Fetching country links with payload:", payload);
@@ -824,6 +949,12 @@ export default function EditButton() {
   const renderTabIcon = (tab: Tab) => {
     const TabIcon = tab.icon;
     return <TabIcon className="h-4 w-4" />;
+  };
+
+  // Add handleUrlChange function
+  const handleUrlChange = (url: string) => {
+    // Update the button settings with the selected direct_link
+    dispatch(setFixedUrlAddress(url));
   };
 
   return (

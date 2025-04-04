@@ -9,7 +9,10 @@ export interface FancySwitchToggleProps extends React.InputHTMLAttributes<HTMLIn
 }
 
 const FancySwitchToggle = React.forwardRef<HTMLInputElement, FancySwitchToggleProps>(
-  ({ className, onCheckedChange, checked, id = `toggler-${Math.random().toString(36).substring(2, 9)}`, ...props }, ref) => {
+  (
+    { className, onCheckedChange, checked = false, id = `toggler-${Math.random().toString(36).substring(2, 9)}`, ...props },
+    ref
+  ) => {
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const isChecked = event.target.checked;
       onCheckedChange?.(isChecked);

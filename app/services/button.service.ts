@@ -15,10 +15,11 @@ if (!env.consoleLog) {
 export interface ButtonResponse<T> extends ApiResponse<T> {}
 
 export interface CountryLinkData {
-  cat: string;
-  key: string;
+  category: string;
+  country: string;
   search?: string;
-  searching?: boolean;
+  index?: number;
+  offset?: number;
 }
 
 export interface TableData {
