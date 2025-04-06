@@ -720,6 +720,6 @@ const prodeu: Environment = {
   emailReminderUrl: "https://api.diro.io/emailReminder",
 };
 
-export { stage1 };
+export { stage1 as env};
 export { prodeu };
-export { stage2  as env };
+export { stage2   };
