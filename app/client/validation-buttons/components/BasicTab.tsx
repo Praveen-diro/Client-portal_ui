@@ -273,6 +273,16 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     setLocalCalculateBalanceAsOnDate(calculateBalanceAsOnDate);
   }, [calculateBalanceAsOnDate]);
 
+  // Effect to force livefeedback ON when multidownload is ON
+  useEffect(() => {
+    if (multidownload && !livefeedback) {
+      // If multidownload is turned ON but livefeedback is OFF, turn livefeedback ON
+      console.log("Forcing livefeedback ON because multidownload is ON");
+      onLiveFeedbackChange?.(true);
+      setLocalLiveFeedback(true);
+    }
+  }, [multidownload, livefeedback, onLiveFeedbackChange]);
+
   const dispatch = useAppDispatch();
 
   // Get countries from Redux store
@@ -631,7 +641,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                               Capture screenshot
                             </div>
                           </SelectItem>
-                          <SelectItem value="smart-upload">
+                          <SelectItem value="upload">
                             <div className="flex items-center gap-2">
                               <Upload className="h-4 w-4" />
                               Smart upload
@@ -1143,87 +1153,93 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
         </Card>
 
         {/* Multi-download & Live feedback configuration - Now as a separate card */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 mt-6">
-          <CardContent className="p-6">
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="multi-download-config" className="border-none">
-                <AccordionTrigger className="py-2 px-0 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-primary" />
-                    <h2 className="text-xl font-semibold">Multi-download & Live feedback configuration</h2>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-4">
-                  <div className="space-y-6">
-                    {/* Group the main toggles together in a visually distinct card */}
-
-                    {/* Submission override settings */}
-                    <div className="space-y-4">
-                      <h3 className="text-base font-medium text-muted-foreground">Submission Settings</h3>
-
-                      <div className="flex items-center gap-2 p-2 rounded-md">
-                        <FancySwitchToggle checked={allowSubmissionOverride} onCheckedChange={onAllowSubmissionOverrideChange} />
-                        <div className="space-y-0.5">
-                          <Label>Allow submission override period</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Allows users to submit documents outside the defined verification period
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 p-2 rounded-md">
-                        <FancySwitchToggle checked={allowMissingStatements} onCheckedChange={onAllowMissingStatementsChange} />
-                        <div className="space-y-0.5">
-                          <Label>Allow missing statements within the expected period</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Accepts incomplete document sets with gaps in the date range
-                          </p>
-                        </div>
-                      </div>
+        {(multidownload || livefeedback) && (
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 mt-6">
+            <CardContent className="p-6">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="multi-download-config" className="border-none">
+                  <AccordionTrigger className="py-2 px-0 hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-primary" />
+                      <h2 className="text-xl font-semibold">Multi-download & Live feedback configuration</h2>
                     </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <div className="space-y-6">
+                      {/* Submission override settings - Only show when livefeedback is ON */}
+                      {livefeedback && (
+                        <>
+                          <div className="space-y-4">
+                            <h3 className="text-base font-medium text-muted-foreground">Submission Settings</h3>
 
-                    {/* Date range settings */}
-                    <div className="space-y-4">
-                      <h3 className="text-base font-medium text-muted-foreground">Period Configuration</h3>
+                            <div className="flex items-center gap-2 p-2 rounded-md">
+                              <FancySwitchToggle
+                                checked={allowSubmissionOverride}
+                                onCheckedChange={onAllowSubmissionOverrideChange}
+                              />
+                              <div className="space-y-0.5">
+                                <Label>Allow submission override period</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Allows users to submit documents outside the defined verification period
+                                </p>
+                              </div>
+                            </div>
 
-                      <div>
-                        <div className="flex flex-col md:flex-row gap-4 mb-2">
-                          <div className="flex-1">
-                            <Label className="block mb-2">Expected number of days within valid range</Label>
-                            <p className="text-xs text-muted-foreground mb-1">(Default: 30 days)</p>
+                            <div className="flex items-center gap-2 p-2 rounded-md">
+                              <FancySwitchToggle
+                                checked={allowMissingStatements}
+                                onCheckedChange={onAllowMissingStatementsChange}
+                              />
+                              <div className="space-y-0.5">
+                                <Label>Allow missing statements within the expected period</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Accepts incomplete document sets with gaps in the date range
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <Label className="block mb-1">Valid date range (in days)</Label>
-                            <p className="text-xs text-muted-foreground mb-1">(Requested period: 26 Dec 7380 - 22 Feb 2025)</p>
-                          </div>
-                        </div>
 
-                        <div className="flex flex-col md:flex-row gap-4">
-                          <div className="flex-1">
-                            <Input
-                              type="number"
-                              className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                              placeholder="Enter number of days"
-                              defaultValue="3434"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <Input
-                              type="number"
-                              className="w-full transition-all focus:ring-2 focus:ring-primary/20"
-                              placeholder="Enter date range"
-                              defaultValue="3434434"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                          {/* Date range settings - Only show when livefeedback is ON and multidownload is OFF */}
+                          {!multidownload && (
+                            <div className="space-y-4">
+                              <h3 className="text-base font-medium text-muted-foreground">Period Configuration</h3>
+
+                              <div>
+                                <div className="flex flex-col md:flex-row gap-4 mb-2">
+                                  <div className="flex-1">
+                                    <Label className="block mb-2">Expected number of days within the valid date range</Label>
+                                    <Input
+                                      type="number"
+                                      className="w-full transition-all focus:ring-2 focus:ring-primary/20"
+                                      placeholder="Enter number of days"
+                                      defaultValue="30"
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <Label className="block mb-1">Valid date range (in days)</Label>
+                                    <p className="text-xs text-muted-foreground mb-1">
+                                      (Requested period: 8 Mar 2025 - 7 Apr 2025 i.e. approx 1.0 months )
+                                    </p>
+                                    <Input
+                                      type="number"
+                                      className="w-full transition-all focus:ring-2 focus:ring-primary/20"
+                                      placeholder="Enter date range"
+                                      defaultValue="30"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Sidebar */}
@@ -1310,19 +1326,27 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                 />
               </div>
               <Separator />
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-3 relative">
                 <div className="space-y-0.5">
                   <Label>Live Feedback</Label>
                   <p className="text-sm text-muted-foreground">Enable real-time verification feedback</p>
                 </div>
-                <FancySwitchToggle
-                  checked={localLiveFeedback}
-                  onCheckedChange={(isChecked) => {
-                    console.log("LiveFeedback toggle clicked:", isChecked);
-                    onLiveFeedbackChange?.(isChecked);
-                    setLocalLiveFeedback(isChecked);
-                  }}
-                />
+                <div className="flex items-center gap-2">
+                  {multidownload && (
+                    <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                      Required with multi-download
+                    </span>
+                  )}
+                  <FancySwitchToggle
+                    checked={localLiveFeedback}
+                    onCheckedChange={(isChecked) => {
+                      console.log("LiveFeedback toggle clicked:", isChecked);
+                      onLiveFeedbackChange?.(isChecked);
+                      setLocalLiveFeedback(isChecked);
+                    }}
+                    disabled={multidownload} // Disable toggle when multidownload is ON
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

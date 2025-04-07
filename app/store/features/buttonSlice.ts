@@ -489,17 +489,22 @@ const buttonSlice = createSlice({
       }
     },
     setAutoDeletion: (state, action: PayloadAction<boolean>) => {
-      if (state.btn?.btndata) {
+      if (state.btn && state.btn.btndata) {
         state.btn.btndata.autodeleteenable = action.payload;
       }
     },
     setShareOnlyJson: (state, action: PayloadAction<boolean>) => {
-      if (state.btn?.btndata) {
+      if (state.btn && state.btn.btndata) {
         state.btn.btndata.shareonlyjson = action.payload;
       }
     },
+    setDocumentExpiryValue: (state, action: PayloadAction<number>) => {
+      if (state.btn && state.btn.btndata) {
+        state.btn.btndata.documentexpiryvalue = action.payload;
+      }
+    },
     setShowFieldLabels: (state, action: PayloadAction<boolean>) => {
-      if (state.btn?.btndata) {
+      if (state.btn && state.btn.btndata) {
         state.btn.btndata.field_label = action.payload;
       }
     },
@@ -847,6 +852,7 @@ export const {
   setAllowMissingStatement,
   setAutoDeletion,
   setShareOnlyJson,
+  setDocumentExpiryValue,
   setShowFieldLabels,
   setDisableWebpagePrompts,
   setShowDetailedJson,

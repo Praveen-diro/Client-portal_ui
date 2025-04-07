@@ -86,6 +86,7 @@ import {
   setExtractAllTransaction,
   setCalculateBalanceAsOnDate,
   setFullTextSearchData,
+  setDocumentExpiryValue,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -652,22 +653,26 @@ export default function EditButton() {
                   }}
                 />
               )}
-              {activeTab === 1 && <IntegrationTab verificationMethod={buttonSettings.type} />}
+              {activeTab === 1 && <IntegrationTab verificationMethod={buttonSettings.mode.type} />}
               {activeTab === 2 && (
-                <PrivacyTab
-                  autoDeletionEnabled={buttonSettings.autodeleteenable}
-                  shareOnlyJson={buttonSettings.shareonlyjson}
-                  showFieldLabels={buttonSettings.field_label}
-                  disableWebpagePrompts={buttonSettings.hidediscover_popup}
-                  showDetailedJson={buttonSettings.showDetailedJson}
-                  transactionsExtraction={buttonSettings.transactionsExtraction}
-                  onAutoDeletionChange={(checked: boolean) => dispatch(setAutoDeletion(checked))}
-                  onShareOnlyJsonChange={(checked: boolean) => dispatch(setShareOnlyJson(checked))}
-                  onShowFieldLabelsChange={(checked: boolean) => dispatch(setShowFieldLabels(checked))}
-                  onDisableWebpagePromptsChange={(checked: boolean) => dispatch(setDisableWebpagePrompts(checked))}
-                  onShowDetailedJsonChange={(checked: boolean) => dispatch(setShowDetailedJson(checked))}
-                  onTransactionsExtractionChange={(checked: boolean) => dispatch(setTransactionsExtraction(checked))}
-                />
+                <div className="lg:col-span-3 w-full">
+                  <PrivacyTab
+                    autoDeletionEnabled={buttonSettings.autodeleteenable}
+                    shareOnlyJson={buttonSettings.shareonlyjson}
+                    showFieldLabels={buttonSettings.field_label}
+                    disableWebpagePrompts={buttonSettings.hidediscover_popup}
+                    showDetailedJson={buttonSettings.showDetailedJson}
+                    transactionsExtraction={buttonSettings.transactionsExtraction}
+                    documentExpiryValue={buttonSettings.documentexpiryvalue || 7}
+                    onAutoDeletionChange={(checked: boolean) => dispatch(setAutoDeletion(checked))}
+                    onShareOnlyJsonChange={(checked: boolean) => dispatch(setShareOnlyJson(checked))}
+                    onShowFieldLabelsChange={(checked: boolean) => dispatch(setShowFieldLabels(checked))}
+                    onDisableWebpagePromptsChange={(checked: boolean) => dispatch(setDisableWebpagePrompts(checked))}
+                    onShowDetailedJsonChange={(checked: boolean) => dispatch(setShowDetailedJson(checked))}
+                    onTransactionsExtractionChange={(checked: boolean) => dispatch(setTransactionsExtraction(checked))}
+                    onDocumentExpiryValueChange={(days: number) => dispatch(setDocumentExpiryValue(days))}
+                  />
+                </div>
               )}
               {activeTab === 3 && (
                 <TabsContent value="email-reminder">
