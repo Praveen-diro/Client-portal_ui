@@ -4,9 +4,18 @@ import { Label } from "@/components/ui/label";
 import { FancySwitchToggle } from "@/components/ui/fancy-switch-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Lock, ClipboardList, Eye, FileJson, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Shield, Lock, ClipboardList, Eye, FileJson, AlertCircle, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface VerificationField {
+  message: string;
+  type: string;
+  hinttext: string;
+  tagfield: string;
+}
 
 interface PrivacyTabProps {
   autoDeletionEnabled: boolean;
@@ -16,6 +25,7 @@ interface PrivacyTabProps {
   showDetailedJson: boolean;
   transactionsExtraction: boolean;
   documentExpiryValue: number;
+  captureFields?: VerificationField[];
   onAutoDeletionChange: (checked: boolean) => void;
   onShareOnlyJsonChange: (checked: boolean) => void;
   onShowFieldLabelsChange: (checked: boolean) => void;
@@ -23,6 +33,7 @@ interface PrivacyTabProps {
   onShowDetailedJsonChange: (checked: boolean) => void;
   onTransactionsExtractionChange: (checked: boolean) => void;
   onDocumentExpiryValueChange: (days: number) => void;
+  onCaptureFieldsChange?: (fields: VerificationField[]) => void;
 }
 
 export const PrivacyTab: React.FC<PrivacyTabProps> = ({
@@ -33,6 +44,7 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
   showDetailedJson,
   transactionsExtraction,
   documentExpiryValue,
+  captureFields = [],
   onAutoDeletionChange,
   onShareOnlyJsonChange,
   onShowFieldLabelsChange,
@@ -40,9 +52,26 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
   onShowDetailedJsonChange,
   onTransactionsExtractionChange,
   onDocumentExpiryValueChange,
+  onCaptureFieldsChange,
 }) => {
   const [shareRequestedFieldsOnly, setShareRequestedFieldsOnly] = useState(false);
   const [localDays, setLocalDays] = useState<string>("");
+  const [verificationFields, setVerificationFields] = useState<VerificationField[]>(
+    captureFields.length > 0 ? captureFields : [{ message: "", type: "text", hinttext: "", tagfield: "" }]
+  );
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Available tag options
+  const tagOptions = [
+    { value: "name", label: "name" },
+    { value: "email", label: "email" },
+    { value: "address", label: "address" },
+    { value: "phone", label: "phone" },
+    { value: "dob", label: "date of birth" },
+    { value: "account_number", label: "account number" },
+    { value: "id_number", label: "ID number" },
+    { value: "custom", label: "custom field" },
+  ];
 
   // Update local state when props change from outside
   useEffect(() => {
@@ -50,6 +79,12 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
       setLocalDays(documentExpiryValue.toString());
     }
   }, [documentExpiryValue]);
+
+  useEffect(() => {
+    if (captureFields && captureFields.length > 0) {
+      setVerificationFields(captureFields);
+    }
+  }, [captureFields]);
 
   // Handle input change locally
   const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,9 +114,73 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
     onDocumentExpiryValueChange(newValue);
   };
 
+  // Handle field change in verification fields
+  const handleFieldChange = (index: number, field: string, value: string) => {
+    const updatedFields = [...verificationFields];
+    updatedFields[index] = { ...updatedFields[index], [field]: value };
+
+    // Validation logic
+    const errors = { ...fieldErrors };
+
+    // Validate message (field name)
+    if (field === "message" && !value.trim()) {
+      errors[`message_${index}`] = "Field name is required";
+    } else if (field === "message") {
+      delete errors[`message_${index}`];
+    }
+
+    // Validate tag field
+    if (field === "type" && value !== "trackid") {
+      if (!updatedFields[index].tagfield) {
+        errors[`tagfield_${index}`] = "Tag is required for this field type";
+      }
+    } else if (field === "tagfield" && updatedFields[index].type !== "trackid") {
+      if (!value) {
+        errors[`tagfield_${index}`] = "Tag is required";
+      } else {
+        delete errors[`tagfield_${index}`];
+      }
+    }
+
+    setFieldErrors(errors);
+    setVerificationFields(updatedFields);
+
+    // Notify parent component if provided
+    if (onCaptureFieldsChange) {
+      onCaptureFieldsChange(updatedFields);
+    }
+  };
+
+  // Add new field row
+  const addField = () => {
+    setVerificationFields([...verificationFields, { message: "", type: "text", hinttext: "", tagfield: "" }]);
+  };
+
+  // Remove field row
+  const removeField = (index: number) => {
+    if (verificationFields.length === 1) {
+      return; // Don't remove the last field
+    }
+
+    const updatedFields = verificationFields.filter((_, i) => i !== index);
+
+    // Clean up any errors for the removed field
+    const updatedErrors = { ...fieldErrors };
+    delete updatedErrors[`message_${index}`];
+    delete updatedErrors[`tagfield_${index}`];
+
+    setFieldErrors(updatedErrors);
+    setVerificationFields(updatedFields);
+
+    // Notify parent component if provided
+    if (onCaptureFieldsChange) {
+      onCaptureFieldsChange(updatedFields);
+    }
+  };
+
   return (
     <div className="w-full max-w-8xl mx-auto">
-      <Accordion type="multiple" defaultValue={[]} className="space-y-4">
+      <Accordion type="single" collapsible defaultValue="privacy" className="space-y-4">
         {/* Privacy Accordion */}
         <AccordionItem value="privacy" className="border-0 rounded-lg overflow-hidden bg-card shadow-sm">
           <AccordionTrigger className="p-4 hover:no-underline">
@@ -210,66 +309,112 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
 
           <AccordionContent className="p-6 border-t border-border bg-card">
             {/* Field Definition Row Labels */}
-            <div className="grid grid-cols-4 gap-4 mb-3">
-              <div>
+            <div className="grid grid-cols-12 gap-4 mb-3">
+              <div className="col-span-3">
                 <Label className="text-sm text-muted-foreground flex items-center">
                   Field label <span className="text-destructive ml-1">*</span>
                 </Label>
                 <p className="text-xs text-muted-foreground/70">(What to find)</p>
               </div>
-              <div>
+              <div className="col-span-2">
                 <Label className="text-sm text-muted-foreground">Type</Label>
                 <p className="text-xs text-muted-foreground/70">&nbsp;</p>
               </div>
-              <div>
+              <div className="col-span-3">
                 <Label className="text-sm text-muted-foreground">Sample text</Label>
                 <p className="text-xs text-muted-foreground/70">(Hint for data entry in form)</p>
               </div>
-              <div>
+              <div className="col-span-3">
                 <Label className="text-sm text-muted-foreground">Tag</Label>
                 <p className="text-xs text-muted-foreground/70">(For mapping field in json)</p>
               </div>
+              <div className="col-span-1">
+                <Label className="text-sm text-muted-foreground">&nbsp;</Label>
+              </div>
             </div>
 
-            {/* Field Input Row */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div>
-                <input
-                  type="text"
-                  placeholder="full name"
-                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring transition-colors"
-                />
-              </div>
-              <div>
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background appearance-none focus:border-ring focus:ring-1 focus:ring-ring transition-colors">
-                  <option>text</option>
-                  <option>number</option>
-                  <option>date</option>
-                  <option>email</option>
-                </select>
-              </div>
-              <div>
-                <input
-                  type="text"
-                  placeholder="Sample help text"
-                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring transition-colors"
-                />
-              </div>
-              <div className="flex items-center">
-                <select className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background appearance-none focus:border-ring focus:ring-1 focus:ring-ring transition-colors">
-                  <option>Select tag</option>
-                  <option>name</option>
-                  <option>email</option>
-                  <option>address</option>
-                  <option>phone</option>
-                </select>
-              </div>
+            {/* Dynamic Field Rows */}
+            <div className="space-y-4 mb-6">
+              {verificationFields.map((field, index) => (
+                <div key={index} className="grid grid-cols-12 gap-4 items-start">
+                  <div className="col-span-3">
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="Field name"
+                        value={field.message}
+                        onChange={(e) => handleFieldChange(index, "message", e.target.value)}
+                        className={fieldErrors[`message_${index}`] ? "border-destructive" : ""}
+                      />
+                      {fieldErrors[`message_${index}`] && (
+                        <p className="text-xs text-destructive mt-1">{fieldErrors[`message_${index}`]}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <Select value={field.type} onValueChange={(value) => handleFieldChange(index, "type", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">text</SelectItem>
+                        <SelectItem value="date">date</SelectItem>
+                        <SelectItem value="trackid">trackid</SelectItem>
+                        <SelectItem value="number">number</SelectItem>
+                        <SelectItem value="email">email</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3">
+                    <Input
+                      type="text"
+                      placeholder="Sample help text"
+                      value={field.hinttext}
+                      onChange={(e) => handleFieldChange(index, "hinttext", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <div className="relative">
+                      <Select
+                        value={field.tagfield || undefined}
+                        onValueChange={(value) => handleFieldChange(index, "tagfield", value)}
+                        disabled={field.type === "trackid"}
+                      >
+                        <SelectTrigger className={fieldErrors[`tagfield_${index}`] ? "border-destructive" : ""}>
+                          <SelectValue placeholder="Select tag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tagOptions.map((tag) => (
+                            <SelectItem key={tag.value} value={tag.value}>
+                              {tag.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldErrors[`tagfield_${index}`] && (
+                        <p className="text-xs text-destructive mt-1">{fieldErrors[`tagfield_${index}`]}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex items-center justify-center h-10">
+                    {verificationFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeField(index)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Add Field Button */}
             <div className="flex justify-end mb-8">
-              <Button variant="secondary" className="shadow-sm transition-colors">
-                <span className="mr-1">+</span> Add field
+              <Button variant="secondary" onClick={addField} className="shadow-sm transition-colors">
+                <Plus className="h-4 w-4 mr-1" /> Add field
               </Button>
             </div>
 
