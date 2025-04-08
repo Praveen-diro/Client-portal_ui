@@ -63,15 +63,83 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
 
   // Available tag options
   const tagOptions = [
-    { value: "name", label: "name" },
-    { value: "email", label: "email" },
-    { value: "address", label: "address" },
-    { value: "phone", label: "phone" },
-    { value: "dob", label: "date of birth" },
-    { value: "account_number", label: "account number" },
-    { value: "id_number", label: "ID number" },
-    { value: "custom", label: "custom field" },
+    // Address group
+    { value: "address", label: "address (full)", group: "Address", categories: ["address", "all"] },
+    { value: "street", label: "street", group: "Address", categories: ["address", "all"] },
+    { value: "city", label: "city", group: "Address", categories: ["address", "all"] },
+    { value: "state", label: "state", group: "Address", categories: ["address", "all"] },
+    { value: "zip", label: "zip code", group: "Address", categories: ["address", "all"] },
+    { value: "country", label: "country", group: "Address", categories: ["address", "all"] },
+    { value: "billingaddress", label: "billing address (full)", group: "BillingAddress", categories: ["address", "all"] },
+
+    // Account group
+    { value: "account_number", label: "account number (multiple)", group: "Account", categories: ["bank", "all"] },
+    { value: "iban", label: "iban (multiple)", group: "Account", categories: ["bank", "all"] },
+    { value: "routingnumber", label: "routing number", group: "Account", categories: ["bank", "all"] },
+    { value: "accounttype", label: "account type", group: "Account", categories: ["bank", "all"] },
+    { value: "balance", label: "balance", group: "Account", categories: ["bank", "all"] },
+
+    // Contact group
+    { value: "email", label: "email", group: "Contact", categories: ["all"] },
+    { value: "phone", label: "phone", group: "Contact", categories: ["all"] },
+
+    // Date group
+    { value: "dob", label: "date of birth", group: "Date", categories: ["all"] },
+    { value: "date", label: "date", group: "Date", categories: ["all"] },
+    { value: "startdate", label: "start date", group: "Date", categories: ["bank", "all"] },
+    { value: "enddate", label: "end date", group: "Date", categories: ["bank", "all"] },
+
+    // Entity group
+    { value: "entitytype", label: "entity type", group: "Entity", categories: ["all"] },
+    { value: "businessname", label: "business name", group: "Entity", categories: ["all"] },
+
+    // Name group
+    { value: "name", label: "name (full)", group: "Name", categories: ["all"] },
+    { value: "firstname", label: "first name", group: "Name", categories: ["all"] },
+    { value: "lastname", label: "last name", group: "Name", categories: ["all"] },
+
+    // Transaction group
+    { value: "totalcharges", label: "total charges", group: "Transaction", categories: ["bank", "all"] },
+    { value: "referencenumber", label: "reference number", group: "Transaction", categories: ["bank", "all"] },
+
+    // Others group
+    { value: "id_number", label: "ID number", group: "Others", categories: ["all"] },
+    { value: "custom", label: "custom field", group: "Others", categories: ["all"] },
   ];
+
+  // Group tags by their group property for select dropdown
+  const getGroupedTags = () => {
+    // Define a sorted array for the groups to maintain a consistent order
+    const groupOrder = ["Address", "BillingAddress", "Account", "Contact", "Date", "Entity", "Name", "Transaction", "Others"];
+
+    // Create a map to hold the groups
+    const groups: Record<string, typeof tagOptions> = {};
+
+    // Initialize all groups
+    groupOrder.forEach((group) => {
+      groups[group] = [];
+    });
+
+    // Group each tag by its group property
+    tagOptions.forEach((tag) => {
+      if (groups[tag.group]) {
+        groups[tag.group].push(tag);
+      }
+    });
+
+    // Special sorting for Address group (if needed)
+    if (groups["Address"]) {
+      groups["Address"].sort((a, b) => {
+        return a.value === "address" ? -1 : b.value === "address" ? 1 : 0;
+      });
+    }
+
+    // Filter out empty groups and sort according to groupOrder
+    return groupOrder.map((group) => ({ group, tags: groups[group] })).filter((groupData) => groupData.tags.length > 0);
+  };
+
+  // Prepare grouped tags for the dropdown
+  const groupedTags = getGroupedTags();
 
   // Update local state when props change from outside
   useEffect(() => {
@@ -384,10 +452,16 @@ export const PrivacyTab: React.FC<PrivacyTabProps> = ({
                           <SelectValue placeholder="Select tag" />
                         </SelectTrigger>
                         <SelectContent>
-                          {tagOptions.map((tag) => (
-                            <SelectItem key={tag.value} value={tag.value}>
-                              {tag.label}
-                            </SelectItem>
+                          {groupedTags.map((group, groupIndex) => (
+                            <div key={`group-${groupIndex}`} className="pb-2">
+                              <div className="text-xs text-muted-foreground px-2 py-1.5 font-medium">{group.group}</div>
+                              {group.tags.map((tag) => (
+                                <SelectItem key={tag.value} value={tag.value}>
+                                  {tag.label}
+                                </SelectItem>
+                              ))}
+                              {groupIndex < groupedTags.length - 1 && <div className="h-px bg-muted my-1"></div>}
+                            </div>
                           ))}
                         </SelectContent>
                       </Select>
