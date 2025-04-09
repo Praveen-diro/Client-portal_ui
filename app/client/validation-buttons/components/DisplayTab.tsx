@@ -6,6 +6,12 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import successpng from "@/public/assets/screenshot/success.png";
+import failurepng from "@/public/assets/screenshot/failure.png";
+import guidepng from "@/public/assets/screenshot/guide.png";
+import privacypng from "@/public/assets/screenshot/privacyScn.png";
+
 import { cn } from "@/lib/utils";
 import {
   Palette,
@@ -34,10 +40,12 @@ import {
   Pencil,
   Trash2,
   Image,
+  Maximize2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { ImageCropper } from "@/components/ui/image-cropper";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // Define the privacytext object structure type
 interface PrivacyText {
@@ -182,7 +190,12 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   const [logoImage, setLogoImage] = useState<string | null>(organizationLogo || null);
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State for image preview
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Sync state with props
   useEffect(() => {
@@ -309,6 +322,18 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        setLogoError("Image size should not exceed 5MB");
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+
+      setLogoError(null); // Clear any previous errors
       const reader = new FileReader();
 
       reader.onload = () => {
@@ -383,141 +408,245 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
 
             {/* General Settings Tab */}
             <TabsContent value="general" className="space-y-6 mt-2">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Browser Settings</CardTitle>
-                  <CardDescription>Configure how the verification portal behaves in the browser</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <Label className="text-sm font-medium">Start with full screen</Label>
-                        <p className="text-xs text-muted-foreground mt-1">Launch verification in fullscreen mode</p>
+              <Accordion type="single" collapsible className="w-full space-y-4">
+                <AccordionItem value="browser-settings" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Browser Settings</h4>
+                        <p className="text-xs text-muted-foreground">Configure how the verification portal behaves</p>
                       </div>
-                      <Switch
-                        checked={fullscreenMode}
-                        onCheckedChange={handleFullscreenToggle}
-                        id="fullscreenmode"
-                        name="fullscreenmode"
-                        aria-label="Toggle fullscreen mode"
-                      />
                     </div>
-
-                    <Separator />
-
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <Label className="text-sm font-medium">Show preview</Label>
-                        <p className="text-xs text-muted-foreground mt-1">Display a preview of the verification process</p>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="grid gap-4">
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <Label className="text-sm font-medium">Start with full screen</Label>
+                          <p className="text-xs text-muted-foreground mt-1">Launch verification in fullscreen mode</p>
+                        </div>
+                        <Switch
+                          checked={fullscreenMode}
+                          onCheckedChange={handleFullscreenToggle}
+                          id="fullscreenmode"
+                          name="fullscreenmode"
+                          aria-label="Toggle fullscreen mode"
+                        />
                       </div>
-                      <Switch
-                        checked={previewMode}
-                        onCheckedChange={handlePreviewToggle}
-                        id="showpreview"
-                        name="showpreview"
-                        aria-label="Toggle preview mode"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Mobile Experience</CardTitle>
-                  <CardDescription>Show preference for desktop on mobile devices</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-5">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Warning Message</Label>
-                      <Select value={mobileview || "No warning"} onValueChange={onDesktopWarningChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select warning option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="No warning">No warning</SelectItem>
-                          <SelectItem value="Warning">Warning</SelectItem>
-                          <SelectItem value="Disable">Disable</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">Choose how to handle mobile device access</p>
-                    </div>
+                      <Separator />
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Custom Message</Label>
-                      <Input
-                        value={desktopCustomMessage || ""}
-                        onChange={(e) => onDesktopCustomMessageChange(e.target.value)}
-                        placeholder="Enter custom message for mobile users"
-                      />
-                      <p className="text-xs text-muted-foreground">Additional information for mobile users</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Certified PDF Options</CardTitle>
-                  <CardDescription>Configure PDF output settings</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <Label className="text-sm font-medium">Include FAQ Page</Label>
-                        <p className="text-xs text-muted-foreground mt-1">Add a FAQ page at the end of the PDF</p>
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <Label className="text-sm font-medium">Show preview</Label>
+                          <p className="text-xs text-muted-foreground mt-1">Display a preview of the verification process</p>
+                        </div>
+                        <Switch
+                          checked={previewMode}
+                          onCheckedChange={handlePreviewToggle}
+                          id="showpreview"
+                          name="showpreview"
+                          aria-label="Toggle preview mode"
+                        />
                       </div>
-                      <Switch checked={includeFaqPage} onCheckedChange={onIncludeFaqPageChange} />
                     </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                    <Separator />
-
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <Label className="text-sm font-medium">Include QR Code</Label>
-                        <p className="text-xs text-muted-foreground mt-1">Add a QR code to the PDF for verification</p>
+                <AccordionItem value="mobile-experience" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Mobile Experience</h4>
+                        <p className="text-xs text-muted-foreground">Show preference for desktop on mobile devices</p>
                       </div>
-                      <Switch checked={includeQrCode} onCheckedChange={onIncludeQrCodeChange} />
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Warning Message</Label>
+                        <Select value={mobileview || "No warning"} onValueChange={onDesktopWarningChange}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select warning option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="No warning">No warning</SelectItem>
+                            <SelectItem value="Warning">Warning</SelectItem>
+                            <SelectItem value="Disable">Disable</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">Choose how to handle mobile device access</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Custom Message</Label>
+                        <Input
+                          value={desktopCustomMessage || ""}
+                          onChange={(e) => onDesktopCustomMessageChange(e.target.value)}
+                          placeholder="Enter custom message for mobile users"
+                        />
+                        <p className="text-xs text-muted-foreground">Additional information for mobile users</p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="pdf-options" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Certified PDF Options</h4>
+                        <p className="text-xs text-muted-foreground">Configure PDF output settings</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="grid gap-4">
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <Label className="text-sm font-medium">Include FAQ Page</Label>
+                          <p className="text-xs text-muted-foreground mt-1">Add a FAQ page at the end of the PDF</p>
+                        </div>
+                        <Switch checked={includeFaqPage} onCheckedChange={onIncludeFaqPageChange} />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between py-2">
+                        <div>
+                          <Label className="text-sm font-medium">Include QR Code</Label>
+                          <p className="text-xs text-muted-foreground mt-1">Add a QR code to the PDF for verification</p>
+                        </div>
+                        <Switch checked={includeQrCode} onCheckedChange={onIncludeQrCodeChange} />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </TabsContent>
 
             {/* Appearance Tab */}
             <TabsContent value="appearance" className="space-y-6 mt-2">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Theme Color</CardTitle>
-                  <CardDescription>Set the primary color for your verification flow interface</CardDescription>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">Portal Color</CardTitle>
+                      <CardDescription>Set the primary color for your verification portal</CardDescription>
+                    </div>
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <Palette className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-md border shadow-sm" style={{ backgroundColor: themeColor }}></div>
-                    <div className="flex-1">
-                      <div className="flex gap-3">
-                        <Input
-                          type="color"
-                          value={themeColor}
-                          onChange={(e) => handleColorChange(e.target.value)}
-                          className="w-12 h-10 p-1 rounded"
-                          id="setcolor"
-                          name="setcolor"
+                  <div className="space-y-6">
+                    {/* Color Display */}
+                    <div className="flex items-center gap-6 p-6 rounded-lg border bg-muted/50">
+                      <div className="relative">
+                        <div
+                          className="w-16 h-16 rounded-lg shadow-lg ring-1 ring-border/50"
+                          style={{ backgroundColor: themeColor }}
                         />
-                        <Input
-                          value={themeColor}
-                          onChange={(e) => handleColorChange(e.target.value)}
-                          placeholder="#000000"
-                          className="flex-1"
-                          aria-label="Theme color hexadecimal value"
-                        />
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background shadow-sm ring-1 ring-border flex items-center justify-center">
+                          <Palette className="h-3 w-3 text-muted-foreground" />
+                        </div>
                       </div>
-                      <div className="text-xs text-destructive flex items-center gap-1.5 mt-2">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        Do not select white color code (#FFFFFF)
+                      <div className="flex-1">
+                        <p className="font-medium mb-1">Selected Color</p>
+                        <div className="flex items-center gap-2">
+                          <code className="px-2 py-0.5 rounded bg-muted font-mono text-sm">{themeColor.toUpperCase()}</code>
+                          <span className="text-sm text-muted-foreground">
+                            This color will be used across your verification portal
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Color Selection */}
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* Custom Color Input */}
+                      <div className="space-y-4">
+                        <Label className="text-sm font-medium">Custom Color</Label>
+                        <div className="flex gap-3">
+                          <div className="relative">
+                            <Input
+                              type="color"
+                              value={themeColor}
+                              onChange={(e) => handleColorChange(e.target.value)}
+                              className="w-[60px] h-[38px] p-1 rounded-md cursor-pointer border-2"
+                              id="setcolor"
+                              name="setcolor"
+                              title="Choose color"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="relative">
+                              <Input
+                                value={themeColor}
+                                onChange={(e) => handleColorChange(e.target.value)}
+                                placeholder="#000000"
+                                className="pl-9 font-mono w-full"
+                              />
+                              <div
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded"
+                                style={{ backgroundColor: themeColor }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {/* Warning Message */}
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-destructive">Color Restrictions</p>
+                            <p className="text-sm text-muted-foreground">
+                              White color (#FFFFFF) is not permitted for visibility reasons. Choose a color that provides good
+                              contrast.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Preset Colors */}
+                      <div className="space-y-4">
+                        <Label className="text-sm font-medium">Preset Colors</Label>
+                        <div className="grid grid-cols-8 gap-2">
+                          {[
+                            "#0ea5e9",
+                            "#6366f1",
+                            "#8b5cf6",
+                            "#ec4899",
+                            "#f43f5e",
+                            "#ef4444",
+                            "#f97316",
+                            "#eab308",
+                            "#22c55e",
+                            "#10b981",
+                            "#1e293b",
+                            "#334155",
+                            "#0f172a",
+                            "#18181b",
+                            "#64748b",
+                            "#94a3b8",
+                          ].map((color) => (
+                            <button
+                              key={color}
+                              onClick={() => handleColorChange(color)}
+                              className={cn(
+                                "h-[38px] rounded-md transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                                themeColor === color && "ring-2 ring-primary ring-offset-2"
+                              )}
+                              style={{ backgroundColor: color }}
+                            >
+                              <span className="sr-only">Select color {color}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -527,406 +656,681 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
 
             {/* Messages Tab */}
             <TabsContent value="messages" className="space-y-6 mt-2">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Privacy Messages</CardTitle>
-                  <CardDescription>Customize privacy information shown to users</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-6">
-                    {/* No Password Message */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        {isEditingHeading.heading1 ? (
-                          <div className="flex-1 space-y-1">
+              <Accordion type="single" collapsible className="w-full space-y-4">
+                <AccordionItem value="privacy-messages" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Privacy Messages</h4>
+                        <p className="text-xs text-muted-foreground">Customize privacy information shown to users</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="grid gap-6">
+                      <div className="grid md:grid-cols-[3fr,1fr] gap-6">
+                        {/* Left side - Privacy Messages */}
+                        <div className="space-y-6">
+                          {/* No Password Message */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              {isEditingHeading.heading1 ? (
+                                <div className="flex-1 space-y-1">
+                                  <Input
+                                    type="text"
+                                    name="nopassword_heading"
+                                    value={privacytext.nopassword_heading}
+                                    onChange={handlePrivacyChange}
+                                    maxLength={MAX_HEADING_LENGTH}
+                                    placeholder="No password"
+                                    className={cn(
+                                      "font-medium",
+                                      privacytext.nopassword_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                                    )}
+                                    onBlur={() => handleIsEditing("heading1")}
+                                    autoFocus
+                                  />
+                                  <div className="text-xs text-muted-foreground text-right">
+                                    {characterCount(privacytext.nopassword_heading, MAX_HEADING_LENGTH)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 font-medium">
+                                  <span>{privacytext.nopassword_heading || "No password"}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleIsEditing("heading1")}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit heading</span>
+                                  </Button>
+                                </div>
+                              )}
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {characterCount(privacytext.nopassword, MAX_MESSAGE_LENGTH)}
+                              </Badge>
+                            </div>
+
                             <Input
                               type="text"
-                              name="nopassword_heading"
-                              value={privacytext.nopassword_heading}
+                              name="nopassword"
+                              value={privacytext.nopassword}
                               onChange={handlePrivacyChange}
-                              maxLength={MAX_HEADING_LENGTH}
-                              placeholder="No password"
-                              className={cn(
-                                "font-medium",
-                                privacytext.nopassword_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
-                              )}
-                              onBlur={() => handleIsEditing("heading1")}
-                              autoFocus
+                              placeholder="We do not store login credentials"
+                              maxLength={MAX_MESSAGE_LENGTH}
+                              className={cn(privacytext.nopassword.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
                             />
-                            <div className="text-xs text-muted-foreground text-right">
-                              {characterCount(privacytext.nopassword_heading, MAX_HEADING_LENGTH)}
+                          </div>
+
+                          <Separator />
+
+                          {/* Strong Privacy Message */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              {isEditingHeading.heading2 ? (
+                                <div className="flex-1 space-y-1">
+                                  <Input
+                                    type="text"
+                                    name="strongtext_heading"
+                                    value={privacytext.strongtext_heading}
+                                    onChange={handlePrivacyChange}
+                                    maxLength={MAX_HEADING_LENGTH}
+                                    placeholder="Strong privacy"
+                                    className={cn(
+                                      "font-medium",
+                                      privacytext.strongtext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                                    )}
+                                    onBlur={() => handleIsEditing("heading2")}
+                                    autoFocus
+                                  />
+                                  <div className="text-xs text-muted-foreground text-right">
+                                    {characterCount(privacytext.strongtext_heading, MAX_HEADING_LENGTH)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 font-medium">
+                                  <span>{privacytext.strongtext_heading || "Strong privacy"}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleIsEditing("heading2")}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit heading</span>
+                                  </Button>
+                                </div>
+                              )}
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {characterCount(privacytext.strongtext, MAX_MESSAGE_LENGTH)}
+                              </Badge>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 font-medium">
-                            <span>{privacytext.nopassword_heading || "No password"}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading1")}>
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit heading</span>
-                            </Button>
-                          </div>
-                        )}
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(privacytext.nopassword, MAX_MESSAGE_LENGTH)}
-                        </Badge>
-                      </div>
 
-                      <Input
-                        type="text"
-                        name="nopassword"
-                        value={privacytext.nopassword}
-                        onChange={handlePrivacyChange}
-                        placeholder="We do not store login credentials"
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        className={cn(privacytext.nopassword.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    {/* Strong Privacy Message */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        {isEditingHeading.heading2 ? (
-                          <div className="flex-1 space-y-1">
                             <Input
                               type="text"
-                              name="strongtext_heading"
-                              value={privacytext.strongtext_heading}
+                              name="strongtext"
+                              value={privacytext.strongtext}
                               onChange={handlePrivacyChange}
-                              maxLength={MAX_HEADING_LENGTH}
-                              placeholder="Strong privacy"
-                              className={cn(
-                                "font-medium",
-                                privacytext.strongtext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
-                              )}
-                              onBlur={() => handleIsEditing("heading2")}
-                              autoFocus
+                              placeholder="We don't share data with third parties"
+                              maxLength={MAX_MESSAGE_LENGTH}
+                              className={cn(privacytext.strongtext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
                             />
-                            <div className="text-xs text-muted-foreground text-right">
-                              {characterCount(privacytext.strongtext_heading, MAX_HEADING_LENGTH)}
+                          </div>
+
+                          <Separator />
+
+                          {/* Security Message */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              {isEditingHeading.heading3 ? (
+                                <div className="flex-1 space-y-1">
+                                  <Input
+                                    type="text"
+                                    name="securetext_heading"
+                                    value={privacytext.securetext_heading}
+                                    onChange={handlePrivacyChange}
+                                    maxLength={MAX_HEADING_LENGTH}
+                                    placeholder="Secure"
+                                    className={cn(
+                                      "font-medium",
+                                      privacytext.securetext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                                    )}
+                                    onBlur={() => handleIsEditing("heading3")}
+                                    autoFocus
+                                  />
+                                  <div className="text-xs text-muted-foreground text-right">
+                                    {characterCount(privacytext.securetext_heading, MAX_HEADING_LENGTH)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 font-medium">
+                                  <span>{privacytext.securetext_heading || "Secure"}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleIsEditing("heading3")}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit heading</span>
+                                  </Button>
+                                </div>
+                              )}
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {characterCount(privacytext.securetext, MAX_MESSAGE_LENGTH)}
+                              </Badge>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 font-medium">
-                            <span>{privacytext.strongtext_heading || "Strong privacy"}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading2")}>
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit heading</span>
-                            </Button>
-                          </div>
-                        )}
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(privacytext.strongtext, MAX_MESSAGE_LENGTH)}
-                        </Badge>
-                      </div>
 
-                      <Input
-                        type="text"
-                        name="strongtext"
-                        value={privacytext.strongtext}
-                        onChange={handlePrivacyChange}
-                        placeholder="We don't share data with third parties"
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        className={cn(privacytext.strongtext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    {/* Security Message */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        {isEditingHeading.heading3 ? (
-                          <div className="flex-1 space-y-1">
                             <Input
                               type="text"
-                              name="securetext_heading"
-                              value={privacytext.securetext_heading}
+                              name="securetext"
+                              value={privacytext.securetext}
                               onChange={handlePrivacyChange}
-                              maxLength={MAX_HEADING_LENGTH}
-                              placeholder="Secure"
-                              className={cn(
-                                "font-medium",
-                                privacytext.securetext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
-                              )}
-                              onBlur={() => handleIsEditing("heading3")}
-                              autoFocus
+                              placeholder="Your data stays fully encrypted"
+                              maxLength={MAX_MESSAGE_LENGTH}
+                              className={cn(privacytext.securetext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
                             />
-                            <div className="text-xs text-muted-foreground text-right">
-                              {characterCount(privacytext.securetext_heading, MAX_HEADING_LENGTH)}
+                          </div>
+
+                          <Separator />
+
+                          {/* Data Retention Message */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              {isEditingHeading.heading4 ? (
+                                <div className="flex-1 space-y-1">
+                                  <Input
+                                    type="text"
+                                    name="datapurge_heading"
+                                    value={privacytext.datapurge_heading}
+                                    onChange={handlePrivacyChange}
+                                    maxLength={MAX_HEADING_LENGTH}
+                                    placeholder="Data purge"
+                                    className={cn(
+                                      "font-medium",
+                                      privacytext.datapurge_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                                    )}
+                                    onBlur={() => handleIsEditing("heading4")}
+                                    autoFocus
+                                  />
+                                  <div className="text-xs text-muted-foreground text-right">
+                                    {characterCount(privacytext.datapurge_heading, MAX_HEADING_LENGTH)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 font-medium">
+                                  <span>{privacytext.datapurge_heading || "Data purge"}</span>
+                                  <span className="text-xs text-muted-foreground">(Enable auto deletion from Privacy tab)</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleIsEditing("heading4")}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit heading</span>
+                                  </Button>
+                                </div>
+                              )}
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {characterCount(privacytext.datapurge, MAX_MESSAGE_LENGTH)}
+                              </Badge>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 font-medium">
-                            <span>{privacytext.securetext_heading || "Secure"}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading3")}>
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit heading</span>
-                            </Button>
-                          </div>
-                        )}
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(privacytext.securetext, MAX_MESSAGE_LENGTH)}
-                        </Badge>
-                      </div>
 
-                      <Input
-                        type="text"
-                        name="securetext"
-                        value={privacytext.securetext}
-                        onChange={handlePrivacyChange}
-                        placeholder="Your data stays fully encrypted"
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        className={cn(privacytext.securetext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    {/* Data Retention Message */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        {isEditingHeading.heading4 ? (
-                          <div className="flex-1 space-y-1">
                             <Input
                               type="text"
-                              name="datapurge_heading"
-                              value={privacytext.datapurge_heading}
+                              name="datapurge"
+                              value={privacytext.datapurge}
                               onChange={handlePrivacyChange}
-                              maxLength={MAX_HEADING_LENGTH}
-                              placeholder="Data purge"
-                              className={cn(
-                                "font-medium",
-                                privacytext.datapurge_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
-                              )}
-                              onBlur={() => handleIsEditing("heading4")}
-                              autoFocus
+                              placeholder="Data is purged after verification"
+                              maxLength={MAX_MESSAGE_LENGTH}
+                              className={cn(privacytext.datapurge.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
                             />
-                            <div className="text-xs text-muted-foreground text-right">
-                              {characterCount(privacytext.datapurge_heading, MAX_HEADING_LENGTH)}
+                          </div>
+                        </div>
+
+                        {/* Right side - Image Preview */}
+                        <div className="relative h-full">
+                          <div className="sticky top-0 h-full rounded-lg overflow-hidden border bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/10 dark:to-purple-900/30">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Button
+                                variant="ghost"
+                                className="p-0 h-auto hover:bg-transparent"
+                                onClick={() => {
+                                  setPreviewImage(privacypng.src);
+                                  setIsPreviewOpen(true);
+                                }}
+                              >
+                                <img
+                                  src={privacypng.src}
+                                  alt="Privacy screen preview"
+                                  className="w-[-webkit-fill-available] h-fit object-contain opacity-90"
+                                />
+                              </Button>
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm shadow-sm"
+                                onClick={() => {
+                                  setPreviewImage(privacypng.src);
+                                  setIsPreviewOpen(true);
+                                }}
+                              >
+                                <Maximize2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">View full screen</span>
+                              </Button>
                             </div>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 font-medium">
-                            <span>{privacytext.datapurge_heading || "Data purge"}</span>
-                            <span className="text-xs text-muted-foreground">(Enable auto deletion from Privacy tab)</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading4")}>
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit heading</span>
-                            </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="guide-messages" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Guide Screen Messages</h4>
+                        <p className="text-xs text-muted-foreground">Shows 3 steps during verification to customers</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="grid gap-5">
+                      <div className="space-y-4">
+                        <div className="grid md:grid-cols-[2fr,1fr] gap-6">
+                          {/* Text Inputs */}
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Login Instructions</Label>
+                              <Input
+                                value={loginText || ""}
+                                onChange={(e) => onLoginTextChange(e.target.value)}
+                                placeholder="Please login"
+                                maxLength={65}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Process Instructions</Label>
+                              <Input
+                                value={gototext || ""}
+                                onChange={(e) => onInstructionTextChange(e.target.value)}
+                                placeholder="Find or download your information"
+                                maxLength={65}
+                              />
+                              <p className="text-xs text-muted-foreground">Shows during verification steps</p>
+                            </div>
                           </div>
-                        )}
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(privacytext.datapurge, MAX_MESSAGE_LENGTH)}
-                        </Badge>
-                      </div>
 
-                      <Input
-                        type="text"
-                        name="datapurge"
-                        value={privacytext.datapurge}
-                        onChange={handlePrivacyChange}
-                        placeholder="Data is purged after verification"
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        className={cn(privacytext.datapurge.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Guide Screen Messages</CardTitle>
-                  <CardDescription>Shows 3 steps during verification to customers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-5">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Login Instructions</Label>
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(loginText, 65)}
-                        </Badge>
-                      </div>
-                      <Input
-                        value={loginText || ""}
-                        onChange={(e) => onLoginTextChange(e.target.value)}
-                        placeholder="Please login"
-                        maxLength={65}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Process Instructions</Label>
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {characterCount(gototext, 65)}
-                        </Badge>
-                      </div>
-                      <Input
-                        value={gototext || ""}
-                        onChange={(e) => onInstructionTextChange(e.target.value)}
-                        placeholder="Find or download your information"
-                        maxLength={65}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Shows during verification steps</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Exit Screens</CardTitle>
-                  <CardDescription>Customize success and failure messages</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {/* Success Screen */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h4 className="text-sm font-medium">Success Screen</h4>
-                      </div>
-
-                      <div className="pl-7 space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Heading</Label>
-                          <Input
-                            value={successHeading || ""}
-                            onChange={(e) => onSuccessHeadingChange(e.target.value)}
-                            placeholder="Thank You"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Message</Label>
-                          <Input
-                            value={successMessage || ""}
-                            onChange={(e) => onSuccessMessageChange(e.target.value)}
-                            placeholder="Verification complete"
-                          />
+                          {/* Image Preview */}
+                          <div className="relative">
+                            <div className="aspect-[3/2] rounded-lg overflow-hidden border bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/10 dark:to-blue-900/30">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Button
+                                  variant="ghost"
+                                  className="p-0 h-auto hover:bg-transparent"
+                                  onClick={() => {
+                                    setPreviewImage("/assets/images/guide.png");
+                                    setIsPreviewOpen(true);
+                                  }}
+                                >
+                                  <img
+                                    src="/assets/images/guide.png"
+                                    alt="Guide screen preview"
+                                    className="w-20 h-20 object-contain opacity-90"
+                                  />
+                                </Button>
+                              </div>
+                              <div className="absolute top-2 right-2">
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm shadow-sm"
+                                  onClick={() => {
+                                    setPreviewImage("/assets/images/guide.png");
+                                    setIsPreviewOpen(true);
+                                  }}
+                                >
+                                  <Maximize2 className="h-3.5 w-3.5" />
+                                  <span className="sr-only">View full screen</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                    <Separator />
-
-                    {/* Failure Screen */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-full">
-                          <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <AccordionItem value="exit-screens" className="border rounded-lg">
+                  <AccordionTrigger className="px-6 [&>svg]:w-4 [&>svg]:h-4 [&[data-state=open]]:no-underline hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <h4 className="text-sm font-medium">Exit Screens</h4>
+                        <p className="text-xs text-muted-foreground">Customize success and failure messages</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="space-y-6">
+                      {/* Success Screen */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          </div>
+                          <h4 className="text-sm font-medium">Success Screen</h4>
                         </div>
-                        <h4 className="text-sm font-medium">Failure Screen</h4>
+
+                        <div className="grid md:grid-cols-[2fr,1fr] gap-6">
+                          {/* Text Inputs */}
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Heading</Label>
+                              <Input
+                                value={successHeading || ""}
+                                onChange={(e) => onSuccessHeadingChange(e.target.value)}
+                                placeholder="Thank You"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Message</Label>
+                              <Input
+                                value={successMessage || ""}
+                                onChange={(e) => onSuccessMessageChange(e.target.value)}
+                                placeholder="Verification complete"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Image Preview */}
+                          <div className="relative">
+                            <div className="aspect-[3/2] rounded-lg overflow-hidden border bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/10 dark:to-green-900/30">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Button
+                                  variant="ghost"
+                                  className="p-0 h-auto hover:bg-transparent"
+                                  onClick={() => {
+                                    setPreviewImage(successpng.src);
+                                    setIsPreviewOpen(true);
+                                  }}
+                                >
+                                  <img
+                                    src={successpng.src}
+                                    alt="Success screen preview"
+                                    className="w-20 h-20 object-contain opacity-90"
+                                  />
+                                </Button>
+                              </div>
+                              <div className="absolute top-2 right-2">
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm shadow-sm"
+                                  onClick={() => {
+                                    setPreviewImage("/assets/images/ic-happy.svg");
+                                    setIsPreviewOpen(true);
+                                  }}
+                                >
+                                  <Maximize2 className="h-3.5 w-3.5" />
+                                  <span className="sr-only">View full screen</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="pl-7 space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Heading</Label>
-                          <Input
-                            value={failureHeading || ""}
-                            onChange={(e) => onFailureHeadingChange(e.target.value)}
-                            placeholder="Sorry"
-                          />
+                      <Separator />
+
+                      {/* Failure Screen */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-full">
+                            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          </div>
+                          <h4 className="text-sm font-medium">Failure Screen</h4>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Message</Label>
-                          <Input
-                            value={failureMessage || ""}
-                            onChange={(e) => onFailureMessageChange(e.target.value)}
-                            placeholder="Unable to verify"
-                          />
+                        <div className="grid md:grid-cols-[2fr,1fr] gap-6">
+                          {/* Text Inputs */}
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Heading</Label>
+                              <Input
+                                value={failureHeading || ""}
+                                onChange={(e) => onFailureHeadingChange(e.target.value)}
+                                placeholder="Sorry"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Message</Label>
+                              <Input
+                                value={failureMessage || ""}
+                                onChange={(e) => onFailureMessageChange(e.target.value)}
+                                placeholder="Unable to verify"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Image Preview */}
+                          <div className="relative">
+                            <div className="aspect-[3/2] rounded-lg overflow-hidden border bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/10 dark:to-red-900/30">
+                              <div className="absolute inset-0 flex items-center justify-center p-6">
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-white/50 backdrop-blur-[2px] rounded-lg">
+                                  <img
+                                    src="/assets/images/ic-sad.svg"
+                                    alt="Failure screen preview"
+                                    className="w-16 h-16 object-contain"
+                                  />
+                                  <div className="text-center">
+                                    <p className="font-medium text-sm">{failureHeading || "Sorry"}</p>
+                                    <p className="text-sm text-muted-foreground">{failureMessage || "Unable to verify"}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="absolute top-2 right-2">
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm shadow-sm"
+                                  onClick={() => {
+                                    setPreviewImage("/assets/images/ic-sad.svg");
+                                    setIsPreviewOpen(true);
+                                  }}
+                                >
+                                  <Maximize2 className="h-3.5 w-3.5" />
+                                  <span className="sr-only">View full screen</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </TabsContent>
 
             {/* Organization Tab */}
             <TabsContent value="organization" className="space-y-6 mt-2">
+              {/* Organization Profile Card */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Override Organization Details</CardTitle>
-                  <CardDescription>Customize organization name and logo</CardDescription>
+                <CardHeader className="pb-4 border-b">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-semibold">Organization Profile</CardTitle>
+                      <CardDescription>Manage your organization's identity and branding settings</CardDescription>
+                    </div>
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <Label className="text-sm font-medium">Organization Name</Label>
-                      <Input
-                        value={organizationName || ""}
-                        onChange={(e) => onOrganizationNameChange(e.target.value)}
-                        placeholder="Enter organization name"
-                        className="mt-1"
-                      />
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-[1fr,1px,1fr] gap-8">
+                    {/* Left Column - Organization Details */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          Basic Information
+                        </h3>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="orgName">Organization Name</Label>
+                            <div className="relative">
+                              <Input
+                                id="orgName"
+                                value={organizationName || ""}
+                                onChange={(e) => onOrganizationNameChange(e.target.value)}
+                                placeholder="Enter organization name"
+                                className="pl-9"
+                              />
+                              <Building2 className="h-4 w-4 text-muted-foreground absolute left-3 top-3" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              This name will appear on all verification screens and documents
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-medium flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          Logo Requirements
+                        </h3>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <div className="flex gap-3">
+                            <div className="space-y-2">
+                              <ul className="grid gap-2 text-xs text-muted-foreground">
+                                <li className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                                  Maximum file size: 5MB
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                                  Recommended size: 800x400 pixels
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                                  Transparent background preferred
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                                  Supported formats: JPG, JPEG, PNG, WEBP
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium">Organization Logo</Label>
+                    {/* Divider */}
+                    <div className="hidden md:block w-px bg-border" />
 
-                      <div className="flex flex-col space-y-4">
+                    {/* Right Column - Logo Management */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                          <Image className="h-4 w-4 text-muted-foreground" />
+                          Logo Management
+                        </h3>
+
                         {logoImage ? (
-                          <div className="relative border rounded-lg p-2 flex flex-col items-center">
-                            <div className="absolute top-2 right-2 flex gap-2">
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="h-7 w-7 rounded-full"
-                                onClick={handleDeleteLogo}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                <span className="sr-only">Delete logo</span>
-                              </Button>
+                          <div className="space-y-4">
+                            <div className="relative group">
+                              <div className="aspect-[3/2] rounded-lg overflow-hidden bg-gradient-to-b from-background/50 to-background/80 p-8 border">
+                                <div className="w-full h-full flex items-center justify-center bg-white rounded-md shadow-sm overflow-hidden">
+                                  <img src={logoImage} alt="Organization logo" className="max-w-full max-h-full object-contain" />
+                                </div>
+                              </div>
+                              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full shadow-sm bg-background/90 backdrop-blur-sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                  >
+                                    <Pencil className="h-5 w-5 text-foreground" />
+                                    <span className="sr-only">Change logo</span>
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full shadow-sm bg-background/90 backdrop-blur-sm"
+                                    onClick={handleDeleteLogo}
+                                  >
+                                    <Trash2 className="h-5 w-5 text-foreground" />
+                                    <span className="sr-only">Delete logo</span>
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                            <img src={logoImage} alt="Organization logo" className="w-full max-h-40 object-contain" />
-                            <p className="text-xs text-muted-foreground mt-2">Logo preview</p>
+
+                            <div className="flex items-center justify-between px-1">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Image className="h-4 w-4" />
+                                <span>Current Logo</span>
+                              </div>
+                              <Badge variant="secondary" className="font-normal">
+                                800x400px recommended
+                              </Badge>
+                            </div>
+                            {logoError && (
+                              <div className="flex items-center gap-2 text-sm text-destructive mt-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>{logoError}</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex items-start gap-4">
-                            <div
-                              className="flex-1 border border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => fileInputRef.current?.click()}
-                            >
-                              <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                              <p className="text-sm font-medium mb-1">Upload organization logo</p>
-                              <p className="text-xs text-muted-foreground text-center">Drag and drop or click to select</p>
-                              <p className="text-xs text-muted-foreground mt-1">SVG, PNG, JPG or GIF (max. 800x400px)</p>
-                              <input
-                                ref={fileInputRef}
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleFileSelect}
-                              />
+                          <div className="space-y-4">
+                            <div onClick={() => fileInputRef.current?.click()} className="group cursor-pointer">
+                              <div className="aspect-[3/2] rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-4 hover:border-primary/50 hover:bg-muted/50 transition-all">
+                                <div className="p-4 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                  <Upload className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                                </div>
+                                <div className="text-center px-4">
+                                  <p className="font-medium mb-1 group-hover:text-primary transition-colors">
+                                    Click to upload your logo
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">JPG, JPEG, PNG or WEBP</p>
+                                </div>
+                              </div>
                             </div>
+                            {logoError && (
+                              <div className="flex items-center gap-2 text-sm text-destructive mt-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>{logoError}</span>
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {logoImage && (
-                          <Button
-                            variant="outline"
-                            className="w-full flex items-center justify-center gap-2"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Upload className="h-4 w-4" />
-                            <span>Upload New Logo</span>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                            />
-                          </Button>
-                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept=".jpg,.jpeg,.png,.webp"
+                          onChange={handleFileSelect}
+                        />
                       </div>
                     </div>
                   </div>
@@ -947,6 +1351,24 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
           open={isCropperOpen}
         />
       )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl p-0">
+          <div className="relative">
+            {previewImage && <img src={previewImage} alt="Screen preview" className="w-full h-full object-contain" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm shadow-sm"
+              onClick={() => setIsPreviewOpen(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close preview</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
