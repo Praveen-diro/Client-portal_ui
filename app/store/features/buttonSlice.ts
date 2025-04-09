@@ -638,6 +638,31 @@ const buttonSlice = createSlice({
         });
       }
     },
+
+    setDisplayPrivacyItems: (state, action: PayloadAction<Record<string, string>>) => {
+      if (state.btn?.btndata) {
+        Object.keys(action.payload).forEach((key) => {
+          state.btn.btndata.privacytext[key] = action.payload[key];
+        });
+      }
+    },
+
+    setDisplayExitItems: (state, action: PayloadAction<Record<string, string>>) => {
+      if (state.btn?.btndata) {
+        Object.keys(action.payload).forEach((key) => {
+          state.btn.btndata.exitpage[key] = action.payload[key];
+        });
+      }
+    },
+
+    setDisplayGuideItems: (state, action: PayloadAction<Record<string, string>>) => {
+      if (state.btn?.btndata) {
+        Object.keys(action.payload).forEach((key) => {
+          state.btn.btndata.welcomePage[key] = action.payload[key];
+        });
+      }
+    },
+
     setExpiry: (state, action: PayloadAction<string>) => {
       console.log("Redux reducer: setExpiry called with value:", action.payload);
 
@@ -874,6 +899,9 @@ export const {
   setVerificationSubCategory,
   setFixedUrlAddress,
   setDisplaySettings,
+  setDisplayPrivacyItems,
+  setDisplayExitItems,
+  setDisplayGuideItems,
   setExpiry,
   setResubmission,
   setLiveFeedback,

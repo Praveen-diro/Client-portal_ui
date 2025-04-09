@@ -1,15 +1,57 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Palette, Globe, Settings, FileText, Lock, X, ChevronDown, AlertCircle, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import {
+  Palette,
+  Globe,
+  Settings,
+  FileText,
+  Lock,
+  X,
+  AlertCircle,
+  ExternalLink,
+  Upload,
+  MessageSquare,
+  Info,
+  CheckCircle2,
+  XCircle,
+  Layers,
+  Monitor,
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  GanttChart,
+  UserCog,
+  Briefcase,
+  MessageCircle,
+  Pencil,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+// Define the privacytext object structure type
+interface PrivacyText {
+  nopassword_heading: string;
+  strongtext_heading: string;
+  securetext_heading: string;
+  datapurge_heading: string;
+  nopassword: string;
+  strongtext: string;
+  securetext: string;
+  datapurge: string;
+}
 
 interface DisplayTabProps {
   startWithFullScreen: boolean;
   showPreview: boolean;
-  desktopWarning: string;
+  mobileview: string;
   desktopCustomMessage: string;
   colorValue: string;
   includeFaqPage: boolean;
@@ -19,12 +61,16 @@ interface DisplayTabProps {
   secureText: string;
   dataPurgeText: string;
   loginText: string;
-  instructionText: string;
+  gototext: string;
   successHeading: string;
   successMessage: string;
   failureHeading: string;
   failureMessage: string;
   organizationName: string;
+  noPasswordHeading?: string;
+  strongPrivacyHeading?: string;
+  secureTextHeading?: string;
+  dataPurgeHeading?: string;
   onStartWithFullScreenChange: (checked: boolean) => void;
   onShowPreviewChange: (checked: boolean) => void;
   onDesktopWarningChange: (value: string) => void;
@@ -36,6 +82,10 @@ interface DisplayTabProps {
   onStrongPrivacyTextChange: (value: string) => void;
   onSecureTextChange: (value: string) => void;
   onDataPurgeTextChange: (value: string) => void;
+  onNoPasswordHeadingChange?: (value: string) => void;
+  onStrongPrivacyHeadingChange?: (value: string) => void;
+  onSecureTextHeadingChange?: (value: string) => void;
+  onDataPurgeHeadingChange?: (value: string) => void;
   onLoginTextChange: (value: string) => void;
   onInstructionTextChange: (value: string) => void;
   onSuccessHeadingChange: (value: string) => void;
@@ -48,7 +98,7 @@ interface DisplayTabProps {
 export const DisplayTab: React.FC<DisplayTabProps> = ({
   startWithFullScreen,
   showPreview,
-  desktopWarning,
+  mobileview,
   desktopCustomMessage,
   colorValue,
   includeFaqPage,
@@ -58,12 +108,16 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   secureText,
   dataPurgeText,
   loginText,
-  instructionText,
+  gototext,
   successHeading,
   successMessage,
   failureHeading,
   failureMessage,
   organizationName,
+  noPasswordHeading,
+  strongPrivacyHeading,
+  secureTextHeading,
+  dataPurgeHeading,
   onStartWithFullScreenChange,
   onShowPreviewChange,
   onDesktopWarningChange,
@@ -75,6 +129,10 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   onStrongPrivacyTextChange,
   onSecureTextChange,
   onDataPurgeTextChange,
+  onNoPasswordHeadingChange,
+  onStrongPrivacyHeadingChange,
+  onSecureTextHeadingChange,
+  onDataPurgeHeadingChange,
   onLoginTextChange,
   onInstructionTextChange,
   onSuccessHeadingChange,
@@ -83,300 +141,609 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   onFailureMessageChange,
   onOrganizationNameChange,
 }) => {
+  // Helper function to handle character count displays
+  const characterCount = (text: string | undefined, max: number) => {
+    return `${text?.length || 0}/${max}`;
+  };
+
+  // State to track toggle values
+  const [fullscreenMode, setFullscreenMode] = useState(startWithFullScreen);
+  const [previewMode, setPreviewMode] = useState(showPreview);
+  const [themeColor, setThemeColor] = useState(colorValue || "#000000");
+
+  // Initialize the privacytext object with defaults or provided values
+  const [privacytext, setPrivacytext] = useState<PrivacyText>({
+    nopassword_heading: noPasswordHeading || "No password",
+    strongtext_heading: strongPrivacyHeading || "Strong privacy",
+    securetext_heading: secureTextHeading || "Secure",
+    datapurge_heading: dataPurgeHeading || "Data purge",
+    nopassword: noPasswordText || "",
+    strongtext: strongPrivacyText || "",
+    securetext: secureText || "",
+    datapurge: dataPurgeText || "",
+  });
+
+  // State for editing headings
+  const [isEditingHeading, setIsEditingHeading] = useState({
+    heading1: false,
+    heading2: false,
+    heading3: false,
+    heading4: false,
+  });
+
+  // Sync state with props
+  useEffect(() => {
+    setFullscreenMode(startWithFullScreen);
+    setPreviewMode(showPreview);
+    setThemeColor(colorValue || "#000000");
+
+    // Update privacytext state when props change
+    setPrivacytext((prev) => ({
+      ...prev,
+      nopassword_heading: noPasswordHeading || "No password",
+      strongtext_heading: strongPrivacyHeading || "Strong privacy",
+      securetext_heading: secureTextHeading || "Secure",
+      datapurge_heading: dataPurgeHeading || "Data purge",
+      nopassword: noPasswordText || "",
+      strongtext: strongPrivacyText || "",
+      securetext: secureText || "",
+      datapurge: dataPurgeText || "",
+    }));
+  }, [
+    startWithFullScreen,
+    showPreview,
+    colorValue,
+    noPasswordText,
+    strongPrivacyText,
+    secureText,
+    dataPurgeText,
+    noPasswordHeading,
+    strongPrivacyHeading,
+    secureTextHeading,
+    dataPurgeHeading,
+  ]);
+
+  // Handle toggle changes
+  const handleFullscreenToggle = (checked: boolean) => {
+    setFullscreenMode(checked);
+    onStartWithFullScreenChange(checked);
+    // Save to localStorage with the key 'fullscreenmode'
+    localStorage.setItem("fullscreenmode", checked ? "true" : "false");
+  };
+
+  const handlePreviewToggle = (checked: boolean) => {
+    setPreviewMode(checked);
+    onShowPreviewChange(checked);
+    // Save to localStorage with the key 'showpreview'
+    localStorage.setItem("showpreview", checked ? "true" : "false");
+  };
+
+  // Handle color change
+  const handleColorChange = (value: string) => {
+    setThemeColor(value);
+    onColorValueChange(value);
+    // Save to localStorage with the key 'setcolor'
+    localStorage.setItem("setcolor", value);
+  };
+
+  // Handle heading edit toggling
+  const handleIsEditing = (headingType: string) => {
+    setIsEditingHeading((prev) => ({
+      ...prev,
+      [headingType]: !prev[headingType as keyof typeof prev],
+    }));
+  };
+
+  // Handle privacy text changes for both headings and content
+  const handlePrivacyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    // Update the privacytext state
+    setPrivacytext((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Call appropriate prop change handlers to update parent state
+    switch (name) {
+      case "nopassword":
+        onNoPasswordTextChange(value);
+        break;
+      case "strongtext":
+        onStrongPrivacyTextChange(value);
+        break;
+      case "securetext":
+        onSecureTextChange(value);
+        break;
+      case "datapurge":
+        onDataPurgeTextChange(value);
+        break;
+      case "nopassword_heading":
+        if (onNoPasswordHeadingChange) {
+          onNoPasswordHeadingChange(value);
+        }
+        break;
+      case "strongtext_heading":
+        if (onStrongPrivacyHeadingChange) {
+          onStrongPrivacyHeadingChange(value);
+        }
+        break;
+      case "securetext_heading":
+        if (onSecureTextHeadingChange) {
+          onSecureTextHeadingChange(value);
+        }
+        break;
+      case "datapurge_heading":
+        if (onDataPurgeHeadingChange) {
+          onDataPurgeHeadingChange(value);
+        }
+        break;
+    }
+
+    // Save to localStorage if needed
+    localStorage.setItem(name, value);
+  };
+
+  // Constants for character limits
+  const MAX_HEADING_LENGTH = 25;
+  const MAX_MESSAGE_LENGTH = 75;
+
   return (
     <div className="lg:col-span-3">
-      <div className="space-y-6">
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Palette className="h-5 w-5 text-primary" />
-              <div>
-                <h2 className="text-xl font-semibold">Display Settings</h2>
-                <p className="text-sm text-muted-foreground">Configure display and appearance settings</p>
-              </div>
-            </div>
+      <Card className="border shadow-sm">
+        <CardHeader>
+          <CardTitle>Display Settings</CardTitle>
+          <CardDescription>Configure the appearance and behavior of your verification portal</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="grid grid-cols-4 mb-6">
+              <TabsTrigger value="general" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span>General</span>
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                <span>Appearance</span>
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                <span>Messages</span>
+              </TabsTrigger>
+              <TabsTrigger value="organization" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                <span>Organization</span>
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-4">
-              {/* Browser Settings */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    <span className="font-medium">Configure browser settings</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="border-t p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label>Start with full screen</Label>
-                    <Switch checked={startWithFullScreen} onCheckedChange={onStartWithFullScreenChange} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label>Show preview</Label>
-                    <Switch checked={showPreview} onCheckedChange={onShowPreviewChange} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Desktop Preference */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    <span className="font-medium">Show preference for desktop on mobile devices</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="border-t p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Warning</Label>
-                    <Input
-                      value={desktopWarning}
-                      onChange={(e) => onDesktopWarningChange(e.target.value)}
-                      placeholder="Enter warning message"
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Custom message</Label>
-                    <Input
-                      value={desktopCustomMessage}
-                      onChange={(e) => onDesktopCustomMessageChange(e.target.value)}
-                      placeholder="Enter custom message"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Color Customization */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <div className="flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    <span className="font-medium">Customize color</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="border-t p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Color</Label>
-                    <Input
-                      value={colorValue}
-                      onChange={(e) => onColorValueChange(e.target.value)}
-                      placeholder="Write color name/code"
-                      className="w-full"
-                    />
-                    <p className="text-sm text-red-500">*Do not select white color code.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Certified PDF */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="font-medium">Certified PDF</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="border-t p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label>Include a FAQ page at the end</Label>
-                    <Switch checked={includeFaqPage} onCheckedChange={onIncludeFaqPageChange} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label>Include QR code</Label>
-                    <Switch checked={includeQrCode} onCheckedChange={onIncludeQrCodeChange} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Customize messaging for users section */}
-              <div className="mt-8">
-                <h3 className="text-lg font-medium mb-4">Customize messaging for users</h3>
-
-                {/* Privacy Screen */}
-                <div className="border rounded-lg overflow-hidden mb-4">
-                  <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      <span className="font-medium">Privacy screen</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                  <div className="border-t p-4 space-y-6">
-                    {/* No password */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>No password</Label>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 75</span>
+            {/* General Settings Tab */}
+            <TabsContent value="general" className="space-y-6 mt-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Browser Settings</CardTitle>
+                  <CardDescription>Configure how the verification portal behaves in the browser</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4">
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <Label className="text-sm font-medium">Start with full screen</Label>
+                        <p className="text-xs text-muted-foreground mt-1">Launch verification in fullscreen mode</p>
                       </div>
-                      <Input
-                        value={noPasswordText}
-                        onChange={(e) => onNoPasswordTextChange(e.target.value)}
-                        placeholder="We do not store or share any password or login credentials."
-                        maxLength={75}
-                        className="w-full"
+                      <Switch
+                        checked={fullscreenMode}
+                        onCheckedChange={handleFullscreenToggle}
+                        id="fullscreenmode"
+                        name="fullscreenmode"
+                        aria-label="Toggle fullscreen mode"
                       />
                     </div>
 
-                    {/* Strong privacy */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>Strong privacy</Label>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 75</span>
+                    <Separator />
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <Label className="text-sm font-medium">Show preview</Label>
+                        <p className="text-xs text-muted-foreground mt-1">Display a preview of the verification process</p>
                       </div>
-                      <Input
-                        value={strongPrivacyText}
-                        onChange={(e) => onStrongPrivacyTextChange(e.target.value)}
-                        placeholder="We do not share any data with third parties without your consent."
-                        maxLength={75}
-                        className="w-full"
+                      <Switch
+                        checked={previewMode}
+                        onCheckedChange={handlePreviewToggle}
+                        id="showpreview"
+                        name="showpreview"
+                        aria-label="Toggle preview mode"
                       />
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                    {/* Secure */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Mobile Experience</CardTitle>
+                  <CardDescription>Show preference for desktop on mobile devices</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-5">
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>Secure</Label>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 75</span>
-                      </div>
-                      <Input
-                        value={secureText}
-                        onChange={(e) => onSecureTextChange(e.target.value)}
-                        placeholder="Your data stays fully encrypted using highest industry standard."
-                        maxLength={75}
-                        className="w-full"
-                      />
+                      <Label className="text-sm font-medium">Warning Message</Label>
+                      <Select value={mobileview || "No warning"} onValueChange={onDesktopWarningChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select warning option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="No warning">No warning</SelectItem>
+                          <SelectItem value="Warning">Warning</SelectItem>
+                          <SelectItem value="Disable">Disable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Choose how to handle mobile device access</p>
                     </div>
 
-                    {/* Data purge */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>Data purge</Label>
-                          <span className="text-xs text-muted-foreground">(Enable auto deletion from Privacy tab)</span>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 75</span>
-                      </div>
+                      <Label className="text-sm font-medium">Custom Message</Label>
                       <Input
-                        value={dataPurgeText}
-                        onChange={(e) => onDataPurgeTextChange(e.target.value)}
-                        placeholder="Your data will be purged following completion of the verification activity."
-                        maxLength={75}
-                        className="w-full"
+                        value={desktopCustomMessage || ""}
+                        onChange={(e) => onDesktopCustomMessageChange(e.target.value)}
+                        placeholder="Enter custom message for mobile users"
                       />
+                      <p className="text-xs text-muted-foreground">Additional information for mobile users</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Certified PDF Options</CardTitle>
+                  <CardDescription>Configure PDF output settings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4">
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <Label className="text-sm font-medium">Include FAQ Page</Label>
+                        <p className="text-xs text-muted-foreground mt-1">Add a FAQ page at the end of the PDF</p>
+                      </div>
+                      <Switch checked={includeFaqPage} onCheckedChange={onIncludeFaqPageChange} />
                     </div>
 
-                    <div className="flex justify-end">
-                      <div className="flex items-center gap-2">
-                        <img src="/sample-screen.png" alt="Sample screen" className="w-40 h-auto rounded border" />
-                        <Label className="text-sm text-muted-foreground">Sample screen</Label>
+                    <Separator />
+
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <Label className="text-sm font-medium">Include QR Code</Label>
+                        <p className="text-xs text-muted-foreground mt-1">Add a QR code to the PDF for verification</p>
+                      </div>
+                      <Switch checked={includeQrCode} onCheckedChange={onIncludeQrCodeChange} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Appearance Tab */}
+            <TabsContent value="appearance" className="space-y-6 mt-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Theme Color</CardTitle>
+                  <CardDescription>Set the primary color for your verification flow interface</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-md border shadow-sm" style={{ backgroundColor: themeColor }}></div>
+                    <div className="flex-1">
+                      <div className="flex gap-3">
+                        <Input
+                          type="color"
+                          value={themeColor}
+                          onChange={(e) => handleColorChange(e.target.value)}
+                          className="w-12 h-10 p-1 rounded"
+                          id="setcolor"
+                          name="setcolor"
+                        />
+                        <Input
+                          value={themeColor}
+                          onChange={(e) => handleColorChange(e.target.value)}
+                          placeholder="#000000"
+                          className="flex-1"
+                          aria-label="Theme color hexadecimal value"
+                        />
+                      </div>
+                      <div className="text-xs text-destructive flex items-center gap-1.5 mt-2">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Do not select white color code (#FFFFFF)
                       </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                {/* Guide Screen */}
-                <div className="border rounded-lg overflow-hidden mb-4">
-                  <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span className="font-medium">Guide screen</span>
+            {/* Messages Tab */}
+            <TabsContent value="messages" className="space-y-6 mt-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Privacy Messages</CardTitle>
+                  <CardDescription>Customize privacy information shown to users</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6">
+                    {/* No Password Message */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        {isEditingHeading.heading1 ? (
+                          <div className="flex-1 space-y-1">
+                            <Input
+                              type="text"
+                              name="nopassword_heading"
+                              value={privacytext.nopassword_heading}
+                              onChange={handlePrivacyChange}
+                              maxLength={MAX_HEADING_LENGTH}
+                              placeholder="No password"
+                              className={cn(
+                                "font-medium",
+                                privacytext.nopassword_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                              )}
+                              onBlur={() => handleIsEditing("heading1")}
+                              autoFocus
+                            />
+                            <div className="text-xs text-muted-foreground text-right">
+                              {characterCount(privacytext.nopassword_heading, MAX_HEADING_LENGTH)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 font-medium">
+                            <span>{privacytext.nopassword_heading || "No password"}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading1")}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit heading</span>
+                            </Button>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(privacytext.nopassword, MAX_MESSAGE_LENGTH)}
+                        </Badge>
+                      </div>
+
+                      <Input
+                        type="text"
+                        name="nopassword"
+                        value={privacytext.nopassword}
+                        onChange={handlePrivacyChange}
+                        placeholder="We do not store login credentials"
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        className={cn(privacytext.nopassword.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">shows 3 steps during verification to customers</p>
-                      <ChevronDown className="h-4 w-4" />
+
+                    <Separator />
+
+                    {/* Strong Privacy Message */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        {isEditingHeading.heading2 ? (
+                          <div className="flex-1 space-y-1">
+                            <Input
+                              type="text"
+                              name="strongtext_heading"
+                              value={privacytext.strongtext_heading}
+                              onChange={handlePrivacyChange}
+                              maxLength={MAX_HEADING_LENGTH}
+                              placeholder="Strong privacy"
+                              className={cn(
+                                "font-medium",
+                                privacytext.strongtext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                              )}
+                              onBlur={() => handleIsEditing("heading2")}
+                              autoFocus
+                            />
+                            <div className="text-xs text-muted-foreground text-right">
+                              {characterCount(privacytext.strongtext_heading, MAX_HEADING_LENGTH)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 font-medium">
+                            <span>{privacytext.strongtext_heading || "Strong privacy"}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading2")}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit heading</span>
+                            </Button>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(privacytext.strongtext, MAX_MESSAGE_LENGTH)}
+                        </Badge>
+                      </div>
+
+                      <Input
+                        type="text"
+                        name="strongtext"
+                        value={privacytext.strongtext}
+                        onChange={handlePrivacyChange}
+                        placeholder="We don't share data with third parties"
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        className={cn(privacytext.strongtext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Security Message */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        {isEditingHeading.heading3 ? (
+                          <div className="flex-1 space-y-1">
+                            <Input
+                              type="text"
+                              name="securetext_heading"
+                              value={privacytext.securetext_heading}
+                              onChange={handlePrivacyChange}
+                              maxLength={MAX_HEADING_LENGTH}
+                              placeholder="Secure"
+                              className={cn(
+                                "font-medium",
+                                privacytext.securetext_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                              )}
+                              onBlur={() => handleIsEditing("heading3")}
+                              autoFocus
+                            />
+                            <div className="text-xs text-muted-foreground text-right">
+                              {characterCount(privacytext.securetext_heading, MAX_HEADING_LENGTH)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 font-medium">
+                            <span>{privacytext.securetext_heading || "Secure"}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading3")}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit heading</span>
+                            </Button>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(privacytext.securetext, MAX_MESSAGE_LENGTH)}
+                        </Badge>
+                      </div>
+
+                      <Input
+                        type="text"
+                        name="securetext"
+                        value={privacytext.securetext}
+                        onChange={handlePrivacyChange}
+                        placeholder="Your data stays fully encrypted"
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        className={cn(privacytext.securetext.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Data Retention Message */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        {isEditingHeading.heading4 ? (
+                          <div className="flex-1 space-y-1">
+                            <Input
+                              type="text"
+                              name="datapurge_heading"
+                              value={privacytext.datapurge_heading}
+                              onChange={handlePrivacyChange}
+                              maxLength={MAX_HEADING_LENGTH}
+                              placeholder="Data purge"
+                              className={cn(
+                                "font-medium",
+                                privacytext.datapurge_heading.length >= MAX_HEADING_LENGTH && "border-red-500"
+                              )}
+                              onBlur={() => handleIsEditing("heading4")}
+                              autoFocus
+                            />
+                            <div className="text-xs text-muted-foreground text-right">
+                              {characterCount(privacytext.datapurge_heading, MAX_HEADING_LENGTH)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 font-medium">
+                            <span>{privacytext.datapurge_heading || "Data purge"}</span>
+                            <span className="text-xs text-muted-foreground">(Enable auto deletion from Privacy tab)</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleIsEditing("heading4")}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit heading</span>
+                            </Button>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(privacytext.datapurge, MAX_MESSAGE_LENGTH)}
+                        </Badge>
+                      </div>
+
+                      <Input
+                        type="text"
+                        name="datapurge"
+                        value={privacytext.datapurge}
+                        onChange={handlePrivacyChange}
+                        placeholder="Data is purged after verification"
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        className={cn(privacytext.datapurge.length >= MAX_MESSAGE_LENGTH && "border-red-500")}
+                      />
                     </div>
                   </div>
-                  <div className="border-t p-4 space-y-6">
-                    {/* Login text */}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Guide Screen Messages</CardTitle>
+                  <CardDescription>Shows 3 steps during verification to customers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-5">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>Login text</Label>
-                          <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 65</span>
+                        <Label className="text-sm font-medium">Login Instructions</Label>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(loginText, 65)}
+                        </Badge>
                       </div>
                       <Input
-                        value={loginText}
+                        value={loginText || ""}
                         onChange={(e) => onLoginTextChange(e.target.value)}
                         placeholder="Please login"
                         maxLength={65}
-                        className="w-full"
                       />
                     </div>
 
-                    {/* Instruction text */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label>Instruction text</Label>
-                          <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">0 / 65</span>
+                        <Label className="text-sm font-medium">Process Instructions</Label>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {characterCount(gototext, 65)}
+                        </Badge>
                       </div>
                       <Input
-                        value={instructionText}
+                        value={gototext || ""}
                         onChange={(e) => onInstructionTextChange(e.target.value)}
-                        placeholder="Find info/Download your latest bank statement"
+                        placeholder="Find or download your information"
                         maxLength={65}
-                        className="w-full"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">Shows during verification steps</p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                    <div className="flex justify-end">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Exit Screens</CardTitle>
+                  <CardDescription>Customize success and failure messages</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Success Screen */}
+                    <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <img src="/sample-screen.png" alt="Sample screen" className="w-40 h-auto rounded border" />
-                        <Label className="text-sm text-muted-foreground">Sample screen</Label>
+                        <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h4 className="text-sm font-medium">Success Screen</h4>
                       </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Exit Screen */}
-                <div className="border rounded-lg overflow-hidden mb-4">
-                  <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <X className="h-4 w-4" />
-                      <span className="font-medium">Exit screen</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                  <div className="border-t p-4 space-y-6">
-                    {/* On success section */}
-                    <div className="space-y-4">
-                      <h3 className="font-medium">On success</h3>
-                      <div className="space-y-4">
+                      <div className="pl-7 space-y-4">
                         <div className="space-y-2">
-                          <Label>Heading</Label>
+                          <Label className="text-sm font-medium">Heading</Label>
                           <Input
-                            value={successHeading}
+                            value={successHeading || ""}
                             onChange={(e) => onSuccessHeadingChange(e.target.value)}
                             placeholder="Thank You"
-                            className="w-full"
                           />
                         </div>
+
                         <div className="space-y-2">
-                          <Label>Message</Label>
+                          <Label className="text-sm font-medium">Message</Label>
                           <Input
-                            value={successMessage}
+                            value={successMessage || ""}
                             onChange={(e) => onSuccessMessageChange(e.target.value)}
-                            placeholder="Your verification is complete"
-                            className="w-full"
+                            placeholder="Verification complete"
                           />
                         </div>
                       </div>
@@ -384,74 +751,78 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
 
                     <Separator />
 
-                    {/* On failure section */}
-                    <div className="space-y-4">
-                      <h3 className="font-medium">On failure</h3>
-                      <div className="space-y-4">
+                    {/* Failure Screen */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-full">
+                          <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        </div>
+                        <h4 className="text-sm font-medium">Failure Screen</h4>
+                      </div>
+
+                      <div className="pl-7 space-y-4">
                         <div className="space-y-2">
-                          <Label>Heading</Label>
+                          <Label className="text-sm font-medium">Heading</Label>
                           <Input
-                            value={failureHeading}
+                            value={failureHeading || ""}
                             onChange={(e) => onFailureHeadingChange(e.target.value)}
                             placeholder="Sorry"
-                            className="w-full"
                           />
                         </div>
+
                         <div className="space-y-2">
-                          <Label>Message</Label>
+                          <Label className="text-sm font-medium">Message</Label>
                           <Input
-                            value={failureMessage}
+                            value={failureMessage || ""}
                             onChange={(e) => onFailureMessageChange(e.target.value)}
                             placeholder="Unable to verify"
-                            className="w-full"
                           />
                         </div>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                    <div className="flex justify-between items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm text-muted-foreground">Sample screen</Label>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <img src="/sample-screen.png" alt="Success screen" className="w-40 h-auto rounded border" />
-                        <img src="/sample-screen.png" alt="Failure screen" className="w-40 h-auto rounded border" />
-                      </div>
+            {/* Organization Tab */}
+            <TabsContent value="organization" className="space-y-6 mt-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Override Organization Details</CardTitle>
+                  <CardDescription>Customize organization name and logo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <Label className="text-sm font-medium">Organization Name</Label>
+                      <Input
+                        value={organizationName || ""}
+                        onChange={(e) => onOrganizationNameChange(e.target.value)}
+                        placeholder="Enter organization name"
+                        className="mt-1"
+                      />
                     </div>
-                  </div>
-                </div>
 
-                {/* Override Organization Details */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      <span className="font-medium">Override organization details</span>
-                    </div>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                  <div className="border-t p-4 space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Organization name</Label>
-                        <Input
-                          value={organizationName}
-                          onChange={(e) => onOrganizationNameChange(e.target.value)}
-                          placeholder="Enter org. name"
-                          className="w-full"
-                        />
+                    <div className="flex flex-col space-y-4">
+                      <Label className="text-sm font-medium">Organization Logo</Label>
+                      <div className="flex items-start gap-4">
+                        <Button variant="outline" className="gap-1.5">
+                          <Upload className="h-4 w-4" /> Upload Logo
+                        </Button>
+                        <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center h-20 w-40">
+                          <Building2 className="h-6 w-6 text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">Your organization logo</p>
+                        </div>
                       </div>
-                      <Button variant="secondary" className="w-full sm:w-auto bg-gray-500 text-white hover:bg-gray-600">
-                        Upload Logo
-                      </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

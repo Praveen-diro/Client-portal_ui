@@ -68,6 +68,9 @@ import {
   setAddGoogleSheetUrl,
   setEnableSalesforce,
   setDisplaySettings,
+  setDisplayPrivacyItems,
+  setDisplayExitItems,
+  setDisplayGuideItems,
   setRejectReasons,
   setProxy,
   setHybridMode,
@@ -738,40 +741,49 @@ export default function EditButton() {
                 <DisplayTab
                   startWithFullScreen={buttonSettings.fullscreenmode}
                   showPreview={buttonSettings.showpreview}
-                  desktopWarning={buttonSettings.desktopWarning}
+                  mobileview={buttonSettings.mobileview}
                   desktopCustomMessage={buttonSettings.customMobileWarningText}
                   colorValue={buttonSettings.setcolor}
                   includeFaqPage={buttonSettings.includeFaqInPdf}
                   includeQrCode={buttonSettings.includeQRCode}
-                  noPasswordText={buttonSettings.nopassword}
-                  strongPrivacyText={buttonSettings.strongtext}
-                  secureText={buttonSettings.securetext}
-                  dataPurgeText={buttonSettings.datapurge}
-                  loginText={buttonSettings.logintext}
-                  instructionText={buttonSettings.instructionText}
-                  successHeading={buttonSettings.successheading}
-                  successMessage={buttonSettings.successmessage}
-                  failureHeading={buttonSettings.failureheading}
-                  failureMessage={buttonSettings.failuremessage}
+                  noPasswordText={buttonSettings.privacytext.nopassword}
+                  strongPrivacyText={buttonSettings.privacytext.strongtext}
+                  secureText={buttonSettings.privacytext.securetext}
+                  dataPurgeText={buttonSettings.privacytext.datapurge}
+                  loginText={buttonSettings.welcomePage.logintext}
+                  gototext={buttonSettings.welcomePage.gototext}
+                  successHeading={buttonSettings.exitpage.successheading}
+                  successMessage={buttonSettings.exitpage.successmessage}
+                  failureHeading={buttonSettings.exitpage.failureheading}
+                  failureMessage={buttonSettings.exitpage.failuremessage}
                   organizationName={buttonSettings.overrideorgname}
                   onStartWithFullScreenChange={(checked) => dispatch(setDisplaySettings({ fullscreenmode: checked }))}
                   onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showpreview: checked }))}
-                  onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ desktopWarning: value }))}
+                  onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ mobileview: value }))}
                   onDesktopCustomMessageChange={(value) => dispatch(setDisplaySettings({ customMobileWarningText: value }))}
                   onColorValueChange={(value) => dispatch(setDisplaySettings({ setcolor: value }))}
                   onIncludeFaqPageChange={(checked) => dispatch(setDisplaySettings({ includeFaqInPdf: checked }))}
                   onIncludeQrCodeChange={(checked) => dispatch(setDisplaySettings({ includeQRCode: checked }))}
-                  onNoPasswordTextChange={(value) => dispatch(setDisplaySettings({ nopassword: value }))}
-                  onStrongPrivacyTextChange={(value) => dispatch(setDisplaySettings({ strongtext: value }))}
-                  onSecureTextChange={(value) => dispatch(setDisplaySettings({ securetext: value }))}
-                  onDataPurgeTextChange={(value) => dispatch(setDisplaySettings({ datapurge: value }))}
-                  onLoginTextChange={(value) => dispatch(setDisplaySettings({ logintext: value }))}
-                  onInstructionTextChange={(value) => dispatch(setDisplaySettings({ instructionText: value }))}
-                  onSuccessHeadingChange={(value) => dispatch(setDisplaySettings({ successheading: value }))}
-                  onSuccessMessageChange={(value) => dispatch(setDisplaySettings({ successmessage: value }))}
-                  onFailureHeadingChange={(value) => dispatch(setDisplaySettings({ failureheading: value }))}
-                  onFailureMessageChange={(value) => dispatch(setDisplaySettings({ failuremessage: value }))}
+                  onNoPasswordTextChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword: value }))}
+                  onStrongPrivacyTextChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext: value }))}
+                  onSecureTextChange={(value) => dispatch(setDisplayPrivacyItems({ securetext: value }))}
+                  onDataPurgeTextChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge: value }))}
+                  onLoginTextChange={(value) => dispatch(setDisplayGuideItems({ logintext: value }))}
+                  onInstructionTextChange={(value) => dispatch(setDisplayGuideItems({ gototext: value }))}
+                  onSuccessHeadingChange={(value) => dispatch(setDisplayExitItems({ successheading: value }))}
+                  onSuccessMessageChange={(value) => dispatch(setDisplayExitItems({ successmessage: value }))}
+                  onFailureHeadingChange={(value) => dispatch(setDisplayExitItems({ failureheading: value }))}
+                  onFailureMessageChange={(value) => dispatch(setDisplayExitItems({ failuremessage: value }))}
                   onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ overrideorgname: value }))}
+                  // Add heading props and change handlers
+                  noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading}
+                  strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading}
+                  secureTextHeading={buttonSettings?.privacytext?.securetext_heading}
+                  dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading}
+                  onNoPasswordHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword_heading: value }))}
+                  onStrongPrivacyHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext_heading: value }))}
+                  onSecureTextHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ securetext_heading: value }))}
+                  onDataPurgeHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge_heading: value }))}
                 />
               )}
               {activeTab === 5 && (
