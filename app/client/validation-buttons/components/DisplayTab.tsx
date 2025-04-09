@@ -32,9 +32,12 @@ import {
   Briefcase,
   MessageCircle,
   Pencil,
+  Trash2,
+  Image,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 // Define the privacytext object structure type
 interface PrivacyText {
@@ -71,6 +74,7 @@ interface DisplayTabProps {
   strongPrivacyHeading?: string;
   secureTextHeading?: string;
   dataPurgeHeading?: string;
+  organizationLogo?: string;
   onStartWithFullScreenChange: (checked: boolean) => void;
   onShowPreviewChange: (checked: boolean) => void;
   onDesktopWarningChange: (value: string) => void;
@@ -93,6 +97,7 @@ interface DisplayTabProps {
   onFailureHeadingChange: (value: string) => void;
   onFailureMessageChange: (value: string) => void;
   onOrganizationNameChange: (value: string) => void;
+  onOrganizationLogoChange?: (logo: string | null) => void;
 }
 
 export const DisplayTab: React.FC<DisplayTabProps> = ({
@@ -118,6 +123,7 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   strongPrivacyHeading,
   secureTextHeading,
   dataPurgeHeading,
+  organizationLogo,
   onStartWithFullScreenChange,
   onShowPreviewChange,
   onDesktopWarningChange,
@@ -140,6 +146,7 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   onFailureHeadingChange,
   onFailureMessageChange,
   onOrganizationNameChange,
+  onOrganizationLogoChange,
 }) => {
   // Helper function to handle character count displays
   const characterCount = (text: string | undefined, max: number) => {
@@ -171,6 +178,12 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
     heading4: false,
   });
 
+  // State for organization logo
+  const [logoImage, setLogoImage] = useState<string | null>(organizationLogo || null);
+  const [tempImage, setTempImage] = useState<string | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Sync state with props
   useEffect(() => {
     setFullscreenMode(startWithFullScreen);
@@ -189,6 +202,9 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
       securetext: secureText || "",
       datapurge: dataPurgeText || "",
     }));
+
+    // Update logo state when prop changes
+    setLogoImage(organizationLogo || null);
   }, [
     startWithFullScreen,
     showPreview,
@@ -201,6 +217,7 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
     strongPrivacyHeading,
     secureTextHeading,
     dataPurgeHeading,
+    organizationLogo,
   ]);
 
   // Handle toggle changes
@@ -287,6 +304,54 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
   // Constants for character limits
   const MAX_HEADING_LENGTH = 25;
   const MAX_MESSAGE_LENGTH = 75;
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        setTempImage(reader.result as string);
+        setIsCropperOpen(true);
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Handle crop complete
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setLogoImage(croppedImageUrl);
+    setIsCropperOpen(false);
+    setTempImage(null);
+
+    // Call the parent component's handler if available
+    if (onOrganizationLogoChange) {
+      onOrganizationLogoChange(croppedImageUrl);
+    }
+  };
+
+  // Handle cropper cancel
+  const handleCropCancel = () => {
+    setIsCropperOpen(false);
+    setTempImage(null);
+  };
+
+  // Handle logo delete
+  const handleDeleteLogo = () => {
+    setLogoImage(null);
+
+    // Call the parent component's handler if available
+    if (onOrganizationLogoChange) {
+      onOrganizationLogoChange(null);
+    }
+  };
 
   return (
     <div className="lg:col-span-3">
@@ -804,16 +869,64 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
                       />
                     </div>
 
-                    <div className="flex flex-col space-y-4">
+                    <div className="space-y-4">
                       <Label className="text-sm font-medium">Organization Logo</Label>
-                      <div className="flex items-start gap-4">
-                        <Button variant="outline" className="gap-1.5">
-                          <Upload className="h-4 w-4" /> Upload Logo
-                        </Button>
-                        <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center h-20 w-40">
-                          <Building2 className="h-6 w-6 text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">Your organization logo</p>
-                        </div>
+
+                      <div className="flex flex-col space-y-4">
+                        {logoImage ? (
+                          <div className="relative border rounded-lg p-2 flex flex-col items-center">
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="h-7 w-7 rounded-full"
+                                onClick={handleDeleteLogo}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Delete logo</span>
+                              </Button>
+                            </div>
+                            <img src={logoImage} alt="Organization logo" className="w-full max-h-40 object-contain" />
+                            <p className="text-xs text-muted-foreground mt-2">Logo preview</p>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-4">
+                            <div
+                              className="flex-1 border border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-sm font-medium mb-1">Upload organization logo</p>
+                              <p className="text-xs text-muted-foreground text-center">Drag and drop or click to select</p>
+                              <p className="text-xs text-muted-foreground mt-1">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {logoImage && (
+                          <Button
+                            variant="outline"
+                            className="w-full flex items-center justify-center gap-2"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="h-4 w-4" />
+                            <span>Upload New Logo</span>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                            />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -823,6 +936,17 @@ export const DisplayTab: React.FC<DisplayTabProps> = ({
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* ImageCropper component (outside tabs but inside the main container) */}
+      {tempImage && (
+        <ImageCropper
+          imageSrc={tempImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={3 / 2}
+          open={isCropperOpen}
+        />
+      )}
     </div>
   );
 };

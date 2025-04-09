@@ -757,6 +757,7 @@ export default function EditButton() {
                   failureHeading={buttonSettings.exitpage.failureheading}
                   failureMessage={buttonSettings.exitpage.failuremessage}
                   organizationName={buttonSettings.overrideorgname}
+                  organizationLogo={buttonSettings.organizationLogo}
                   onStartWithFullScreenChange={(checked) => dispatch(setDisplaySettings({ fullscreenmode: checked }))}
                   onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showpreview: checked }))}
                   onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ mobileview: value }))}
@@ -775,6 +776,7 @@ export default function EditButton() {
                   onFailureHeadingChange={(value) => dispatch(setDisplayExitItems({ failureheading: value }))}
                   onFailureMessageChange={(value) => dispatch(setDisplayExitItems({ failuremessage: value }))}
                   onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ overrideorgname: value }))}
+                  onOrganizationLogoChange={(logo) => dispatch(setDisplaySettings({ organizationLogo: logo }))}
                   // Add heading props and change handlers
                   noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading}
                   strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading}
