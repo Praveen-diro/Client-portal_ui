@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Ban, FileText, Plus, X } from "lucide-react";
+import { MultiSelectDropdown, OptionType } from "@/components/ui/multi-select-dropdown";
+import { useMemo } from "react";
 
 interface RejectionTabProps {
   disallowedDocTypes: string[];
@@ -10,69 +11,33 @@ interface RejectionTabProps {
   masterFieldsLoading?: boolean; // Loading state for master fields
   masterFieldsError?: string; // Error message for master fields
   onDisallowedDocTypesChange: (value: string[]) => void;
+  category?: string; // Added category prop to determine document options
 }
 
-const MultiSelect = ({
-  value,
-  onValueChange,
-  placeholder,
-  children,
-}: {
-  value: string[];
-  onValueChange: (value: string[]) => void;
-  placeholder: string;
-  children: React.ReactNode;
-}) => {
-  const formatSelectedValue = (values: string[]) => {
-    if (values.length === 0) return placeholder;
-    return values
-      .map((v) => {
-        switch (v) {
-          case "loan-statements":
-            return "Loan statements";
-          case "bank-statement":
-            return "Bank Statement";
-          case "utility-bill":
-            return "Utility Bill";
-          case "tax-document":
-            return "Tax Document";
-          default:
-            return v;
-        }
-      })
-      .join(", ");
-  };
-
-  return (
-    <Select
-      value=""
-      onValueChange={(newValue) => {
-        if (!value.includes(newValue)) {
-          onValueChange([...value, newValue]);
-        } else {
-          onValueChange(value.filter((v) => v !== newValue));
-        }
-      }}
-    >
-      <SelectTrigger className="w-full">
-        <div className="flex items-center justify-between w-full">
-          <span className="truncate">{formatSelectedValue(value)}</span>
-          {value.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onValueChange([]);
-              }}
-              className="shrink-0 hover:text-[#00A5B8] ml-2"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </SelectTrigger>
-      <SelectContent>{children}</SelectContent>
-    </Select>
-  );
+/**
+ * Returns document type options based on the selected category
+ */
+const getDocumentTypeOptions = (category?: string): OptionType[] => {
+  if (category === "address") {
+    return [
+      { value: "invoice", label: "Invoice" },
+      { value: "payment-receipts", label: "Payment receipts" },
+      { value: "paystub", label: "Paystub" },
+      { value: "connection-letter", label: "Connection letter" },
+      { value: "disconnection-notice", label: "Disconnection notice" },
+    ];
+  } else if (category === "bank") {
+    return [
+      { value: "bank-statements", label: "Bank statements" },
+      { value: "credit-card-statements", label: "Credit card statements" },
+      { value: "loan-statements", label: "Loan statements" },
+      { value: "mortgage-statements", label: "Mortgage statements" },
+      { value: "investment-statements", label: "Investment statements" },
+      { value: "certificate-of-deposit-statements", label: "Certificate of deposit (CD) statements" },
+    ];
+  } else {
+    return [];
+  }
 };
 
 export const RejectionTab: React.FC<RejectionTabProps> = ({
@@ -81,7 +46,30 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
   masterFieldsLoading,
   masterFieldsError,
   onDisallowedDocTypesChange,
+  category,
 }) => {
+  console.log("category from index", category);
+  // Get document type options based on category
+  const documentTypeOptions = useMemo(() => getDocumentTypeOptions(category), [category]);
+
+  // Convert disallowedDocTypes to the format expected by MultiSelectDropdown
+  const selectedDocTypes = useMemo(() => {
+    return disallowedDocTypes.map((docType) => {
+      // Find the matching option to get the label
+      const option = documentTypeOptions.find((opt) => opt.value === docType);
+      return option ? option : { value: docType, label: docType };
+    });
+  }, [disallowedDocTypes, documentTypeOptions]);
+
+  // Determine if the dropdown should be disabled
+  const isDropdownDisabled = !(category === "bank" || category === "address");
+
+  // Handle the selection change
+  const handleDocTypesChange = (newValues: string[]) => {
+    console.log("New doc types selected:", newValues);
+    onDisallowedDocTypesChange(newValues);
+  };
+
   return (
     <div className="lg:col-span-3">
       <div className="space-y-6">
@@ -100,36 +88,20 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
               <div className="space-y-4">
                 <Label className="text-base">Disallow document types</Label>
                 <div className="space-y-2">
-                  <MultiSelect
-                    value={disallowedDocTypes}
-                    onValueChange={onDisallowedDocTypesChange}
+                  <MultiSelectDropdown
+                    options={documentTypeOptions}
+                    selected={disallowedDocTypes}
+                    onChange={handleDocTypesChange}
                     placeholder="Select document types to disallow"
-                  >
-                    <SelectItem value="loan-statements">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Loan statements</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="bank-statement">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Bank Statement</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="utility-bill">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Utility Bill</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="tax-document">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Tax Document</span>
-                      </div>
-                    </SelectItem>
-                  </MultiSelect>
+                    emptyMessage={isDropdownDisabled ? "Select a valid category first" : "No document types available"}
+                    className={isDropdownDisabled ? "opacity-50" : ""}
+                    disabled={isDropdownDisabled}
+                  />
+                  {isDropdownDisabled && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Select bank or address category to enable document selection
+                    </p>
+                  )}
                 </div>
               </div>
 

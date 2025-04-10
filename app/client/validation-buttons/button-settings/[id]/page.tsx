@@ -72,6 +72,7 @@ import {
   setDisplayExitItems,
   setDisplayGuideItems,
   setRejectReasons,
+  setDocumentSelect,
   setProxy,
   setHybridMode,
   setVerificationCategory,
@@ -136,18 +137,24 @@ const MultiSelect = ({
   placeholder,
   children,
 }: {
-  value: string[];
-  onValueChange: (value: string[]) => void;
+  value: (string | { label: string; value: string })[];
+  onValueChange: (value: (string | { label: string; value: string })[]) => void;
   placeholder: string;
   children: React.ReactNode;
 }) => {
   const [tempValue, setTempValue] = useState("");
 
-  const formatSelectedValue = (values: string[]) => {
+  const formatSelectedValue = (values: (string | { label: string; value: string })[]) => {
     if (values.length === 0) return placeholder;
+
     return values
       .map((v) => {
-        switch (v) {
+        // Handle both string and object formats
+        const valueStr = typeof v === "string" ? v : v.value;
+        const label = typeof v === "string" ? v : v.label;
+
+        // Apply specific formatting for known values or use the label directly
+        switch (valueStr) {
           case "loan-statements":
             return "Loan statements";
           case "bank-statement":
@@ -157,7 +164,7 @@ const MultiSelect = ({
           case "tax-document":
             return "Tax Document";
           default:
-            return v;
+            return label;
         }
       })
       .join(", ");
@@ -165,12 +172,16 @@ const MultiSelect = ({
 
   return (
     <Select
-      value={tempValue}
+      value={value.length > 0 ? "_multiple_values_" : "_empty_selection_"}
       onValueChange={(newValue) => {
-        if (!value.includes(newValue)) {
+        // Check if the new value already exists in the array
+        const valueExists = value.some((v) => (typeof v === "string" ? v === newValue : v.value === newValue));
+
+        if (!valueExists) {
           onValueChange([...value, newValue]);
         } else {
-          onValueChange(value.filter((v) => v !== newValue));
+          // Remove the value if it exists
+          onValueChange(value.filter((v) => (typeof v === "string" ? v !== newValue : v.value !== newValue)));
         }
         setTempValue("");
       }}
@@ -790,13 +801,14 @@ export default function EditButton() {
               )}
               {activeTab === 5 && (
                 <RejectionTab
-                  disallowedDocTypes={buttonSettings.reject_reasons}
-                  onDisallowedDocTypesChange={(value) => dispatch(setRejectReasons(value))}
+                  disallowedDocTypes={buttonSettings.documentSelect || []}
+                  onDisallowedDocTypesChange={(value) => dispatch(setDocumentSelect(value))}
                   // @ts-ignore: Type error with null vs undefined
                   masterFields={masterFields}
                   masterFieldsLoading={masterFieldsLoading}
                   // @ts-ignore: Type error with null vs undefined
                   masterFieldsError={masterFieldsError}
+                  category={buttonSettings?.coverage?.category}
                 />
               )}
               {activeTab === 6 && (

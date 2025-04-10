@@ -13,7 +13,15 @@ interface Button {
     };
     name?: string;
     category?: string;
-    subcategory?: string[];
+    subcategory?: (
+      | string
+      | {
+          value: string;
+          label: string;
+          flag?: string;
+          uniquekey?: string;
+        }
+    )[];
     documentCheck?: string[];
     type?: string;
     setcolor?: string;
@@ -596,6 +604,11 @@ const buttonSlice = createSlice({
         state.btn.btndata.reject_reasons = action.payload;
       }
     },
+    setDocumentSelect: (state, action: PayloadAction<string[]>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.documentSelect = action.payload;
+      }
+    },
     setProxy: (state, action: PayloadAction<string>) => {
       if (state.btn?.btndata) {
         state.btn.btndata.proxy = action.payload;
@@ -612,9 +625,11 @@ const buttonSlice = createSlice({
         state.btn.btndata.coverage.category = action.payload;
       }
     },
-    setVerificationSubCategory: (state, action: PayloadAction<string[]>) => {
+    setVerificationSubCategory: (state, action: PayloadAction<(string | { label: string; value: string })[]>) => {
       if (state.btn?.btndata) {
-        state.btn.btndata.subcategory = action.payload;
+        // Extract just the values if objects are passed
+        const values = action.payload.map((item) => (typeof item === "string" ? item : item.value));
+        state.btn.btndata.subcategory = values;
       }
     },
     setFixedUrlAddress: (state, action: PayloadAction<string>) => {
@@ -893,6 +908,7 @@ export const {
   setAddGoogleSheetUrl,
   setEnableSalesforce,
   setRejectReasons,
+  setDocumentSelect,
   setProxy,
   setHybridMode,
   setVerificationCategory,

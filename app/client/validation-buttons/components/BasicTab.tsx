@@ -35,7 +35,7 @@ interface BasicTabState {
   // Verification settings
   verificationMethod: string;
   verificationCategory?: string;
-  verificationSubCategory?: string[];
+  verificationSubCategory?: (string | OptionType)[];
 
   // URL settings
   directUrlEnabled: boolean;
@@ -75,7 +75,7 @@ interface BasicTabHandlers {
   onNameChange: (value: string) => void;
   onVerificationMethodChange: (value: string) => void;
   onVerificationCategoryChange: (value: string) => void;
-  onVerificationSubCategoryChange: (values: string[]) => void;
+  onVerificationSubCategoryChange: (values: (string | OptionType)[]) => void;
   onDirectUrlChange: (checked: boolean) => void;
   onSelectedCountryChange: (value: string) => void;
   onLimitCountryEnabledChange: (checked: boolean) => void;
@@ -105,16 +105,22 @@ const MultiSelect = ({
   placeholder,
   children,
 }: {
-  value: string[];
-  onValueChange: (value: string[]) => void;
+  value: (string | { label: string; value: string })[];
+  onValueChange: (value: (string | { label: string; value: string })[]) => void;
   placeholder: string;
   children: React.ReactNode;
 }) => {
-  const formatSelectedValue = (values: string[]) => {
+  const formatSelectedValue = (values: (string | { label: string; value: string })[]) => {
     if (values.length === 0) return placeholder;
+
     return values
       .map((v) => {
-        switch (v) {
+        // Handle both string and object formats
+        const valueStr = typeof v === "string" ? v : v.value;
+        const label = typeof v === "string" ? v : v.label;
+
+        // Apply specific formatting for known values or use the label directly
+        switch (valueStr) {
           case "loan-statements":
             return "Loan statements";
           case "bank-statement":
@@ -124,7 +130,7 @@ const MultiSelect = ({
           case "tax-document":
             return "Tax Document";
           default:
-            return v;
+            return label;
         }
       })
       .join(", ");
@@ -134,10 +140,14 @@ const MultiSelect = ({
     <Select
       value={value.length > 0 ? "_multiple_values_" : "_empty_selection_"}
       onValueChange={(newValue) => {
-        if (!value.includes(newValue)) {
+        // Check if the new value already exists in the array
+        const valueExists = value.some((v) => (typeof v === "string" ? v === newValue : v.value === newValue));
+
+        if (!valueExists) {
           onValueChange([...value, newValue]);
         } else {
-          onValueChange(value.filter((v) => v !== newValue));
+          // Remove the value if it exists
+          onValueChange(value.filter((v) => (typeof v === "string" ? v !== newValue : v.value !== newValue)));
         }
       }}
     >
@@ -229,6 +239,8 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
   const [localImageUpload, setLocalImageUpload] = useState(imageUpload);
   const [localExtractAllTransaction, setLocalExtractAllTransaction] = useState(extractAllTransaction);
   const [localCalculateBalanceAsOnDate, setLocalCalculateBalanceAsOnDate] = useState(calculateBalanceAsOnDate);
+
+  console.log("verificaton sub category", verificationCategory);
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -1128,7 +1140,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
 
                             <MultiSelectDropdown
                               options={countryOptions}
-                              selected={selectedCountries.map((c) => (typeof c === "string" ? c : c.value))}
+                              selected={selectedCountries}
                               onChange={(values) => {
                                 // Convert selected values to full country objects
                                 const fullCountries = values.map((value) => {
