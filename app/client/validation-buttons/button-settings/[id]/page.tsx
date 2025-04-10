@@ -91,6 +91,7 @@ import {
   setCalculateBalanceAsOnDate,
   setFullTextSearchData,
   setDocumentExpiryValue,
+  setAutoNavigation,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -233,6 +234,19 @@ export default function EditButton() {
         if (response.success && response.data) {
           console.log("Button settings: data retrieved successfully", response.data);
           console.log("Initial showgoogle value:", response.data?.btndata?.showgoogle);
+
+          // Initialize required nested objects if they don't exist
+          if (response.data.btndata) {
+            if (!response.data.btndata.privacytext) {
+              response.data.btndata.privacytext = {};
+            }
+            if (!response.data.btndata.welcomePage) {
+              response.data.btndata.welcomePage = {};
+            }
+            if (!response.data.btndata.exitpage) {
+              response.data.btndata.exitpage = {};
+            }
+          }
 
           // Store the complete button data including any nested structure
           dispatch(getButton(response.data));
@@ -750,25 +764,25 @@ export default function EditButton() {
               )}
               {activeTab === 4 && (
                 <DisplayTab
-                  startWithFullScreen={buttonSettings.fullscreenmode}
-                  showPreview={buttonSettings.showpreview}
-                  mobileview={buttonSettings.mobileview}
-                  desktopCustomMessage={buttonSettings.customMobileWarningText}
-                  colorValue={buttonSettings.setcolor}
-                  includeFaqPage={buttonSettings.includeFaqInPdf}
-                  includeQrCode={buttonSettings.includeQRCode}
-                  noPasswordText={buttonSettings.privacytext.nopassword}
-                  strongPrivacyText={buttonSettings.privacytext.strongtext}
-                  secureText={buttonSettings.privacytext.securetext}
-                  dataPurgeText={buttonSettings.privacytext.datapurge}
-                  loginText={buttonSettings.welcomePage.logintext}
-                  gototext={buttonSettings.welcomePage.gototext}
-                  successHeading={buttonSettings.exitpage.successheading}
-                  successMessage={buttonSettings.exitpage.successmessage}
-                  failureHeading={buttonSettings.exitpage.failureheading}
-                  failureMessage={buttonSettings.exitpage.failuremessage}
-                  organizationName={buttonSettings.overrideorgname}
-                  organizationLogo={buttonSettings.organizationLogo}
+                  startWithFullScreen={buttonSettings?.fullscreenmode}
+                  showPreview={buttonSettings?.showpreview}
+                  mobileview={buttonSettings?.mobileview}
+                  desktopCustomMessage={buttonSettings?.customMobileWarningText}
+                  colorValue={buttonSettings?.setcolor}
+                  includeFaqPage={buttonSettings?.includeFaqInPdf}
+                  includeQrCode={buttonSettings?.includeQRCode}
+                  noPasswordText={buttonSettings?.privacytext?.nopassword || ""}
+                  strongPrivacyText={buttonSettings?.privacytext?.strongtext || ""}
+                  secureText={buttonSettings?.privacytext?.securetext || ""}
+                  dataPurgeText={buttonSettings?.privacytext?.datapurge || ""}
+                  loginText={buttonSettings?.welcomePage?.logintext || ""}
+                  gototext={buttonSettings?.welcomePage?.gototext || ""}
+                  successHeading={buttonSettings?.exitpage?.successheading || ""}
+                  successMessage={buttonSettings?.exitpage?.successmessage || ""}
+                  failureHeading={buttonSettings?.exitpage?.failureheading || ""}
+                  failureMessage={buttonSettings?.exitpage?.failuremessage || ""}
+                  organizationName={buttonSettings?.overrideorgname}
+                  organizationLogo={buttonSettings?.organizationLogo}
                   onStartWithFullScreenChange={(checked) => dispatch(setDisplaySettings({ fullscreenmode: checked }))}
                   onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showpreview: checked }))}
                   onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ mobileview: value }))}
@@ -788,11 +802,11 @@ export default function EditButton() {
                   onFailureMessageChange={(value) => dispatch(setDisplayExitItems({ failuremessage: value }))}
                   onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ overrideorgname: value }))}
                   onOrganizationLogoChange={(logo) => dispatch(setDisplaySettings({ organizationLogo: logo }))}
-                  // Add heading props and change handlers
-                  noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading}
-                  strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading}
-                  secureTextHeading={buttonSettings?.privacytext?.securetext_heading}
-                  dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading}
+                  // Add heading props and change handlers with null checks
+                  noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading || ""}
+                  strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading || ""}
+                  secureTextHeading={buttonSettings?.privacytext?.securetext_heading || ""}
+                  dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading || ""}
                   onNoPasswordHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword_heading: value }))}
                   onStrongPrivacyHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext_heading: value }))}
                   onSecureTextHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ securetext_heading: value }))}
@@ -801,7 +815,7 @@ export default function EditButton() {
               )}
               {activeTab === 5 && (
                 <RejectionTab
-                  disallowedDocTypes={buttonSettings.documentSelect || []}
+                  disallowedDocTypes={buttonSettings?.documentSelect || []}
                   onDisallowedDocTypesChange={(value) => dispatch(setDocumentSelect(value))}
                   // @ts-ignore: Type error with null vs undefined
                   masterFields={masterFields}
@@ -809,18 +823,36 @@ export default function EditButton() {
                   // @ts-ignore: Type error with null vs undefined
                   masterFieldsError={masterFieldsError}
                   category={buttonSettings?.coverage?.category}
+                  rejectionReasons={buttonSettings?.reject_reasons || []}
+                  onRejectionReasonsChange={(reasons) => dispatch(setRejectReasons(reasons))}
                 />
               )}
               {activeTab === 6 && (
                 <AdvancedTab
-                  proxyLocation={buttonSettings.proxy}
-                  allowMethodSwitching={buttonSettings.hybridMode}
+                  proxyLocation={buttonSettings?.proxy || "defaultproxy"}
+                  allowMethodSwitching={buttonSettings?.hybridMode}
+                  autoNavigation={buttonSettings?.autoNavigation || false}
+                  onAutoNavigationChange={(checked) => {
+                    console.log("Parent: dispatching setAutoNavigation with value:", checked);
+                    dispatch(setAutoNavigation(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - autoNavigation value:",
+                        store.getState().buttons?.btn?.btndata?.autoNavigation
+                      );
+                    }, 100);
+                  }}
+                  verificationType={buttonSettings?.mode?.type || ""}
+                  category={buttonSettings?.coverage?.category}
                   onProxyLocationChange={(value) => dispatch(setProxy(value))}
                   onAllowMethodSwitchingChange={(checked) => dispatch(setHybridMode(checked))}
                   onDelete={() => {
                     // Handle delete action
                     console.log("Delete button clicked");
                   }}
+                  buttonId={params.id?.toString()}
+                  buttonName={buttonSettings?.name || "this button"}
                 />
               )}
             </motion.div>

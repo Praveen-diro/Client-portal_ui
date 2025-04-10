@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Ban, FileText, Plus, X } from "lucide-react";
+import { Ban, FileText, Plus, Trash, X } from "lucide-react";
 import { MultiSelectDropdown, OptionType } from "@/components/ui/multi-select-dropdown";
-import { useMemo } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface RejectionTabProps {
   disallowedDocTypes: string[];
@@ -12,6 +14,8 @@ interface RejectionTabProps {
   masterFieldsError?: string; // Error message for master fields
   onDisallowedDocTypesChange: (value: string[]) => void;
   category?: string; // Added category prop to determine document options
+  rejectionReasons?: string[]; // Array of rejection reasons - make optional
+  onRejectionReasonsChange: (reasons: string[]) => void; // Callback for when reasons change
 }
 
 /**
@@ -41,20 +45,28 @@ const getDocumentTypeOptions = (category?: string): OptionType[] => {
 };
 
 export const RejectionTab: React.FC<RejectionTabProps> = ({
-  disallowedDocTypes,
+  disallowedDocTypes = [],
   masterFields,
   masterFieldsLoading,
   masterFieldsError,
   onDisallowedDocTypesChange,
   category,
+  rejectionReasons = [], // Default to empty array if undefined
+  onRejectionReasonsChange,
 }) => {
+  // State for the add reason dialog
+  const [isAddReasonDialogOpen, setIsAddReasonDialogOpen] = useState(false);
+  const [newReason, setNewReason] = useState("");
+
   console.log("category from index", category);
+  console.log("rejection reasons:", rejectionReasons);
+
   // Get document type options based on category
   const documentTypeOptions = useMemo(() => getDocumentTypeOptions(category), [category]);
 
   // Convert disallowedDocTypes to the format expected by MultiSelectDropdown
   const selectedDocTypes = useMemo(() => {
-    return disallowedDocTypes.map((docType) => {
+    return (disallowedDocTypes || []).map((docType) => {
       // Find the matching option to get the label
       const option = documentTypeOptions.find((opt) => opt.value === docType);
       return option ? option : { value: docType, label: docType };
@@ -69,6 +81,26 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
     console.log("New doc types selected:", newValues);
     onDisallowedDocTypesChange(newValues);
   };
+
+  // Handle deleting a rejection reason
+  const handleDeleteReason = (reasonToDelete: string) => {
+    const updatedReasons = (rejectionReasons || []).filter((reason) => reason !== reasonToDelete);
+    onRejectionReasonsChange(updatedReasons);
+  };
+
+  // Handle adding a new rejection reason
+  const handleAddReason = (e: FormEvent) => {
+    e.preventDefault();
+    if (newReason.trim()) {
+      const updatedReasons = [...(rejectionReasons || []), newReason.trim()];
+      onRejectionReasonsChange(updatedReasons);
+      setNewReason("");
+      setIsAddReasonDialogOpen(false);
+    }
+  };
+
+  // Ensure rejectionReasons is always an array
+  const safeRejectionReasons = Array.isArray(rejectionReasons) ? rejectionReasons : [];
 
   return (
     <div className="lg:col-span-3">
@@ -90,7 +122,7 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
                 <div className="space-y-2">
                   <MultiSelectDropdown
                     options={documentTypeOptions}
-                    selected={disallowedDocTypes}
+                    selected={disallowedDocTypes || []}
                     onChange={handleDocTypesChange}
                     placeholder="Select document types to disallow"
                     emptyMessage={isDropdownDisabled ? "Select a valid category first" : "No document types available"}
@@ -109,32 +141,30 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
               <div className="space-y-4">
                 <Label className="text-base">Reasons for rejection for documents received</Label>
                 <div className="space-y-3">
-                  {/* Duplicate submission */}
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <span>Duplicate submission</span>
-                    <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* Not a bank statement */}
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <span>Not a bank statement/utility bill</span>
-                    <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* Does not contain full name */}
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <span>Does not contain full name</span>
-                    <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {safeRejectionReasons.length > 0 ? (
+                    safeRejectionReasons.map((reason) => (
+                      <div
+                        key={reason}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                      >
+                        <span>{reason}</span>
+                        <button
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                          onClick={() => handleDeleteReason(reason)}
+                          aria-label={`Remove ${reason}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No rejection reasons added yet. Add reasons to explain why documents might be rejected.
+                    </div>
+                  )}
                 </div>
 
-                <Button variant="outline" className="mt-4">
+                <Button variant="outline" className="mt-4" onClick={() => setIsAddReasonDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add reason
                 </Button>
@@ -143,6 +173,36 @@ export const RejectionTab: React.FC<RejectionTabProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Reason Dialog */}
+      <Dialog open={isAddReasonDialogOpen} onOpenChange={setIsAddReasonDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Rejection Reason</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddReason}>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason</Label>
+                <Input
+                  id="reason"
+                  placeholder="Enter rejection reason"
+                  value={newReason}
+                  onChange={(e) => setNewReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAddReasonDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!newReason.trim()}>
+                Add Reason
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

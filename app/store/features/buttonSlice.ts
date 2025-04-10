@@ -656,6 +656,11 @@ const buttonSlice = createSlice({
 
     setDisplayPrivacyItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
+        // Initialize privacytext object if it doesn't exist
+        if (!state.btn.btndata.privacytext) {
+          state.btn.btndata.privacytext = {};
+        }
+
         Object.keys(action.payload).forEach((key) => {
           state.btn.btndata.privacytext[key] = action.payload[key];
         });
@@ -664,6 +669,11 @@ const buttonSlice = createSlice({
 
     setDisplayExitItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
+        // Initialize exitpage object if it doesn't exist
+        if (!state.btn.btndata.exitpage) {
+          state.btn.btndata.exitpage = {};
+        }
+
         Object.keys(action.payload).forEach((key) => {
           state.btn.btndata.exitpage[key] = action.payload[key];
         });
@@ -672,6 +682,11 @@ const buttonSlice = createSlice({
 
     setDisplayGuideItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
+        // Initialize welcomePage object if it doesn't exist
+        if (!state.btn.btndata.welcomePage) {
+          state.btn.btndata.welcomePage = {};
+        }
+
         Object.keys(action.payload).forEach((key) => {
           state.btn.btndata.welcomePage[key] = action.payload[key];
         });
@@ -775,6 +790,29 @@ const buttonSlice = createSlice({
       state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
 
       console.log("Updated multidownload value:", state.btn.btndata.multidownload);
+    },
+    setAutoNavigation: (state, action: PayloadAction<boolean>) => {
+      console.log("Redux reducer: setAutoNavigation called with value:", action.payload);
+
+      // Initialize btndata if not exists
+      if (!state.btn) {
+        state.btn = { btndata: {} };
+      }
+
+      if (!state.btn.btndata) {
+        state.btn.btndata = {};
+      }
+
+      // Log current state
+      console.log("Current autoNavigation value:", state.btn.btndata.autoNavigation);
+
+      // Update the state with the new value
+      state.btn.btndata.autoNavigation = action.payload;
+
+      // Force the state update by creating a new reference
+      state.btn = { ...state.btn, btndata: { ...state.btn.btndata } };
+
+      console.log("Updated autoNavigation value:", state.btn.btndata.autoNavigation);
     },
     setImageUpload: (state, action: PayloadAction<boolean>) => {
       console.log("Redux reducer: setImageUpload called with value:", action.payload);
@@ -922,6 +960,7 @@ export const {
   setResubmission,
   setLiveFeedback,
   setMultiDownload,
+  setAutoNavigation,
   setImageUpload,
   setExtractAllTransaction,
   setCalculateBalanceAsOnDate,
