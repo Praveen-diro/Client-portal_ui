@@ -568,7 +568,7 @@ export function UsersSection() {
           transition={{ ...transitionConfig, delay: 0.1 }}
           className="flex justify-between items-center"
         >
-          <h2 className="text-2xl font-semibold tracking-tight">User Management</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">User management</h2>
           <Button onClick={handleAddToggle}>
             <Plus className="mr-2 h-4 w-4" /> Add User
           </Button>
@@ -858,7 +858,7 @@ export function UsersSection() {
           isOpen={transferModal}
           onClose={cancelTransferOwnership}
           onConfirm={confirmTransferOwnership}
-          title="Transfer Ownership?"
+          title="Transfer ownership?"
           description="This action will transfer ownership of the account to the selected user. You will be logged out after this action. This cannot be undone."
           cancelText="Cancel"
           confirmText="Transfer Ownership"

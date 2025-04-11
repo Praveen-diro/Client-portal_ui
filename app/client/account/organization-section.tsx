@@ -16,6 +16,7 @@ import { getOrgItem, setLoading, setError } from "@/app/store/features/organizat
 import { authService } from "@/app/services/auth.service";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Loader from "@/components/ui/loader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Custom styles to hide the default close button
 const customDialogStyles = `
@@ -939,14 +940,14 @@ export function OrganizationSection() {
       transition={transitionConfig}
       className="w-full space-y-8 max-w-6xl mx-auto px-4 sm:px-6"
     >
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, x: 200 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ ...transitionConfig, delay: 0.1 }}
         className="flex justify-between items-center py-4"
       >
-        <h2 className="text-2xl font-semibold tracking-tight">Preferences</h2>
-      </motion.div>
+        {/* <h2 className="text-2xl font-semibold tracking-tight">Preferences</h2> */}
+      {/* </motion.div> */}
 
       {loading && (
         <div className="flex justify-center items-center py-8">
@@ -1221,13 +1222,58 @@ export function OrganizationSection() {
 
           {/* Color and HMAC Key Section */}
           <motion.div variants={formItem} className="space-y-6 pt-4 border-t">
-            <h3 className="text-lg font-semibold pt-2">Appearance & Security</h3>
+            {/* <h3 className="text-lg font-semibold pt-2">Appearance & Security</h3> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <motion.div variants={formItem} className="space-y-1.5">
                 <ColorInput value={formData.setcolor} onChange={handleInputChange} />
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
-                <Label htmlFor="hmackey">HMAC Key</Label>
+                <Label htmlFor="hmackey" className="flex items-center gap-1">
+                  HMAC Key
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-md p-0 border shadow-md" sideOffset={10}>
+                        <div className="bg-popover text-popover-foreground rounded-md px-4 py-3">
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-sm">Setup and Verify HMAC Key</h4>
+                              <ol className="mt-1 ml-5 space-y-1 text-sm">
+                                <li><span className="font-semibold">Input Your Desired HMAC Key:</span> Ensure it is secure and compliant per security policies.</li>
+                                <li>Click the "Save Profile".</li>
+                              </ol>
+                            </div>
+
+                            <div>
+                              <h4 className="font-semibold text-sm">Verification for Clients:</h4>
+                              <ol className="mt-1 ml-5 space-y-1 text-sm list-[lower-alpha]">
+                                <li>Receive the MessageHash in the header.</li>
+                                <li>Use the same <span className="font-semibold">hmacsecretkey</span> to regenerate the HMAC signature.</li>
+                                <li>Compare the regenerated signature with MessageHash.</li>
+                              </ol>
+                              <ul className="ml-8 mt-1 text-sm list-disc">
+                                <li>If they match, the data is authentic.</li>
+                                <li>If not, reject the data.</li>
+                              </ul>
+                            </div>
+                            
+                            <a 
+                              href={process.env.NEXT_PUBLIC_CLIENT_PORTAL_URL}
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              aria-label="Learn more about HMAC key setup and verification" 
+                              className="block text-primary hover:underline text-sm"
+                            >
+                              Learn More About HMAC Key Setup and Verification
+                            </a>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
                 <div className="flex gap-2 w-full">
                   <Input
                     id="hmackey"
@@ -1245,7 +1291,6 @@ export function OrganizationSection() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">*Spaces are not allowed in the HMAC Key</p>
-                <p className="text-xs text-muted-foreground">NOTE: Required to retrieve sensitive customer documents</p>
               </motion.div>
             </div>
           </motion.div>

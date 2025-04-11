@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, CheckCircle2, FileCheck } from "lucide-react";
 import Link from "next/link";
+import { buttonService } from "../../app/services/button.service";
+import { env } from "../../app/config/environment";
 
 interface CompareVerifyUserDataProps {
   isOpen: boolean;
@@ -20,9 +22,13 @@ export default function CompareVerifyUserData({
 }: CompareVerifyUserDataProps) {
   const [selectedButtonId, setSelectedButtonId] = useState(buttonId);
   const [copied, setCopied] = useState(false);
+  const [buttonList, setButtonList] = useState<Array<{buttonid: string, btndata: {name: string}}>>(buttons);
+  const [isLoading, setIsLoading] = useState(false);
+  const [buttonsFetched, setButtonsFetched] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   
-  const verificationBaseUrl = "https://diro.io/verification?buttonid=";
+  // Use the verification link from environment
+  const verificationBaseUrl = env.verification_link;
 
   useEffect(() => {
     // Handle escape key to close modal
@@ -49,6 +55,37 @@ export default function CompareVerifyUserData({
   useEffect(() => {
     setSelectedButtonId(buttonId);
   }, [buttonId]);
+
+  useEffect(() => {
+    // Only fetch buttons once when modal opens and buttons aren't provided
+    if (isOpen && buttons.length === 0 && !buttonsFetched && !isLoading) {
+      fetchButtons();
+    } else if (buttons.length > 0) {
+      // If buttons are provided via props, use those
+      setButtonList(buttons);
+    }
+  }, [isOpen]); // Only depend on isOpen to prevent infinite loop
+
+  const fetchButtons = async () => {
+    try {
+      setIsLoading(true);
+      const response = await buttonService.getButtons();
+      
+      if (response.success && response.data?.data) {
+        setButtonList(response.data.data);
+        
+        // If no button is selected, select the first one
+        if (!selectedButtonId && response.data.data.length > 0) {
+          setSelectedButtonId(response.data.data[0].buttonid);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching buttons:", error);
+    } finally {
+      setIsLoading(false);
+      setButtonsFetched(true); // Mark that we've fetched buttons
+    }
+  };
 
   const handleButtonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedButtonId(e.target.value);
@@ -183,17 +220,28 @@ export default function CompareVerifyUserData({
                   {/* Button Selection */}
                   <motion.div variants={contentItemVariants} className="mb-6 flex flex-wrap items-center gap-4">
                     <label className="font-medium text-gray-700 dark:text-gray-300">Select button:</label>
-                    <select
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-colors cursor-pointer"
-                      value={selectedButtonId}
-                      onChange={handleButtonChange}
-                    >
-                      {buttons.map((button, index) => (
-                        <option key={index} value={button.buttonid}>
-                          {button.btndata.name}
-                        </option>
-                      ))}
-                    </select>
+                    {isLoading ? (
+                      <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        Loading buttons...
+                      </div>
+                    ) : (
+                      <select
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-colors cursor-pointer"
+                        value={selectedButtonId}
+                        onChange={handleButtonChange}
+                        disabled={isLoading}
+                      >
+                        {buttonList.length === 0 ? (
+                          <option value="">No buttons available</option>
+                        ) : (
+                          buttonList.map((button, index) => (
+                            <option key={index} value={button.buttonid}>
+                              {button.btndata?.name || `Button ${index + 1}`}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    )}
                   </motion.div>
                   
                   {/* Alert for copied */}
