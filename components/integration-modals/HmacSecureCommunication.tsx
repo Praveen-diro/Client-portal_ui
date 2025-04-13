@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Maximize2, Minimize2, Shield, Copy, CheckCircle, MessageSquare } from "lucide-react";
+import { X, Maximize2, Minimize2, Shield, Copy, CheckCircle, MessageSquare, Info, Lock, FileJson, ArrowRightLeft, Code, KeyRound, AlertTriangle } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 interface HmacSecureCommunicationProps {
   isOpen: boolean;
@@ -18,6 +20,8 @@ export default function HmacSecureCommunication({ isOpen, onClose }: HmacSecureC
     javascript: "",
     response: ""
   });
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     // Handle escape key to close modal
@@ -178,20 +182,21 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm",
+            isDark ? "bg-black/80" : "bg-black/80"
+          )}
           onClick={onClose}
         >
-          {/* Modal */}
           <motion.div 
-            className={`overflow-hidden ${
-              isMaximized 
-                ? 'fixed inset-0 p-0 m-0 bg-white dark:bg-gray-800' 
-                : 'relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-[95%] sm:w-[90%] md:max-w-3xl'
-            }`}
+            className={cn(
+              "relative rounded-xl shadow-2xl w-[95%] sm:w-[90%] md:max-w-3xl overflow-hidden border-0",
+              isDark ? "bg-[#1A1F2C]" : "bg-white"
+            )}
             variants={modalVariants}
             initial="hidden"
             animate="visible"
@@ -202,9 +207,11 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={isMaximized ? "h-screen flex flex-col" : "max-h-[90vh] flex flex-col"}>
-              {/* Header */}
-              <div className="sticky top-0 z-10 flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+            <div className="max-h-[90vh] flex flex-col">
+              <div className={cn(
+                "sticky top-0 z-10 flex justify-between items-center p-6 border-b",
+                isDark ? "bg-[#1A1F2C] border-gray-700" : "bg-white border-gray-200"
+              )}>
                 <h2 
                   id="modal-title"
                   className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"
@@ -213,13 +220,6 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                   HMAC Secure Communication
                 </h2>
                 <div className="flex items-center gap-2">
-                  {/* <button 
-                    onClick={toggleMaximize}
-                    className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label={isMaximized ? "Restore window" : "Maximize window"}
-                  >
-                    {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                  </button> */}
                   <button 
                     onClick={onClose}
                     className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -230,7 +230,6 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                 </div>
               </div>
               
-              {/* Content Area */}
               <div className="flex-1 overflow-y-auto">
                 <motion.div 
                   className={`p-6 ${isMaximized ? 'max-w-4xl mx-auto' : ''}`}
@@ -245,9 +244,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                   >
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-lg border border-blue-200 dark:border-blue-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Info size={18} className="text-blue-500" />
                         HMAC Key Setup and Verification Guide
                       </h3>
                       <p className="text-gray-700 dark:text-gray-300">
@@ -259,9 +259,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg border border-purple-200 dark:border-purple-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Lock size={18} className="text-blue-500" />
                         What Is Secured?
                       </h3>
                       <p className="text-gray-700 dark:text-gray-300">
@@ -272,9 +273,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-amber-50 dark:bg-amber-900/20 p-5 rounded-lg border border-amber-200 dark:border-amber-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <FileJson size={18} className="text-blue-500" />
                         Example Payload:
                       </h3>
                       <div className="relative">
@@ -306,9 +308,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-lg border border-emerald-200 dark:border-emerald-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <ArrowRightLeft size={18} className="text-blue-500" />
                         Example Response:
                       </h3>
                       <div className="relative">
@@ -336,9 +339,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-lg border border-indigo-200 dark:border-indigo-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Shield size={18} className="text-blue-500" />
                         How to Verify HMAC Signatures
                       </h3>
                       <p className="text-gray-700 dark:text-gray-300 mb-4">
@@ -353,9 +357,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-rose-50 dark:bg-rose-900/20 p-5 rounded-lg border border-rose-200 dark:border-rose-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Code size={18} className="text-blue-500" />
                         Java Implementation:
                       </h3>
                       <div className="relative">
@@ -383,9 +388,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-cyan-50 dark:bg-cyan-900/20 p-5 rounded-lg border border-cyan-200 dark:border-cyan-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Code size={18} className="text-blue-500" />
                         JavaScript Implementation:
                       </h3>
                       <div className="relative">
@@ -413,9 +419,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-lime-50 dark:bg-lime-900/20 p-5 rounded-lg border border-lime-200 dark:border-lime-800/40 shadow-sm"
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <KeyRound size={18} className="text-blue-500" />
                         Security Best Practices
                       </h3>
                       <ul className="list-disc ml-5 space-y-2 text-gray-700 dark:text-gray-300">
@@ -428,7 +435,7 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-fuchsia-50 dark:bg-fuchsia-900/20 p-5 rounded-lg border border-fuchsia-200 dark:border-fuchsia-800/40 shadow-sm"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <MessageSquare size={18} className="text-blue-500" />

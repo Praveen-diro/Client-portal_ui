@@ -99,7 +99,7 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
           transition={{ duration: 0.3 }}
           className={cn(
             "fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm",
-            isDark ? "bg-black/60" : "bg-gray-600/20"
+            isDark ? "bg-black/80" : "bg-black/80"
           )}
           onClick={handleClose}
         >

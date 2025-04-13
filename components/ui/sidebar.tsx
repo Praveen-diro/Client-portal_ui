@@ -187,23 +187,23 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "verification",
       icon: LayoutGrid,
-      label: "Verification Buttons",
+      label: "Verification buttons",
       href: "/client/validation-buttons",
     },
     {
       id: "requests",
       icon: FileText,
-      label: "Requests Sent",
+      label: "Requests sent",
       href: "/client/requests-sent",
     },
     {
       id: "documents",
       icon: FileCheck,
-      label: "Documents Received",
+      label: "Documents received",
       href: "/client/documents-received",
     },
     {
-      id: "coverage",
+      id: "See coverage",
       icon: Earth,
       label: "Coverage", 
       href: "https://diro.live/see-coverage/",
@@ -219,13 +219,13 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "account",
       icon: UserCircle2,
-      label: "Account",
+      label: "Manage account",
       href: "/client/account",
     },
     {
       id: "help",
       icon: LifeBuoy,
-      label: "Support",
+      label: "Report issue",
       href: "support",
     },
   ];

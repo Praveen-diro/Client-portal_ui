@@ -59,6 +59,9 @@ import { cookies } from "../../../services/cookie.service";
 // Import API service
 import { apiService } from "../../../services/api.service";
 
+// Import Button service
+import { buttonService } from "../../../services/button.service";
+
 // Define interfaces for button options
 interface ButtonOption {
   id: string;
@@ -120,6 +123,28 @@ export default function ApiReferencePage() {
       console.log("No token found in cookies");
     }
 
+    // Fetch button list from API
+    const fetchButtonList = async () => {
+      try {
+        const response = await buttonService.getButtons();
+        if (response.success && response.data) {
+          // Transform the data to match the ButtonOption interface
+          const buttons = response.data.map((button: any) => ({
+            id: button.id || button.buttonid,
+            name: button.name || button.buttonName
+          }));
+          setButtonList(buttons);
+          console.log("Button list retrieved from API:", buttons);
+        } else {
+          console.error("Failed to fetch button list:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching button list:", error);
+      }
+    };
+
+    fetchButtonList();
+
     // for demo purposes, let's make this admin
     setIsAdmin(true);
     setCurrentEmail("admin@company.com");
@@ -131,7 +156,36 @@ export default function ApiReferencePage() {
 
   const handleButtonChange = (value: string) => {
     setCurrentButtonId(value);
-    // In real implementation, would fetch corresponding API key and token
+    
+    // Fetch the API key and token for the selected button environment
+    const fetchButtonDetails = async () => {
+      try {
+        const response = await buttonService.getButton(value);
+        if (response.success && response.data) {
+          // Set API key from button data
+          if (response.data.apikey) {
+            setApikey(response.data.apikey);
+            // Optionally update the cookie
+            cookies.set("apikey", response.data.apikey);
+          }
+
+          // Set token from button data
+          if (response.data.token) {
+            setToken(response.data.token);
+            // Optionally update the cookie
+            cookies.set("token", response.data.token);
+          }
+
+          console.log("Button details retrieved:", response.data);
+        } else {
+          console.error("Failed to fetch button details:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching button details:", error);
+      }
+    };
+
+    fetchButtonDetails();
   };
 
   const copyToClipboard = (text: string, isToken: boolean = false) => {

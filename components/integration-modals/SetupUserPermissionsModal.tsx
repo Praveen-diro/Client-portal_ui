@@ -174,7 +174,7 @@ export default function SetupUserPermissionsModal({ isOpen, onClose }: SetupUser
                       </div>
                       
                       <motion.a 
-                        href="/user-details" 
+                        href="/client/account" 
                         className="flex items-center bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mt-4 gap-3 border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}

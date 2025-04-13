@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Image } from "lucide-react";
+import { 
+  X, Image, Upload, CreditCard, Users, ExternalLink, 
+  ChevronRight, Settings, Shield, Briefcase, AlertCircle, 
+  CheckCircle2, ImagePlus, Camera
+} from "lucide-react";
 import Link from "next/link";
 
 interface SetLogoProps {
@@ -10,6 +14,7 @@ interface SetLogoProps {
 
 const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [activeSection, setActiveSection] = useState<number | null>(null);
 
   useEffect(() => {
     // Handle escape key to close modal
@@ -19,6 +24,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
       }
     };
     
+    document.title = "Set Organization Logo";
     document.addEventListener('keydown', handleEscapeKey);
     
     // Prevent body scroll when modal is open
@@ -33,31 +39,19 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   // Animation variants
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-    exit: { opacity: 0, transition: { duration: 0.3 } }
-  };
-
   const modalVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: { 
       opacity: 1, 
       y: 0, 
       scale: 1, 
-      transition: { 
-        duration: 0.4, 
-        ease: [0.22, 1, 0.36, 1] 
-      } 
+      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
     },
     exit: { 
       opacity: 0, 
       y: 20, 
       scale: 0.95, 
-      transition: { 
-        duration: 0.3, 
-        ease: [0.22, 1, 0.36, 1] 
-      } 
+      transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } 
     }
   };
 
@@ -74,15 +68,6 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
         staggerChildren: 0.1,
         delayChildren: 0.1
       } 
-    },
-    exit: { 
-      opacity: 0, 
-      y: -10, 
-      scale: 0.98, 
-      transition: { 
-        duration: 0.4,
-        ease: [0.22, 1, 0.36, 1]
-      } 
     }
   };
 
@@ -92,11 +77,12 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
     visible: { 
       opacity: 1, 
       y: 0, 
-      transition: { 
-        duration: 0.4,
-        ease: "easeOut"
-      } 
+      transition: { duration: 0.4, ease: "easeOut" } 
     }
+  };
+
+  const handleSectionHover = (index: number | null) => {
+    setActiveSection(index);
   };
 
   return (
@@ -124,13 +110,15 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
           >
             <div className="max-h-[90vh] flex flex-col">
               {/* Header */}
-              <div className="sticky top-0 z-10 flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+              <div className="sticky top-0 z-10 flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900/20 dark:to-gray-800 backdrop-blur-sm">
                 <h2 
                   id="modal-title"
                   className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"
                 >
-                  <Image className="text-blue-500" size={20} />
-                  Set logo
+                  <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-lg">
+                    <ImagePlus className="text-indigo-500 dark:text-indigo-400" size={20} />
+                  </div>
+                  Set Organization Logo
                 </h2>
                 <button 
                   onClick={onClose}
@@ -142,7 +130,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
               </div>
               
               {/* Content Area */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-800">
                 <motion.div 
                   className="p-6"
                   variants={contentVariants}
@@ -152,71 +140,142 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                 >
                   <motion.div variants={contentItemVariants}>
                     <Link 
-                      href="/client/manage-account/organizations-details" 
-                      className="mb-6 inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                      href="/client/account" 
+                      className="mb-6 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all"
                     >
-                      <span className="mr-2">-</span>
-                      <span>Manage account &#10140; Organization details</span>
+                      <Settings size={16} className="mr-2" />
+                      <span>Manage Organization Settings</span>
+                      <ChevronRight size={16} className="ml-1" />
                     </Link>
                   </motion.div>
                   
-                  <div className="space-y-6 mt-4">
-                    <motion.section variants={contentItemVariants} className="rounded-lg">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Add organization logo
-                      </h4>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        As the starting point you need to upload your logo in the organization
-                        settings. The system will allow you to crop or remove background during
-                        the process. This logo will then display to all the end-users who go
-                        through the verification process.
-                      </p>
+                  <div className="space-y-6 mt-6">
+                    <motion.section 
+                      variants={contentItemVariants} 
+                      className={`bg-gradient-to-r ${activeSection === 0 ? 'from-indigo-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      onMouseEnter={() => handleSectionHover(0)}
+                      onMouseLeave={() => handleSectionHover(null)}
+                    >
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <div className="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-lg">
+                            <Camera className="text-indigo-500 dark:text-indigo-400" size={20} />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            Add Organization Logo
+                          </h4>
+                          <p className="text-gray-700 dark:text-gray-300">
+                            As the starting point you need to upload your logo in the organization
+                            settings. The system will allow you to crop or remove background during
+                            the process. This logo will then display to all the end-users who go
+                            through the verification process.
+                          </p>
+                          
+                                         
+                        </div>
+                      </div>
                     </motion.section>
                     
-                    <motion.section variants={contentItemVariants} className="rounded-lg">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Add billing address (before going live)
-                      </h4>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        You can try all features within the sandbox and complete the
-                        integration. Then you need to add a billing address to activate the
-                        production. You would also need to select a plan or buy credits.
-                      </p>
+                    <motion.section 
+                      variants={contentItemVariants} 
+                      className={`bg-gradient-to-r ${activeSection === 1 ? 'from-purple-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      onMouseEnter={() => handleSectionHover(1)}
+                      onMouseLeave={() => handleSectionHover(null)}
+                    >
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
+                            <CreditCard className="text-purple-500 dark:text-purple-400" size={20} />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                            Add Billing Address <span className="text-sm font-normal text-purple-600 dark:text-purple-400 ml-2">(before going live)</span>
+                          </h4>
+                          <p className="text-gray-700 dark:text-gray-300">
+                            You can try all features within the sandbox and complete the
+                            integration. Then you need to add a billing address to activate the
+                            production. You would also need to select a plan or buy credits.
+                          </p>
+                          <div className="mt-4 flex">
+                            <span className="text-sm text-purple-600 dark:text-purple-400 flex items-center">
+                              <AlertCircle size={16} className="mr-1.5" />
+                              Required for production
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </motion.section>
                     
-                    <motion.section variants={contentItemVariants} className="rounded-lg">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        Setup user and permissions (optional)
-                      </h4>
-                      <p className="text-gray-700 dark:text-gray-300 mb-3">
-                        You may add additional users and assign roles to provide secure access
-                        to various features and restrict access to their own requested
-                        documents.
-                      </p>
-                      
-                      <ul className="ml-6 space-y-1 list-disc text-gray-700 dark:text-gray-300">
-                        <li>Admin (Complete access and manage users)</li>
-                        <li>Developer (Access to API key and token)</li>
-                        <li>User (Access to only their own documents)</li>
-                        <li>Account (Access to accounts section)</li>
-                        <li>Manager (Access to documents of all users)</li>
-                      </ul>
-                      
-                      <p className="mt-3 text-gray-700 dark:text-gray-300">
-                        Added user(s) will receive an email from DIRO support with a temporary
-                        password and link to reset their password. Please do ask to check the
-                        spam folder if email is not received.
-                      </p>
+                    <motion.section 
+                      variants={contentItemVariants} 
+                      className={`bg-gradient-to-r ${activeSection === 2 ? 'from-green-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      onMouseEnter={() => handleSectionHover(2)}
+                      onMouseLeave={() => handleSectionHover(null)}
+                    >
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
+                            <Users className="text-green-500 dark:text-green-400" size={20} />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            Setup Users & Permissions
+                            <span className="text-sm font-normal text-green-600 dark:text-green-400 ml-2">(optional)</span>
+                          </h4>
+                          <p className="text-gray-700 dark:text-gray-300 mb-4">
+                            You may add additional users and assign roles to provide secure access
+                            to various features and restrict access to their own requested
+                            documents.
+                          </p>
+                          
+                          <div className="bg-white/70 dark:bg-gray-800/40 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <h5 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Available Roles:</h5>
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <li className="flex items-center text-gray-700 dark:text-gray-300">
+                                <Shield size={14} className="text-red-500 mr-2" />
+                                <span><strong>Admin:</strong> Complete access and management</span>
+                              </li>
+                              <li className="flex items-center text-gray-700 dark:text-gray-300">
+                                <Briefcase size={14} className="text-green-500 mr-2" />
+                                <span><strong>Developer:</strong> API key and token access</span>
+                              </li>
+                              <li className="flex items-center text-gray-700 dark:text-gray-300">
+                                <Users size={14} className="text-blue-500 mr-2" />
+                                <span><strong>User:</strong> Access to own documents</span>
+                              </li>
+                              <li className="flex items-center text-gray-700 dark:text-gray-300">
+                                <CreditCard size={14} className="text-purple-500 mr-2" />
+                                <span><strong>Account:</strong> Access to accounts section</span>
+                              </li>
+                              <li className="flex items-start text-gray-700 dark:text-gray-300 md:col-span-2">
+                                <Users size={14} className="text-amber-500 mr-2 mt-1" />
+                                <span><strong>Manager:</strong> Access to documents of all users</span>
+                              </li>
+                            </ul>
+                          </div>
+                          
+                          <p className="mt-4 text-gray-700 dark:text-gray-300">
+                            Added user(s) will receive an email from DIRO support with a temporary
+                            password and link to reset their password. Please ask them to check the
+                            spam folder if email is not received.
+                          </p>
+                        </div>
+                      </div>
                     </motion.section>
                   </div>
                   
-                  <motion.div variants={contentItemVariants} className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <motion.div variants={contentItemVariants} className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Link 
-                      href="/client/manage-account/users" 
-                      className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline"
+                      href="/client/account/" 
+                      className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all"
                     >
-                      <span className="mr-2">-</span>
-                      <span>Manage account &#10140; User details</span>
+                      <Users size={16} className="mr-2" />
+                      <span>Manage User Settings</span>
+                      <ChevronRight size={16} className="ml-1" />
                     </Link>
                   </motion.div>
                 </motion.div>

@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import SwaggerUI from "@/components/api-documentation/SwaggerUI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CodeIcon, FileJson, KeyIcon, BookOpenIcon } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 interface ApiDocsModalProps {
   isOpen: boolean;
@@ -18,11 +20,19 @@ export default function ApiDocsModal({
   initialEndpoint = "verification",
 }: ApiDocsModalProps) {
   const [activeTab, setActiveTab] = useState(initialEndpoint);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] w-[1200px] h-[85vh] max-h-[900px] overflow-y-auto p-0">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b p-6">
+      <DialogContent className={cn(
+        "max-w-[90vw] w-[1200px] h-[85vh] max-h-[900px] overflow-y-auto p-0 border-0 overflow-hidden shadow-2xl",
+        isDark ? "bg-[#1A1F2C]" : "bg-white"
+      )}>
+        <div className={cn(
+          "sticky top-0 z-10 border-b p-6",
+          isDark ? "bg-[#1A1F2C]" : "bg-white"
+        )}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold mb-2">API Documentation</DialogTitle>
             <p className="text-gray-600 dark:text-gray-300 text-sm">
@@ -66,13 +76,19 @@ export default function ApiDocsModal({
             </div>
 
             <TabsContent value="verification" className="p-0 mt-6 focus-visible:outline-none focus:outline-none">
-              <div className="h-[65vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg border">
+              <div className={cn(
+                "h-[65vh] overflow-y-auto rounded-lg border",
+                isDark ? "bg-[#1A1F2C]" : "bg-white"
+              )}>
                 <SwaggerUI endpoint="verification" />
               </div>
             </TabsContent>
 
             <TabsContent value="pdf-to-json" className="p-0 mt-6 focus-visible:outline-none focus:outline-none">
-              <div className="h-[65vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg border">
+              <div className={cn(
+                "h-[65vh] overflow-y-auto rounded-lg border",
+                isDark ? "bg-[#1A1F2C]" : "bg-white"
+              )}>
                 <SwaggerUI endpoint="pdf-to-json" />
               </div>
             </TabsContent>

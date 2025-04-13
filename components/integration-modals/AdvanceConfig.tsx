@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings } from "lucide-react";
+import { X, Settings, MessageSquare, Code, Send, AlertCircle, FileCode, BookOpen, PanelRight, Bell, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface AdvanceConfigProps {
@@ -161,108 +161,129 @@ const AdvanceConfig: React.FC<AdvanceConfigProps> = ({ isOpen, onClose }) => {
                 >
                   <motion.div 
                     variants={contentVariants}
-                    className="space-y-6"
+                    className="space-y-8"
                   >
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+                      <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white flex items-center">
+                        <MessageSquare className="text-blue-500 mr-2" size={18} />
                         Verification progress status - Instant Window.postMessage()
                       </h4>
-                      <p className="mb-3 text-gray-700 dark:text-gray-300">
-                        <b>
-                          Receive status via Post message in iframe - when the link is
-                          opened as an Iframe.
-                        </b>
+                      <p className="mb-4 text-gray-700 dark:text-gray-300 font-medium">
+                        Receive status via Post message in iframe - when the link is
+                        opened as an Iframe.
                       </p>
-                      <ul className="ml-6 mb-4 space-y-2 text-gray-700 dark:text-gray-300">
+                      <ul className="ml-6 mb-4 space-y-3 text-gray-700 dark:text-gray-300 list-disc" style={{ listStyleType: 'disc' }}>
                         <li>
                           Add event listener for the message event in the parent window to
-                          listen for messages from the <br />iframe for progress status
+                          listen for messages from the iframe for progress status
                           as 'Opened link', 'Verifying', 'Submitted'
-                          <ul className="ml-6 mt-1 space-y-1">
-                            <li>
-                              Example - {"{"}sessionid: "IN-OaBTRQ", buttonid:
-                              "O.IN-X16BzE-xPg",progress_status:"Started"{"}"}
-                            </li>
-                          </ul>
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800/30 font-mono text-sm">
+                            Example: {"{"}sessionid: "IN-OaBTRQ", buttonid:
+                            "O.IN-X16BzE-xPg", progress_status: "Started"{"}"}
+                          </div>
                         </li>
                       </ul>
                     </motion.section>
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <p className="mb-3 text-gray-700 dark:text-gray-300">
+                      <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white flex items-center">
+                        <PanelRight className="text-blue-500 mr-2" size={18} />
+                        Window.postMessage() Overview
+                      </h4>
+                      <p className="mb-4 text-gray-700 dark:text-gray-300">
                         The window.postMessage() method is used in JavaScript to enable
                         cross-origin communication between Window objects. It is a security
                         feature that allows you to safely enable cross-origin communication
                         between different windows or iframes.
                       </p>
                       <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
-                        <p className="mb-2 font-medium text-gray-800 dark:text-gray-200">
-                          {"// Sending a message from one window/iframe"}
+                        <p className="mb-2 font-medium text-gray-800 dark:text-gray-200 flex items-center">
+                          <Send className="text-blue-500 mr-2" size={16} />
+                          Sending a message from one window/iframe
                         </p>
-                        <code className="block text-sm text-blue-600 dark:text-blue-400 mb-2">
-                          var message = {"{"} sessionid:"IN-TEST12",buttonid:
-                          "test.button",progress_status: "Submitted",sender: "capture"{"}"};
-                        </code>
-                        <code className="block text-sm text-blue-600 dark:text-blue-400">
-                          window.top.postMessage(message, "*");
-                        </code>
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto text-sm text-blue-600 dark:text-blue-400">
+                          <code>
+{`var message = { 
+  sessionid: "IN-TEST12",
+  buttonid: "test.button",
+  progress_status: "Submitted",
+  sender: "capture"
+};
+
+window.top.postMessage(message, "*");`}
+                          </code>
+                        </pre>
                       </div>
                     </motion.section>
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <p className="mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                      <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white flex items-center">
+                        <Bell className="text-blue-500 mr-2" size={18} />
+                        Progress Status Values
+                      </h4>
+                      <p className="mb-3 text-gray-700 dark:text-gray-300 font-medium">
                         progress_status where the user progressed during the verification
                         process.
                       </p>
-                      <p className="mb-2 text-gray-700 dark:text-gray-300">The values will be: </p>
-                      <ul className="ml-6 mb-4 space-y-1 text-gray-700 dark:text-gray-300">
-                        <li>#Started,</li>
-                        <li>#Selected source link,</li>
-                        <li>#Opened link,</li>
-                        <li>#Saw preview,</li>
-                        <li>#Tried to find info / Tried help,</li>
-                        <li>#Canceled preview,</li>
-                        <li>#Tried download,</li>
-                        <li>#Verifying,</li>
-                        <li>#Submitted </li>
-                      </ul>
+                      <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
+                        <p className="mb-2 text-gray-700 dark:text-gray-300">The values will be: </p>
+                        <ul className="ml-6 space-y-2 text-gray-700 dark:text-gray-300 list-disc grid grid-cols-1 md:grid-cols-2" style={{ listStyleType: 'disc' }}>
+                          <li>#Started</li>
+                          <li>#Selected source link</li>
+                          <li>#Opened link</li>
+                          <li>#Saw preview</li>
+                          <li>#Tried to find info / Tried help</li>
+                          <li>#Canceled preview</li>
+                          <li>#Tried download</li>
+                          <li>#Verifying</li>
+                          <li>#Submitted</li>
+                        </ul>
+                      </div>
                     </motion.section>
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                      className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
-                        <p className="mb-2 font-medium text-gray-800 dark:text-gray-200">
-                          {"// Receiving the message in another window/iframe"}
-                        </p>
-                        <code className="block text-sm text-blue-600 dark:text-blue-400">
-                          window.addEventListener{"("}"message", event &#10140; {"{"}if
-                          (event.data.sessionid) {"{ }}"}
-                        </code>
-                      </div>
+                      <h4 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white flex items-center">
+                        <MessageSquare className="text-blue-500 mr-2" size={18} />
+                        Receiving Messages
+                      </h4>
                       <p className="mb-3 text-gray-700 dark:text-gray-300">
-                        In this example, the parent window sends a message to the iframe,
-                        and the iframe listens for messages using the
-                        `window.addEventListener` method. The `event.origin` property is
-                        used to ensure that the message is coming from an expected source to
-                        prevent unauthorized communication.
+                        Listen for messages from other windows/iframes using the window.addEventListener method:
                       </p>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        It's important to note that while `postMessage` is a powerful tool
-                        for communication between windows and frames, it should be used
-                        carefully and with security considerations in mind, as improper
-                        usage can introduce vulnerabilities in your web application.
-                      </p>
+                      <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <p className="mb-2 text-gray-700 dark:text-gray-300 flex items-center">
+                          <Code className="text-blue-500 mr-2" size={16} />
+                          Message listener example:
+                        </p>
+                        <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto text-sm text-blue-600 dark:text-blue-400">
+                          <code>
+{`window.addEventListener("message", (event) => {
+  // Check if message contains sessionid
+  if (event.data.sessionid) {
+    // Handle the message
+    console.log("Received message:", event.data);
+  }
+});`}
+                          </code>
+                        </pre>
+                        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200 flex items-center">
+                            <AlertTriangle size={16} className="mr-2" />
+                            For security, validate event.origin to ensure messages come from trusted sources
+                          </p>
+                        </div>
+                      </div>
                     </motion.section>
                   </motion.div>
                 </motion.div>

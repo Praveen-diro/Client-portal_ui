@@ -2,10 +2,16 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Copy, CheckCircle2, FileCheck } from "lucide-react";
+import { 
+  X, Copy, CheckCircle2, FileCheck, Code, Database, 
+  Terminal, Link2, ChevronRight, ArrowRight, FileText, 
+  AlertTriangle, ChevronDown, Cpu, ListFilter
+} from "lucide-react";
 import Link from "next/link";
 import { buttonService } from "../../app/services/button.service";
 import { env } from "../../app/config/environment";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 interface CompareVerifyUserDataProps {
   isOpen: boolean;
@@ -22,6 +28,7 @@ export default function CompareVerifyUserData({
 }: CompareVerifyUserDataProps) {
   const [selectedButtonId, setSelectedButtonId] = useState(buttonId);
   const [copied, setCopied] = useState(false);
+  const [expandedExample, setExpandedExample] = useState<number | null>(null);
   const [buttonList, setButtonList] = useState<Array<{buttonid: string, btndata: {name: string}}>>(buttons);
   const [isLoading, setIsLoading] = useState(false);
   const [buttonsFetched, setButtonsFetched] = useState(false);
@@ -29,6 +36,8 @@ export default function CompareVerifyUserData({
   
   // Use the verification link from environment
   const verificationBaseUrl = env.verification_link;
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     // Handle escape key to close modal
@@ -38,7 +47,7 @@ export default function CompareVerifyUserData({
       }
     };
     
-    document.title = "Compare & verify user data";
+    document.title = "Compare & Verify User Data";
     document.addEventListener('keydown', handleEscapeKey);
     
     // Prevent body scroll when modal is open
@@ -97,32 +106,24 @@ export default function CompareVerifyUserData({
     setTimeout(() => setCopied(false), 3000);
   };
 
-  // Animation variants
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-    exit: { opacity: 0, transition: { duration: 0.3 } }
+  const toggleExample = (index: number) => {
+    setExpandedExample(expandedExample === index ? null : index);
   };
 
+  // Animation variants
   const modalVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: { 
       opacity: 1, 
       y: 0, 
       scale: 1, 
-      transition: { 
-        duration: 0.4, 
-        ease: [0.22, 1, 0.36, 1] 
-      } 
+      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
     },
     exit: { 
       opacity: 0, 
       y: 20, 
       scale: 0.95, 
-      transition: { 
-        duration: 0.3, 
-        ease: [0.22, 1, 0.36, 1] 
-      } 
+      transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } 
     }
   };
 
@@ -139,15 +140,6 @@ export default function CompareVerifyUserData({
         staggerChildren: 0.1,
         delayChildren: 0.1
       } 
-    },
-    exit: { 
-      opacity: 0, 
-      y: -10, 
-      scale: 0.98, 
-      transition: { 
-        duration: 0.4,
-        ease: [0.22, 1, 0.36, 1]
-      } 
     }
   };
 
@@ -157,10 +149,7 @@ export default function CompareVerifyUserData({
     visible: { 
       opacity: 1, 
       y: 0, 
-      transition: { 
-        duration: 0.4,
-        ease: "easeOut"
-      } 
+      transition: { duration: 0.4, ease: "easeOut" } 
     }
   };
 
@@ -169,16 +158,21 @@ export default function CompareVerifyUserData({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm",
+            isDark ? "bg-black/80" : "bg-black/80"
+          )}
           onClick={onClose}
         >
-          {/* Modal */}
           <motion.div 
-            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-[95%] sm:w-[90%] md:max-w-3xl overflow-hidden border border-gray-200 dark:border-gray-700"
+            className={cn(
+              "relative rounded-xl shadow-2xl w-[95%] sm:w-[90%] md:max-w-3xl overflow-hidden border-0",
+              isDark ? "bg-[#1A1F2C]" : "bg-white"
+            )}
             variants={modalVariants}
             initial="hidden"
             animate="visible"
@@ -190,14 +184,19 @@ export default function CompareVerifyUserData({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="max-h-[90vh] flex flex-col">
-              {/* Header */}
-              <div className="sticky top-0 z-10 flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+              <div className={cn(
+                "sticky top-0 z-10 flex justify-between items-center p-6 border-b",
+                isDark ? "bg-[#1A1F2C]/95 border-gray-700 bg-gradient-to-r from-blue-900/20 to-[#1A1F2C]/95" : 
+                        "bg-white/95 border-gray-200 bg-gradient-to-r from-blue-50 to-white/95"
+              )}>
                 <h2 
                   id="modal-title"
                   className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"
                 >
-                  <FileCheck className="text-blue-500" size={20} />
-                  Compare & verify user data
+                  <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg">
+                    <FileCheck className="text-blue-500 dark:text-blue-400" size={20} />
+                  </div>
+                  Compare & Verify User Data
                 </h2>
                 <button 
                   onClick={onClose}
@@ -208,7 +207,6 @@ export default function CompareVerifyUserData({
                 </button>
               </div>
               
-              {/* Content Area */}
               <div className="flex-1 overflow-y-auto">
                 <motion.div 
                   className="p-6"
@@ -218,43 +216,49 @@ export default function CompareVerifyUserData({
                   exit="exit"
                 >
                   {/* Button Selection */}
-                  <motion.div variants={contentItemVariants} className="mb-6 flex flex-wrap items-center gap-4">
-                    <label className="font-medium text-gray-700 dark:text-gray-300">Select button:</label>
-                    {isLoading ? (
-                      <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                        Loading buttons...
+                  <motion.div variants={contentItemVariants} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <ListFilter size={18} className="text-blue-500 dark:text-blue-400" />
+                        <label className="font-medium text-gray-700 dark:text-gray-300">Select verification button:</label>
                       </div>
-                    ) : (
-                      <select
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-colors cursor-pointer"
-                        value={selectedButtonId}
-                        onChange={handleButtonChange}
-                        disabled={isLoading}
-                      >
-                        {buttonList.length === 0 ? (
-                          <option value="">No buttons available</option>
-                        ) : (
-                          buttonList.map((button, index) => (
-                            <option key={index} value={button.buttonid}>
-                              {button.btndata?.name || `Button ${index + 1}`}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    )}
+                      {isLoading ? (
+                        <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center">
+                          <Cpu size={16} className="mr-2 animate-pulse" />
+                          <span>Loading buttons...</span>
+                        </div>
+                      ) : (
+                        <select
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-colors cursor-pointer flex-1"
+                          value={selectedButtonId}
+                          onChange={handleButtonChange}
+                          disabled={isLoading}
+                        >
+                          {buttonList.length === 0 ? (
+                            <option value="">No buttons available</option>
+                          ) : (
+                            buttonList.map((button, index) => (
+                              <option key={index} value={button.buttonid}>
+                                {button.btndata?.name || `Button ${index + 1}`}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      )}
+                    </div>
                   </motion.div>
                   
                   {/* Alert for copied */}
                   <AnimatePresence>
                     {copied && (
                       <motion.div 
-                        className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-200 flex items-center gap-2"
+                        className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-200 flex items-center gap-3"
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                       >
-                        <CheckCircle2 size={16} />
-                        <span>Copied to clipboard!</span>
+                        <CheckCircle2 size={20} className="text-green-500 dark:text-green-400" />
+                        <span className="font-medium">Success! Link copied to clipboard.</span>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -262,68 +266,109 @@ export default function CompareVerifyUserData({
                   {/* Advanced Features Section */}
                   <motion.div variants={contentVariants} className="space-y-6">
                     <motion.section variants={contentItemVariants}>
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                        Advanced features
-                      </h3>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                          <Database className="text-blue-600 dark:text-blue-400" size={18} />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                          Advanced Features
+                        </h3>
+                      </div>
                       
-                      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                          Compare and verify user data
-                        </h4>
+                      <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900/30 dark:to-gray-800/60 rounded-lg p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full shrink-0 mt-1">
+                            <FileText className="text-blue-600 dark:text-blue-400" size={18} />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                              Compare and Verify User Data
+                            </h4>
+                            
+                            <p className="text-gray-700 dark:text-gray-300 mb-4">
+                              You can enable automatic matching by passing user data for multiple fields inside the no-code link. 
+                              DIRO will automatically start returning a matching score along with extracted data inside the PDF-to-JSON results.
+                            </p>
+                          </div>
+                        </div>
                         
-                        <p className="text-gray-700 dark:text-gray-300 mb-4">
-                          You can enable automatic matching by passing user data for multiple fields inside the no-code link. 
-                          DIRO will automatically start returning a matching score along with extracted data inside the PDF-to-JSON results.
-                        </p>
-                        
-                        <p className="text-gray-700 dark:text-gray-300 font-medium">
-                          Copy the link from the verification button and then:
-                        </p>
-                        
-                        <ul className="list-disc pl-5 my-3 text-gray-700 dark:text-gray-300 space-y-1">
-                          <li>Add field label as query parameter in no code link.</li>
-                          <li>Please do not use tag or dictionary name as query parameter.</li>
-                        </ul>
-                        
-                        <p className="text-gray-700 dark:text-gray-300 font-medium mt-4">
-                          For example:
-                        </p>
-                        
-                        <ul className="list-disc pl-5 my-3 text-gray-700 dark:text-gray-300 space-y-3">
-                          <li>
-                            <p>If field label is firstname:</p>
-                            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded mt-2 text-sm font-mono overflow-x-auto">
-                              {`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=<trackid>&firstname=<YOUR FIRSTNAME>`}
+                        <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/40">
+                          <div className="flex items-start gap-3">
+                            <Terminal size={18} className="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">
+                                Copy the link from the verification button and then:
+                              </p>
+                              
+                              <ul className="list-disc pl-5 mb-3 text-gray-700 dark:text-gray-300 space-y-1">
+                                <li>Add field label as query parameter in no code link.</li>
+                                <li>Please do not use tag or dictionary name as query parameter.</li>
+                              </ul>
                             </div>
-                          </li>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-5">
+                          <p className="text-gray-700 dark:text-gray-300 font-medium mb-3 flex items-center">
+                            <Code size={16} className="mr-2 text-blue-500 dark:text-blue-400" />
+                            Examples:
+                          </p>
                           
-                          <li>
-                            <p>If you have three verification fields: firstname, lastname and zipcode:</p>
-                            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded mt-2 text-sm font-mono overflow-x-auto">
-                              {`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=<TRACK_ID>&firstname=<YOUR FIRSTNAME>&lastname=<YOUR LASTNAME>&zipcode=<YOUR ZIPCODE>`}
+                          <div className="space-y-5">
+                            {/* Example 1 */}
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-left text-gray-700 dark:text-gray-300 font-medium border-b border-gray-200 dark:border-gray-700">
+                                <span>If field label is firstname:</span>
+                              </div>
+                              
+                              <div className="p-4 text-sm font-mono bg-blue-50 dark:bg-blue-900/20 overflow-x-auto">
+                                <pre className="text-xs md:text-sm whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300">
+                                  {`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=<trackid>&firstname=<YOUR FIRSTNAME>`}
+                                </pre>
+                              </div>
                             </div>
-                          </li>
-                        </ul>
+                            
+                            {/* Example 2 */}
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                              <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-left text-gray-700 dark:text-gray-300 font-medium border-b border-gray-200 dark:border-gray-700">
+                                <span>If you have three verification fields: firstname, lastname and zipcode:</span>
+                              </div>
+                              
+                              <div className="p-4 text-sm font-mono bg-blue-50 dark:bg-blue-900/20 overflow-x-auto">
+                                <pre className="text-xs md:text-sm whitespace-pre-wrap break-all text-gray-700 dark:text-gray-300">
+                                  {`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=<TRACK_ID>&firstname=<YOUR FIRSTNAME>&lastname=<YOUR LASTNAME>&zipcode=<YOUR ZIPCODE>`}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                         
-                        <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
-                          <p className="text-gray-700 dark:text-gray-300">Your verification link:</p>
-                          <div className="flex-1 flex items-center">
-                            <code className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded text-sm overflow-x-auto flex-1">
+                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Link2 size={18} className="text-blue-500 dark:text-blue-400" />
+                            <span className="font-medium text-gray-800 dark:text-gray-200">Your verification link:</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <code className="bg-white dark:bg-gray-800 px-3 py-2 rounded text-sm overflow-x-auto flex-1 border border-gray-200 dark:border-gray-700">
                               {copyLink}
                             </code>
                             <button 
                               onClick={() => copyToClipboard(copyLink)}
-                              className="ml-2 p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                              className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-2 transition-colors"
                               aria-label="Copy to clipboard"
                             >
                               <Copy size={16} />
+                              <span>Copy Link</span>
                             </button>
                           </div>
                         </div>
                         
-                        <p className="text-gray-700 dark:text-gray-300 mt-4">
-                          <strong>Note:</strong> Please follow URL encoding while building no-code URL. Refer <a href="https://session.diro.live/server/#/client/?buttonid=" className="text-blue-600 dark:text-blue-400 hover:underline">HTML URL</a> encoding for proper formatting.
-                        </p>
+                        <div className="flex items-start">
+                          <AlertTriangle size={18} className="text-amber-500 dark:text-amber-400 mr-2 mt-0.5 shrink-0" />
+                          <p className="text-gray-700 dark:text-gray-300 text-sm">
+                            <strong>Note:</strong> Please follow URL encoding while building no-code URL. Refer <a href="https://session.diro.live/server/#/client/?buttonid=" className="text-blue-600 dark:text-blue-400 hover:underline">HTML URL</a> encoding for proper formatting.
+                          </p>
+                        </div>
                       </div>
                     </motion.section>
                   </motion.div>

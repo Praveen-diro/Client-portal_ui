@@ -583,7 +583,7 @@ export function OrganizationSection() {
         organizationtype: requestorg.organizationtype || "",
         website: requestorg.website || "",
         country: requestorg.country || "",
-        setcolor: requestorg.color || "",
+        setcolor: requestorg.setcolor || "",
         hmackey: requestorg.hmackey || "",
         invoicedescription: requestorg.invoicedescription || "",
       });
