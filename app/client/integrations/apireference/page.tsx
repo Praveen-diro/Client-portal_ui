@@ -97,11 +97,21 @@ export default function ApiReferencePage() {
   const [altrmsgtoken, setAletrmsgtoken] = useState(false);
   const [generateErrorMsg, setGenerateErrorMsg] = useState(false);
   const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [isLoadingButtons, setIsLoadingButtons] = useState(false);
+  const [buttonLoadError, setButtonLoadError] = useState<string | null>(null);
+  const [isLoadingButtonDetails, setIsLoadingButtonDetails] = useState(false);
+  const [buttonDetailsError, setButtonDetailsError] = useState<string | null>(null);
   const [tokenAlert, setTokenAlert] = useState<{show: boolean, success: boolean, message: string}>({
     show: false,
     success: false,
     message: ''
   });
+
+  // Helper function to get the current button name
+  const getCurrentButtonName = () => {
+    const currentButton = buttonList.find(button => button.id === currentButtonId);
+    return currentButton?.name || "Document verification API";
+  };
 
   useEffect(() => {
     // Get apiKey from cookies
@@ -115,31 +125,117 @@ export default function ApiReferencePage() {
     const tokenFromCookie = cookies.get("token");
     if (tokenFromCookie) {
       setToken(tokenFromCookie);
-      // Add alert to check token value
-      // alert(`Token retrieved from cookie: ${tokenFromCookie}`);
       console.log("Token retrieved from cookie:", tokenFromCookie);
     } else {
-      // alert("No token found in cookies");
       console.log("No token found in cookies");
     }
 
     // Fetch button list from API
     const fetchButtonList = async () => {
       try {
+        setIsLoadingButtons(true);
+        setButtonLoadError(null);
         const response = await buttonService.getButtons();
-        if (response.success && response.data) {
+        console.log("Raw API Response:", response); // Log the raw response
+        
+        if (response.success) {
+          // Handle different possible response structures
+          let buttonsData = [];
+          
+          if (response.data && Array.isArray(response.data)) {
+            // If response.data is directly an array
+            buttonsData = response.data;
+          } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            // If response.data.data is an array
+            buttonsData = response.data.data;
+          } else if (response.data) {
+            // If response.data is an object with button data
+            console.log("Unexpected data structure, trying to extract buttons:", response.data);
+            // Try to extract buttons from the object
+            const possibleButtons = Object.values(response.data).filter(val => 
+              typeof val === 'object' && val !== null && ('id' in val || 'buttonid' in val || 'name' in val)
+            );
+            if (possibleButtons.length) {
+              buttonsData = possibleButtons;
+            }
+          }
+          
+          console.log("Extracted buttons data:", buttonsData);
+          
           // Transform the data to match the ButtonOption interface
-          const buttons = response.data.map((button: any) => ({
-            id: button.id || button.buttonid,
-            name: button.name || button.buttonName
-          }));
-          setButtonList(buttons);
-          console.log("Button list retrieved from API:", buttons);
+          const buttons = buttonsData.map((button: any) => {
+            console.log("Processing button:", button);
+            // Check for btndata nested object which contains the name
+            const btnData = button.btndata || {};
+            
+            return {
+              // First check for buttonid at the root level, then in btndata, then fallback to id or _id
+              id: button.buttonid || btnData.buttonid || button.id || btnData.id || button._id || "",
+              // First check for name in btndata, then at root level
+              name: btnData.name || button.name || ""
+            };
+          }).filter((button: ButtonOption) => button.id && button.name); // Only include buttons with both id and name
+          
+          console.log("Transformed buttons:", buttons);
+            
+          if (buttons.length > 0) {
+            setButtonList(buttons);
+            // Always set the first button as the current button
+            setCurrentButtonId(buttons[0].id);
+            
+            // Also fetch details for this button immediately
+            fetchButtonDetails(buttons[0].id);
+          } else {
+            console.warn("No valid buttons returned from API, using default list");
+            // Keep the default buttons
+          }
         } else {
           console.error("Failed to fetch button list:", response.error);
+          setButtonLoadError(response.error || "Failed to fetch button list");
+        }
+      } catch (error: any) {
+        console.error("Error fetching button list:", error);
+        setButtonLoadError(error.message || "An error occurred while fetching the button list.");
+      } finally {
+        setIsLoadingButtons(false);
+      }
+    };
+
+    // Create a function to fetch button details that can be called here
+    const fetchButtonDetails = async (buttonId: string) => {
+      try {
+        setIsLoadingButtonDetails(true);
+        console.log("Fetching details for button:", buttonId);
+        const response = await buttonService.getButton(buttonId);
+        
+        if (response.success && response.data) {
+          // Check different possible data structures
+          const buttonData = response.data.btndata || response.data;
+          
+          // Set API key from button data
+          if (buttonData.apikey) {
+            setApikey(buttonData.apikey);
+            // Optionally update the cookie
+            cookies.set("apikey", buttonData.apikey);
+          } else if (response.data.apikey) {
+            setApikey(response.data.apikey);
+            cookies.set("apikey", response.data.apikey);
+          }
+
+          // Set token from button data
+          if (buttonData.token) {
+            setToken(buttonData.token);
+            // Optionally update the cookie
+            cookies.set("token", buttonData.token);
+          } else if (response.data.token) {
+            setToken(response.data.token);
+            cookies.set("token", response.data.token);
+          }
         }
       } catch (error) {
-        console.error("Error fetching button list:", error);
+        console.error("Error fetching initial button details:", error);
+      } finally {
+        setIsLoadingButtonDetails(false);
       }
     };
 
@@ -156,32 +252,57 @@ export default function ApiReferencePage() {
 
   const handleButtonChange = (value: string) => {
     setCurrentButtonId(value);
+    setButtonDetailsError(null);
     
     // Fetch the API key and token for the selected button environment
     const fetchButtonDetails = async () => {
       try {
+        setIsLoadingButtonDetails(true);
+        console.log("Fetching details for button:", value);
         const response = await buttonService.getButton(value);
+        console.log("Button details raw response:", response);
+        
         if (response.success && response.data) {
+          // Check different possible data structures
+          const buttonData = response.data.btndata || response.data;
+          console.log("Extracted button data:", buttonData);
+          
           // Set API key from button data
-          if (response.data.apikey) {
-            setApikey(response.data.apikey);
+          if (buttonData.apikey) {
+            setApikey(buttonData.apikey);
             // Optionally update the cookie
+            cookies.set("apikey", buttonData.apikey);
+            console.log("API key set from button data:", buttonData.apikey);
+          } else if (response.data.apikey) {
+            setApikey(response.data.apikey);
             cookies.set("apikey", response.data.apikey);
+            console.log("API key set from response.data:", response.data.apikey);
+          } else {
+            console.warn("No API key found in button data");
           }
 
           // Set token from button data
-          if (response.data.token) {
-            setToken(response.data.token);
+          if (buttonData.token) {
+            setToken(buttonData.token);
             // Optionally update the cookie
+            cookies.set("token", buttonData.token);
+            console.log("Token set from button data:", buttonData.token);
+          } else if (response.data.token) {
+            setToken(response.data.token);
             cookies.set("token", response.data.token);
+            console.log("Token set from response.data:", response.data.token);
+          } else {
+            console.warn("No token found in button data");
           }
-
-          console.log("Button details retrieved:", response.data);
         } else {
           console.error("Failed to fetch button details:", response.error);
+          setButtonDetailsError(response.error || "Failed to fetch button details");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching button details:", error);
+        setButtonDetailsError(error.message || "An error occurred while fetching button details");
+      } finally {
+        setIsLoadingButtonDetails(false);
       }
     };
 
@@ -302,6 +423,44 @@ export default function ApiReferencePage() {
               <ArrowLeft className="h-4 w-4 mr-2" /> Back to Integrations
             </Link>
 
+            {/* Base URL Banner */}
+            <div className="mb-8 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/40 
+                        border border-indigo-100 dark:border-indigo-800/30 rounded-lg overflow-hidden shadow-sm">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Integration API of document verification button for businesses
+                </h2>
+                <div className="flex items-center mt-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-md mr-3">
+                    <GlobeIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">Base URL:</span>
+                    <code className="font-mono bg-white dark:bg-gray-800 px-3 py-1 ml-2 rounded-md text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-700">
+                      api.dirolabs.com
+                    </code>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button 
+                            className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
+                                      dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
+                                      hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
+                            onClick={() => copyToClipboard("api.dirolabs.com")}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Copy base URL</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* API Overview Cards */}
             <div className="grid grid-cols-1 gap-6 mb-10">
               {/* API Key & Token Selection Card - Full Width */}
@@ -328,16 +487,35 @@ export default function ApiReferencePage() {
                         <Label htmlFor="select-button" className="font-medium text-sm whitespace-nowrap">
                           Select API Environment
                         </Label>
-                        <Select value={currentButtonId} onValueChange={handleButtonChange}>
-                          <SelectTrigger className="w-[180px] border-indigo-100 dark:border-indigo-900/40 focus:ring-indigo-500">
-                            <SelectValue placeholder="Select environment" />
+                        <Select value={currentButtonId} onValueChange={handleButtonChange} disabled={isLoadingButtons}>
+                          <SelectTrigger className="w-[230px] border-indigo-100 dark:border-indigo-900/40 focus:ring-indigo-500 bg-white dark:bg-gray-800">
+                            {isLoadingButtons ? (
+                              <div className="flex items-center text-gray-400">
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <span>Loading...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between w-full overflow-hidden">
+                                <div className="truncate font-medium text-indigo-600 dark:text-indigo-400">
+                                  {getCurrentButtonName()}
+                                </div>
+                              </div>
+                            )}
                           </SelectTrigger>
                           <SelectContent>
-                            {buttonList.map((button) => (
-                              <SelectItem key={button.id} value={button.id}>
-                                {button.name}
-                              </SelectItem>
-                            ))}
+                            {buttonLoadError ? (
+                              <div className="px-2 py-1 text-sm text-red-500">{buttonLoadError}</div>
+                            ) : (
+                              buttonList.map((button) => (
+                                <SelectItem 
+                                  key={button.id} 
+                                  value={button.id}
+                                  className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                                >
+                                  {button.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -350,28 +528,37 @@ export default function ApiReferencePage() {
                           </div>
                           <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300 whitespace-nowrap">Public API Key</h4>
                           
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button 
-                                  className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
-                                            dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
-                                            hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
-                                  onClick={() => copyToClipboard(apikey)}
-                                >
-                                  {copied ? (
-                                    <CheckIcon className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <Copy className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          {isLoadingButtonDetails ? (
+                            <div className="ml-2 p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-md">
+                              <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
+                            </div>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
+                                              dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
+                                              hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
+                                    onClick={() => copyToClipboard(apikey)}
+                                    disabled={!apikey || isLoadingButtonDetails}
+                                  >
+                                    {copied ? (
+                                      <CheckIcon className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <Copy className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
+                        
+                       
                       </div>
 
                       {/* Secret Access Token */}
@@ -383,61 +570,65 @@ export default function ApiReferencePage() {
                           <h4 className="text-base font-semibold text-emerald-800 dark:text-emerald-300 whitespace-nowrap">Secret Access Token</h4>
                           
                           <div className="ml-2 flex items-center gap-2">
-                            {currentEmail === ownerEmail && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button 
-                                      className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                                dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
-                                                hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
-                                      onClick={generateNewToken}
-                                      disabled={isGeneratingToken}
-                                    >
-                                      {isGeneratingToken ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                      ) : (
-                                        <RefreshCw className="h-3.5 w-3.5" />
-                                      )}
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p>Generate new token</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                            {isLoadingButtonDetails ? (
+                              <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-md">
+                                <Loader2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                              </div>
+                            ) : (
+                              <>
+                                {currentEmail === ownerEmail && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button 
+                                          className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                                    dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                    hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                          onClick={generateNewToken}
+                                          disabled={isGeneratingToken || isLoadingButtonDetails || !token}
+                                        >
+                                          {isGeneratingToken ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="h-3.5 w-3.5" />
+                                          )}
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p>Generate new token</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button 
+                                        className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                                  dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                  hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                        onClick={() => copyToClipboard(token, true)}
+                                        disabled={!token || isLoadingButtonDetails}
+                                      >
+                                        {copiedToken ? (
+                                          <CheckIcon className="h-3.5 w-3.5" />
+                                        ) : (
+                                          <Copy className="h-3.5 w-3.5" />
+                                        )}
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <p>{copiedToken ? "Copied!" : "Copy to clipboard"}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </>
                             )}
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button 
-                                    className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                              dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
-                                              hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
-                                    onClick={() => copyToClipboard(token, true)}
-                                  >
-                                    {copiedToken ? (
-                                      <CheckIcon className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <Copy className="h-3.5 w-3.5" />
-                                    )}
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p>{copiedToken ? "Copied!" : "Copy to clipboard"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
                           </div>
                         </div>
                         
-                        {/* Alert message */}
-                        {tokenAlert.show && (
-                          <div className={`mt-2 p-2 ${tokenAlert.success ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'} rounded-md text-sm transition-opacity duration-300 max-w-xs mx-auto`}>
-                            {tokenAlert.message}
-                          </div>
-                        )}
+                     
                       </div>
                     </div>
                   </div>
