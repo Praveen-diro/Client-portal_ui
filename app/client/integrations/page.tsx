@@ -139,45 +139,110 @@ export default function IntegrationsPage() {
                 variants={tableVariants}
                 className="bg-card rounded-lg border shadow-lg dark:shadow-gray-900/30 hover:shadow-xl transition-all duration-300 overflow-hidden"
               >
-                <div className="grid grid-cols-12 border-b border-border">
-                <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                    <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
-                      Steps
-                    </h2>
-                  </div>
-                  <div className="col-span-4 p-6 bg-white/50 dark:bg-gray-800/50 border-l border-border">
-                    <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
-                      Quick start (no code)
-                    </h2>
-                  </div>
-                  <div className="col-span-5 p-6 bg-white/50 dark:bg-gray-800/50 border-l border-border">
-                    <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
-                      Advanced (high volume)
-                    </h2>
-                  </div>
+                <div className="grid grid-cols-12 border-b border-border relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 dark:from-blue-900/10 dark:via-purple-900/10 dark:to-pink-900/10 z-0 opacity-70"></div>
+                  
+                  <motion.div 
+                    className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 relative z-10 backdrop-blur-sm"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1, duration: 0.4 }}
+                  >
+                    <motion.h2 
+                      className="text-xl font-bold text-blue-700 dark:text-blue-400 text-center relative"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <span className="relative">
+                        Steps
+                        <motion.span 
+                          className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full" 
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ delay: 0.3, duration: 0.6 }}
+                        />
+                      </span>
+                    </motion.h2>
+                  </motion.div>
+                  
+                  <motion.div 
+                    className="col-span-4 p-6 bg-white/80 dark:bg-gray-800/80 border-l border-border relative z-10 backdrop-blur-sm"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.4 }}
+                  >
+                    <motion.h2 
+                      className="text-xl font-bold text-blue-700 dark:text-blue-400 text-center relative"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <span className="relative">
+                        Quick start (no code)
+                        <motion.span 
+                          className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full" 
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ delay: 0.4, duration: 0.6 }}
+                        />
+                      </span>
+                    </motion.h2>
+                  </motion.div>
+                  
+                  <motion.div 
+                    className="col-span-5 p-6 bg-white/80 dark:bg-gray-800/80 border-l border-border relative z-10 backdrop-blur-sm"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                  >
+                    <motion.h2 
+                      className="text-xl font-bold text-blue-700 dark:text-blue-400 text-center relative"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <span className="relative">
+                        Advanced (high volume)
+                        <motion.span 
+                          className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full" 
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ delay: 0.5, duration: 0.6 }}
+                        />
+                      </span>
+                    </motion.h2>
+                  </motion.div>
                 </div>
 
                 <motion.div variants={containerVariants} initial="hidden" animate="show">
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <PlayCircle className="h-5 w-5 text-blue-600" />
-                        Get started
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ scale: 0.9, opacity: 0.8 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 2 }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <PlayCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>Get started</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
                       <div className="grid grid-cols-1 gap-4">
                         <motion.div
                           variants={boxVariants}
-                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group"
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group"
                         >
                           <motion.div
                             variants={boxVariants}
                             className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => setActiveModal("setupOrganization")}
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup organization
@@ -186,12 +251,14 @@ export default function IntegrationsPage() {
                         
                         <motion.div
                           variants={boxVariants}
-                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group"
+                          className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group"
                         >
                           <motion.div
                             variants={boxVariants}
                             className="flex items-center gap-3 text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             onClick={() => setActiveModal("setupVerificationButton")}
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup verification button
@@ -202,13 +269,15 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("verificationPrivacyModal")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Configure verification fields
@@ -216,6 +285,8 @@ export default function IntegrationsPage() {
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Enable privacy
@@ -227,24 +298,34 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <ZapIcon className="h-5 w-5 text-blue-600" />
-                        Trigger verification
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ rotate: 0 }}
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <ZapIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>Trigger verification</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("copyLink")}
                       >
                         <ul className="space-y-3">
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Copy link (use as Iframe or new window)
@@ -252,6 +333,8 @@ export default function IntegrationsPage() {
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Add customer reference number
@@ -262,13 +345,15 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("compareVerifyUserData")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Compare and verify user data
@@ -280,22 +365,35 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-blue-600" />
-                        During verification
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ y: 0 }}
+                          animate={{ y: [-2, 2, -2] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>During verification</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setIsSetLogoOpen(true)}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Set your logo
                           </motion.li>
@@ -305,18 +403,25 @@ export default function IntegrationsPage() {
                     <div className="col-span-5 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setIsAdvanceConfigOpen(true)}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
                           <motion.li 
                             variants={boxVariants} 
                             className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
                           >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Advanced configurations
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Verification progress status Window.postMessage()
                           </motion.li>
@@ -327,44 +432,75 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-blue-600" />
-                        After verification
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ scale: 1 }}
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>After verification</span>
                       </h3>
                     </div>
-                    
                     <div className="col-span-4 p-4">
                       <motion.div
                         variants={boxVariants}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-xl p-5 transition-all duration-500 ease-in-out border border-gray-100 dark:border-gray-700 h-full shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-200 dark:hover:border-blue-800 group cursor-pointer"
                         onClick={() => setActiveModal("documentViaEmail")}
                       >
                         <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md hover:bg-gray-50/80 dark:hover:bg-gray-700/80 transition-all duration-300">
-                          <div className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.div 
+                            className="flex items-center gap-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Get document via email
-                          </div>
+                          </motion.div>
 
                           <p className="font-medium text-gray-900 dark:text-white mb-2 mt-6">Enable automatic extraction of data:</p>
                           
                           <ul className="space-y-2 ml-4 text-gray-600 dark:text-gray-300">
-                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              <span className="text-blue-500 dark:text-blue-400">•</span>
+                            <motion.li 
+                              variants={boxVariants} 
+                              className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              whileHover={{ x: 3 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="text-indigo-400 dark:text-indigo-300">•</span>
                               Output to Google Sheet
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              <span className="text-blue-500 dark:text-blue-400">•</span>
+                            <motion.li 
+                              variants={boxVariants} 
+                              className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              whileHover={{ x: 3 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="text-indigo-400 dark:text-indigo-300">•</span>
                               Output to Zapier
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              <span className="text-blue-500 dark:text-blue-400">•</span>
+                            <motion.li 
+                              variants={boxVariants} 
+                              className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              whileHover={{ x: 3 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="text-indigo-400 dark:text-indigo-300">•</span>
                               Enable auto-extraction
                             </motion.li>
-                            <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              <span className="text-blue-500 dark:text-blue-400">•</span>
+                            <motion.li 
+                              variants={boxVariants} 
+                              className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              whileHover={{ x: 3 }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                            >
+                              <span className="text-indigo-400 dark:text-indigo-300">•</span>
                               If using high privacy mode
                             </motion.li>
                           </ul>
@@ -456,12 +592,20 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Trash2 className="h-5 w-5 text-blue-600" />
-                        Deletion
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ rotate: 0 }}
+                          animate={{ rotate: [-10, 10, -10] }}
+                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <Trash2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>Deletion</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
@@ -488,9 +632,14 @@ export default function IntegrationsPage() {
                         onClick={() => router.push('/client/integrations/apireference')}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
-                          Delete data API
+                            Delete data API
                           </motion.li>
                         </ul>
                       </motion.div>
@@ -499,12 +648,20 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 cursor-pointer" onClick={() => setActiveModal("beforeLive")}>
-                        <Rocket className="h-5 w-5 text-blue-600" />
-                        Before you go live
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10 cursor-pointer" onClick={() => setActiveModal("beforeLive")}>
+                        <motion.div 
+                          initial={{ y: 0 }}
+                          animate={{ y: -5 }}
+                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2, ease: "easeOut" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>Before you go live</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
@@ -514,11 +671,21 @@ export default function IntegrationsPage() {
                         onClick={() => setActiveModal("beforeLive")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Testing
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Activating production
                           </motion.li>
@@ -532,11 +699,21 @@ export default function IntegrationsPage() {
                         onClick={() => setActiveModal("setupUserPermissions")}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Setup user and permissions
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Creating a Landing page
                           </motion.li>
@@ -547,12 +724,20 @@ export default function IntegrationsPage() {
 
                   <motion.div
                     variants={tableVariants}
-                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5"
+                    className="grid grid-cols-12 border-b border-border group hover:bg-accent/5 transition-all duration-300"
                   >
-                    <div className="col-span-3 p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                        Documents
+                    <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
+                        <motion.div 
+                          initial={{ opacity: 0.7 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.5, ease: "easeInOut" }}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
+                        >
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </motion.div>
+                        <span>Documents</span>
                       </h3>
                     </div>
                     <div className="col-span-4 p-4">
@@ -562,23 +747,48 @@ export default function IntegrationsPage() {
                         onClick={() => setIsDocumentsModalOpen(true)}
                       >
                         <ul className="space-y-3 text-gray-600 dark:text-gray-300">
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Interaction flow overview
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Sample certified pdf
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Sample uncertified original
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Data dictionary
                           </motion.li>
-                          <motion.li variants={boxVariants} className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <motion.li 
+                            variants={boxVariants} 
+                            className="flex items-center gap-3 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            whileHover={{ x: 3 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                          >
                             <span className="text-blue-500 dark:text-blue-400">•</span>
                             Iframe Integration guide
                           </motion.li>

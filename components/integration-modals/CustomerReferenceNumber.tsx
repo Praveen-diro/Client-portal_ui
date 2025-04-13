@@ -27,13 +27,16 @@ export default function CustomerReferenceNumber({ isOpen, onClose }: CustomerRef
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md sm:max-w-xl">
         <DialogHeader className="relative">
-          <button
+          <motion.button 
             onClick={onClose}
-            className="absolute right-0 top-0 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Close"
+            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+            whileHover={{ rotate: 90, scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            aria-label="Close modal"
           >
-            <X size={20} />
-          </button>
+            <X size={18} />
+          </motion.button>
           <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
             Add Customer Reference Number
           </DialogTitle>

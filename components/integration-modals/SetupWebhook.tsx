@@ -195,13 +195,16 @@ export default function SetupWebhook({ isOpen, onClose }: SetupWebhookProps) {
                   <Cable className="text-blue-500" size={22} />
                   Setup Webhook
                 </h2>
-                <button 
+                <motion.button 
                   onClick={onClose}
                   className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  whileHover={{ rotate: 90, scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
                   aria-label="Close modal"
                 >
                   <X size={18} />
-                </button>
+                </motion.button>
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-thin !scrollbar-w-1.5 scrollbar-thumb-blue-500 dark:scrollbar-thumb-blue-400 scrollbar-track-transparent hover:scrollbar-thumb-blue-600 dark:hover:scrollbar-thumb-blue-300">

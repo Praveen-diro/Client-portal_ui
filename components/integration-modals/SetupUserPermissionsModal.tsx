@@ -136,13 +136,16 @@ export default function SetupUserPermissionsModal({ isOpen, onClose }: SetupUser
                   <Users className="mr-2 text-blue-600 dark:text-blue-400" size={22} />
                   Setup user and permissions (optional)
                 </h2>
-                <button
+                <motion.button 
                   onClick={onClose}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Close"
+                  className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  whileHover={{ rotate: 90, scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  aria-label="Close modal"
                 >
-                  <X size={20} />
-                </button>
+                  <X size={18} />
+                </motion.button>
               </div>
 
               <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">

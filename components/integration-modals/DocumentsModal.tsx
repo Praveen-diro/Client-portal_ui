@@ -327,13 +327,16 @@ export default function DocumentsModal({ isOpen, onClose }: DocumentsModalProps)
                   >
                     {isMaximized ? <Minimize size={20} /> : <Maximize size={20} />}
                   </button> */}
-                  <button
+                  <motion.button
                     onClick={() => selectedPdf ? setSelectedPdf(null) : onClose()}
                     className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    whileHover={{ rotate: 90, scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
                     aria-label="Close"
                   >
                     <X size={20} />
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
