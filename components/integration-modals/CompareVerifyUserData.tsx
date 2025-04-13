@@ -343,30 +343,21 @@ export default function CompareVerifyUserData({
                           </div>
                         </div>
                         
-                        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Link2 size={18} className="text-blue-500 dark:text-blue-400" />
-                            <span className="font-medium text-gray-800 dark:text-gray-200">Your verification link:</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <code className="bg-white dark:bg-gray-800 px-3 py-2 rounded text-sm overflow-x-auto flex-1 border border-gray-200 dark:border-gray-700">
-                              {copyLink}
-                            </code>
-                            <button 
-                              onClick={() => copyToClipboard(copyLink)}
-                              className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-2 transition-colors"
-                              aria-label="Copy to clipboard"
-                            >
-                              <Copy size={16} />
-                              <span>Copy Link</span>
-                            </button>
-                          </div>
-                        </div>
-                        
+                       
                         <div className="flex items-start">
                           <AlertTriangle size={18} className="text-amber-500 dark:text-amber-400 mr-2 mt-0.5 shrink-0" />
                           <p className="text-gray-700 dark:text-gray-300 text-sm">
                             <strong>Note:</strong> Please follow URL encoding while building no-code URL. Refer <a href="https://session.diro.live/server/#/client/?buttonid=" className="text-blue-600 dark:text-blue-400 hover:underline">HTML URL</a> encoding for proper formatting.
+                            <span className="flex items-center mt-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                              <span className="mr-2 font-mono text-sm break-all"> {`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=`}</span>
+                              <button 
+                                onClick={() => copyToClipboard(`${verificationBaseUrl}${selectedButtonId || "<buttonid>"}&trackid=`)}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                title="Copy URL"
+                              >
+                                <Copy size={16} className="text-blue-500 dark:text-blue-400" />
+                              </button>
+                            </span>
                           </p>
                         </div>
                       </div>

@@ -264,11 +264,9 @@ export default function CopyLink({
                   </motion.div>
                   
                   <motion.div variants={contentItemVariants} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                      <Link2 className="text-blue-500 mr-2" size={18} />
-                      About Verification Links
-                    </h4>
+                    
                     <p className="text-gray-700 dark:text-gray-300 mb-4">
+                   <Link2 className="text-blue-500 mr-2 inline-block" size={18} />
                       Each verification button has its own unique verification link. The
                       same verification link can be used for multiple verification
                       sessions for different users but for the same type of verification.
@@ -346,6 +344,8 @@ export default function CopyLink({
                           Add event listener for the message event in the parent window to
                           listen for messages from the iframe for progress status as
                           'Opened link', 'Verifying', 'Submitted'
+                          <br />
+                          Example:
                           <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
                             <code className="text-sm break-all font-mono">
                               {"{"}sessionid: "IN-OaBTRQ", buttonid: "O.IN-X16BzE-xPg",

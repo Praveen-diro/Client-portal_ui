@@ -145,7 +145,7 @@ export default function SetupOrganization({ isOpen, onClose }: SetupOrganization
                       className="mb-6 inline-flex items-center px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all"
                     >
                       <Settings size={16} className="mr-2" />
-                      <span>Manage Account Settings</span>
+                      <span>- Manage account ➜ Organization details</span>
                       <ChevronRight size={16} className="ml-1" />
                     </Link>
                   </motion.div>

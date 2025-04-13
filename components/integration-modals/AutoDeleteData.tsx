@@ -183,9 +183,7 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
                           <Clock className="text-blue-600 dark:text-blue-400" size={24} />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Automatic data purging
-                          </h3>
+                         
                           <p className="text-gray-700 dark:text-gray-300">
                             You can configure the number of days after which the data gets automatically purged with DIRO being the processor after processing is complete for each verification button.
                           </p>
@@ -213,9 +211,7 @@ export default function AutoDeleteData({ isOpen, onClose }: AutoDeleteDataProps)
                           <AlertTriangle className="text-amber-600 dark:text-amber-400" size={24} />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Important security note
-                          </h3>
+                         
                           <p className="text-gray-700 dark:text-gray-300">
                             DIRO deletes the encryption token and therefore even the backup data can not be decrypted.
                           </p>

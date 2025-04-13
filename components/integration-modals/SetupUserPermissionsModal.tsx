@@ -196,7 +196,22 @@ export default function SetupUserPermissionsModal({ isOpen, onClose }: SetupUser
                     </h3>
                     <div className="space-y-4 text-gray-700 dark:text-gray-300">
                       <p>
-                        Please refer to DIRO sample landing page template for displaying buttons and adding email as the tracking ID - google drive link for source code
+                        Please refer to DIRO sample landing page template for displaying buttons and adding email as the tracking ID - 
+                        
+                        
+                        <motion.a 
+                
+                        href="https://drive.google.com/file/d/1HaZMv_E6MHLW5GlwrzlokXIRDsOIgQhT/view?usp=share_link"
+                        target="_blanck"
+                        rel="noopener noreferrer" 
+                        className="flex items-center gap-2 text-blue-600 dark:text-blue-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors group"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <ExternalLink size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                       <span className="underline">   google drive link for source code</span>
+                      </motion.a>
+                      
                       </p>
                       Or from the following url:
                       <motion.a 
@@ -213,7 +228,6 @@ export default function SetupUserPermissionsModal({ isOpen, onClose }: SetupUser
                       
                       <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-lg mt-4 border border-gray-200 dark:border-gray-600">
                         <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                          <span className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs font-bold px-2.5 py-0.5 rounded">REQUIRED</span>
                           You must:
                         </h4>
                         <ul className="space-y-3 ml-4 text-gray-700 dark:text-gray-300">

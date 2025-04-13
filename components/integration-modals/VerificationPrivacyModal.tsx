@@ -173,7 +173,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                     animate="visible"
                     exit="exit"
                   >
-                    <motion.div variants={contentItemVariants}>
+                    {/* <motion.div variants={contentItemVariants}>
                       <Link 
                         href="/client/validation-buttons" 
                         className="mb-6 inline-flex items-center px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all"
@@ -182,7 +182,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                         <span>Manage Privacy Settings</span>
                         <ChevronRight size={16} className="ml-1" />
                       </Link>
-                    </motion.div>
+                    </motion.div> */}
                     
                     <motion.div 
                       variants={contentVariants}
@@ -198,18 +198,9 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                           variants={contentItemVariants}
                           className="flex items-start"
                         >
-                          <div className="flex-shrink-0">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
-                              <FileText className="text-blue-600 dark:text-blue-400" size={20} />
-                            </div>
-                          </div>
+                          
                           <div className="ml-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                              Privacy Settings
-                            </h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              Configure privacy settings and verification fields to control what data is retained and how it's processed.
-                            </p>
+                          
                             <div className="mt-4">
                               <Link 
                                 href="/client/validation-buttons" 
@@ -221,10 +212,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                             </div>
                             
                             <div className="mt-4 p-4 bg-white/80 dark:bg-gray-800/40 rounded-lg border border-blue-100 dark:border-blue-900/20">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
-                                <p className="font-medium text-gray-900 dark:text-white">Basic Privacy Options</p>
-                              </div>
+                             
                               <ul className="ml-4 space-y-2 text-gray-700 dark:text-gray-300">
                                 <li className="flex items-center">
                                   <ToggleLeft size={14} className="text-blue-500 dark:text-blue-400 mr-2 shrink-0" />

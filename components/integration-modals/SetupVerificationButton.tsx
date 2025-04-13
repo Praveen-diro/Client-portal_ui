@@ -140,14 +140,14 @@ export default function SetupVerificationButton({ isOpen, onClose }: SetupVerifi
                   animate="visible"
                   exit="exit"
                 >
-                  <Link 
+                  {/* <Link 
                     href="/client/validation-buttons" 
                     className="mb-6 inline-flex items-center px-4 py-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-all"
                   >
                     <Settings size={16} className="mr-2" />
                     <span>Manage Verification Buttons</span>
                     <ChevronRight size={16} className="ml-1" />
-                  </Link>
+                  </Link> */}
 
                   <motion.div variants={contentVariants} className="space-y-6 mt-2">
                     <motion.section 

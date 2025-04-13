@@ -144,7 +144,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                       className="mb-6 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all"
                     >
                       <Settings size={16} className="mr-2" />
-                      <span>Manage Organization Settings</span>
+                      <span>- Manage account ➜ Organization details</span>
                       <ChevronRight size={16} className="ml-1" />
                     </Link>
                   </motion.div>
@@ -200,10 +200,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                             production. You would also need to select a plan or buy credits.
                           </p>
                           <div className="mt-4 flex">
-                            <span className="text-sm text-purple-600 dark:text-purple-400 flex items-center">
-                              <AlertCircle size={16} className="mr-1.5" />
-                              Required for production
-                            </span>
+                          
                           </div>
                         </div>
                       </div>
@@ -268,13 +265,13 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                     </motion.section>
                   </div>
                   
-                  <motion.div variants={contentItemVariants} className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <motion.div variants={contentItemVariants} className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-800/40">
                     <Link 
                       href="/client/account/" 
                       className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all"
                     >
                       <Users size={16} className="mr-2" />
-                      <span>Manage User Settings</span>
+                      <span>- Manage account ➜ User details</span>
                       <ChevronRight size={16} className="ml-1" />
                     </Link>
                   </motion.div>

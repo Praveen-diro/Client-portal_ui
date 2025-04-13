@@ -153,10 +153,7 @@ export default function GetDocumentViaEmail({ isOpen, onClose }: GetDocumentViaE
                           className="space-y-6"
                         >
                           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <h3 className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2 mb-2">
-                              <Mail size={18} />
-                              Email Configuration
-                            </h3>
+                           
                             <ul className="ml-2 space-y-2">
                               <li className="text-gray-700 dark:text-gray-300 flex items-start gap-2">
                                 <span className="text-blue-500 mt-1"><CheckCircle2 size={16} /></span>
@@ -173,7 +170,7 @@ export default function GetDocumentViaEmail({ isOpen, onClose }: GetDocumentViaE
                                     <ArrowRight size={14} className="text-gray-400" />
                                     <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">After verifications</span>
                                     <ArrowRight size={14} className="text-gray-400" />
-                                    <span className="bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded text-blue-700 dark:text-blue-300">Email to</span>
+                                    <span className="bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded text-blue-700 dark:text-blue-300">Email to (add email)</span>
                                   </div>
                                 </div>
                               </li>
@@ -244,23 +241,12 @@ export default function GetDocumentViaEmail({ isOpen, onClose }: GetDocumentViaE
                                 <Globe size={14} />
                                 Email to Salesforce - Linking external emails
                               </a>
+                              <p className="text-gray-700 dark:text-gray-300">
+                                Few CRMs require the emails to contain a "trackingid" in the email address. This you can add as {"<"}your field{">"} anywhere inside the email address itself. It will automatically be replaced with the field entry or tracking id. Ex. customer_-{"<"}accountnumber{">"}@yourcompany.com
+                              </p>
                             </div>
                             
-                            <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-200 dark:border-teal-800/40 shadow-sm p-4">
-                              <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <Mail className="text-blue-500" size={18} />
-                                Custom CRM Setup
-                              </h4>
-                              <p className="text-gray-700 dark:text-gray-300">
-                                Few CRMs require the emails to contain a "trackingid" in the email
-                                address. This you can add as {"<"}your field
-                                {">"} anywhere inside the email address itself. It will
-                                automatically be replaced with the field entry or tracking id.
-                              </p>
-                              <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-700 text-sm font-mono">
-                                Example: customer_-{"<"}accountnumber{">"}@yourcompany.com
-                              </div>
-                            </div>
+                           
                           </div>
                         </motion.section>
                       )}

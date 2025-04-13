@@ -308,50 +308,88 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-lg border border-emerald-200 dark:border-emerald-800/40 shadow-sm"
+                      className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-lg border border-indigo-200 dark:border-indigo-800/40 shadow-sm"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <ArrowRightLeft size={18} className="text-blue-500" />
-                        Example Response:
+                        How It Works
                       </h3>
-                      <div className="relative">
-                        <pre className="bg-gray-50 dark:bg-gray-900/50 p-4 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
-                          <code className="text-sm text-gray-800 dark:text-gray-200">{responseExample}</code>
-                        </pre>
-                        <button 
-                          onClick={() => copyToClipboard(responseExample, "response")}
-                          className="absolute top-2 right-2 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                          aria-label="Copy code"
-                        >
-                          {copyStatus.response ? (
-                            <CheckCircle size={16} className="text-green-500" />
-                          ) : (
-                            <Copy size={16} />
-                          )}
-                        </button>
-                        {copyStatus.response && (
-                          <span className="absolute top-2 right-12 text-xs text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
-                            {copyStatus.response}
-                          </span>
-                        )}
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Encryption Process:</h4>
+                          <div className="ml-4 space-y-3">
+                            <div>
+                              <h5 className="font-medium text-gray-800 dark:text-gray-200">Keys:</h5>
+                              <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                                <li>Primary Key: <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">hmacsecretkey</code> (preferred).</li>
+                                <li>Fallback Key: <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">apikey</code> (if hmacsecretkey is unavailable).</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-gray-800 dark:text-gray-200">Generate HMAC Signature:</h5>
+                              <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                                <li>Convert the payload to a string.</li>
+                                <li>Use the SHA-256 algorithm and the secret key to create a hash.</li>
+                                <li>Encode the hash as a Base64 string.</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-gray-800 dark:text-gray-200">Send the Signature:</h5>
+                              <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                                <li>Add the generated HMAC signature to the <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">MessageHash</code> header.</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </motion.section>
 
                     <motion.section 
                       variants={contentItemVariants}
-                      className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-lg border border-indigo-200 dark:border-indigo-800/40 shadow-sm"
+                      className="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-lg border border-emerald-200 dark:border-emerald-800/40 shadow-sm"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <Shield size={18} className="text-blue-500" />
-                        How to Verify HMAC Signatures
+                        Verification for Clients
                       </h3>
-                      <p className="text-gray-700 dark:text-gray-300 mb-4">
-                        To verify the HMAC signature, you need to:
-                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Receive the Data:</h4>
+                          <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                            <li>Get the callback payload and MessageHash header.</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Regenerate HMAC Signature:</h4>
+                          <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                            <li>Use the same <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">hmacsecretkey</code> or <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">apikey</code> to generate a new HMAC signature.</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">Compare Signatures:</h4>
+                          <ul className="list-disc ml-5 text-gray-700 dark:text-gray-300">
+                            <li>Match the regenerated signature with the MessageHash header:</li>
+                            <ul className="list-circle ml-5 text-gray-700 dark:text-gray-300">
+                              <li>If they match: Data is authentic.</li>
+                              <li>If not: Reject the data.</li>
+                            </ul>
+                          </ul>
+                        </div>
+                      </div>
+                    </motion.section>
+
+                    <motion.section 
+                      variants={contentItemVariants}
+                      className="bg-lime-50 dark:bg-lime-900/20 p-5 rounded-lg border border-lime-200 dark:border-lime-800/40 shadow-sm"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <KeyRound size={18} className="text-blue-500" />
+                        Setting Up the HMAC Key
+                      </h3>
                       <ol className="list-decimal ml-5 space-y-2 text-gray-700 dark:text-gray-300">
-                        <li>Extract the signature from the <code className="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">MessageHash</code> header</li>
-                        <li>Compute the HMAC-SHA256 of the payload using your secret key</li>
-                        <li>Compare the computed signature with the received signature</li>
+                        <li>Login to the Client Portal and navigate to "Organization Details."</li>
+                        <li>Add your HMAC Key in the provided field and ensure it follows security policies.</li>
+                        <li>Save Profile to finalize the setup.</li>
                       </ol>
                     </motion.section>
 
@@ -361,10 +399,10 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <Code size={18} className="text-blue-500" />
-                        Java Implementation:
+                        Sample Java Code:
                       </h3>
                       <div className="relative">
-                        <pre className="bg-gray-50 dark:bg-gray-900/50 p-4 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                        <pre className="bg-gray-50 dark:bg-gray-900/50 p-4 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto pt-8">
                           <code className="text-sm text-gray-800 dark:text-gray-200">{javaCode}</code>
                         </pre>
                         <button 
@@ -392,7 +430,7 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                     >
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <Code size={18} className="text-blue-500" />
-                        JavaScript Implementation:
+                        Sample JavaScript Code:
                       </h3>
                       <div className="relative">
                         <pre className="bg-gray-50 dark:bg-gray-900/50 p-4 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -415,42 +453,6 @@ function verifyHmacSHA256Signature(payload, receivedSignature, secretKey) {
                           </span>
                         )}
                       </div>
-                    </motion.section>
-
-                    <motion.section 
-                      variants={contentItemVariants}
-                      className="bg-lime-50 dark:bg-lime-900/20 p-5 rounded-lg border border-lime-200 dark:border-lime-800/40 shadow-sm"
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <KeyRound size={18} className="text-blue-500" />
-                        Security Best Practices
-                      </h3>
-                      <ul className="list-disc ml-5 space-y-2 text-gray-700 dark:text-gray-300">
-                        <li>Keep your secret key secure and never expose it in client-side code</li>
-                        <li>Use HTTPS for all communications</li>
-                        <li>Implement proper error handling for signature verification failures</li>
-                        <li>Consider implementing timestamp validation to prevent replay attacks</li>
-                      </ul>
-                    </motion.section>
-
-                    <motion.section 
-                      variants={contentItemVariants}
-                      className="bg-fuchsia-50 dark:bg-fuchsia-900/20 p-5 rounded-lg border border-fuchsia-200 dark:border-fuchsia-800/40 shadow-sm"
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <MessageSquare size={18} className="text-blue-500" />
-                        Need Help?
-                      </h3>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        If you have any questions or need assistance with implementing HMAC
-                        verification, please contact our support team at{" "}
-                        <a
-                          href="mailto:support@diro.io"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          support@diro.io
-                        </a>
-                      </p>
                     </motion.section>
                   </motion.div>
                 </motion.div>
