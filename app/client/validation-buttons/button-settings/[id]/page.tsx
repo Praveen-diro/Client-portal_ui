@@ -92,6 +92,11 @@ import {
   setFullTextSearchData,
   setDocumentExpiryValue,
   setAutoNavigation,
+  setIncludeOriginalFilename,
+  setEnableCustomTemplate,
+  setDiroCertificate,
+  setOriginalDoc,
+  setEmailTemplate,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -436,6 +441,22 @@ export default function EditButton() {
   // Debug the showgoogle property
   console.log("showgoogle property:", buttonSettings?.showgoogle);
 
+  const handleDiroCertificateChange = useCallback(
+    (checked: boolean) => {
+      console.log("Changing diroCertificate to:", checked);
+      dispatch(setDiroCertificate(checked));
+    },
+    [dispatch]
+  );
+
+  const handleOriginalDocChange = useCallback(
+    (checked: boolean) => {
+      console.log("Changing originalDoc to:", checked);
+      dispatch(setOriginalDoc(checked));
+    },
+    [dispatch]
+  );
+
   // Render content based on loading and error state
   const renderContent = () => {
     if (isLoading) {
@@ -702,66 +723,7 @@ export default function EditButton() {
                   />
                 </div>
               )}
-              {activeTab === 3 && (
-                <TabsContent value="email-reminder">
-                  {emailReminderLoading ? (
-                    <div className="flex justify-center items-center p-6">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                      <span className="ml-3">Loading email reminder settings...</span>
-                    </div>
-                  ) : emailReminderError ? (
-                    <div className="p-6 border rounded-md bg-red-50 dark:bg-red-900/20">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 text-red-500">
-                          <AlertCircle className="h-5 w-5" />
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-red-800 dark:text-red-400">
-                            Email Reminder Settings Unavailable
-                          </h3>
-                          <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                            <p>{emailReminderError}</p>
-                            <p className="mt-1">This won't affect your ability to save button settings.</p>
-                          </div>
-                          <div className="mt-4">
-                            <Button variant="outline" onClick={handleRetryEmailReminder} className="text-sm">
-                              Retry Loading
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <TriggersEmailTab
-                      emailToOrganization={buttonSettings.notifysubmissionto}
-                      includePdfInEmail={buttonSettings.include_pdf}
-                      submissionNotificationViaEmail={buttonSettings.notifySubmission}
-                      emailToOrganizationEnabled={buttonSettings.emailToOrganizationEnabled}
-                      enableEngagementCallback={buttonSettings.engagement_callback}
-                      autoJson={buttonSettings.autojson}
-                      callbackUrl={buttonSettings.callbackurl}
-                      addGoogleSheetUrl={buttonSettings.googleSheet}
-                      enableSalesforce={buttonSettings.enableSalesforce}
-                      onEmailToOrganizationChange={(value: string) => dispatch(setEmailToOrganization(value))}
-                      onIncludePdfInEmailChange={(checked: boolean) => dispatch(setIncludePdfInEmail(checked))}
-                      onSubmissionNotificationViaEmailChange={(checked: boolean) =>
-                        dispatch(setSubmissionNotificationViaEmail(checked))
-                      }
-                      onEmailToOrganizationEnabledChange={(checked: boolean) => dispatch(setEmailToOrganizationEnabled(checked))}
-                      onEnableEngagementCallbackChange={(checked: boolean) => dispatch(setEnableEngagementCallback(checked))}
-                      onAutoJsonChange={(checked: boolean) => dispatch(setAutoJson(checked))}
-                      onCallbackUrlChange={(value: string) => dispatch(setCallbackUrl(value))}
-                      onAddGoogleSheetUrlChange={(checked: boolean) => dispatch(setAddGoogleSheetUrl(checked))}
-                      onEnableSalesforceChange={(checked: boolean) => dispatch(setEnableSalesforce(checked))}
-                      // @ts-ignore: Type error with null vs undefined
-                      emailReminder={emailReminder}
-                      emailReminderLoading={emailReminderLoading}
-                      // @ts-ignore: Type error with null vs undefined
-                      emailReminderError={emailReminderError}
-                    />
-                  )}
-                </TabsContent>
-              )}
+              {activeTab === 3 && <div className="lg:col-span-3">{renderEmailReminderContent()}</div>}
               {activeTab === 4 && (
                 <DisplayTab
                   startWithFullScreen={buttonSettings?.fullscreenmode}
@@ -1018,6 +980,79 @@ export default function EditButton() {
   const handleUrlChange = (url: string) => {
     // Update the button settings with the selected direct_link
     dispatch(setFixedUrlAddress(url));
+  };
+
+  // Add this function before the return statement, after all other function definitions
+  const renderEmailReminderContent = () => {
+    if (emailReminderLoading) {
+      return (
+        <div className="flex justify-center items-center p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          <span className="ml-3">Loading email reminder settings...</span>
+        </div>
+      );
+    }
+
+    if (emailReminderError) {
+      return (
+        <div className="p-6 border rounded-md bg-red-50 dark:bg-red-900/20">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 text-red-500">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Email Reminder Settings Unavailable</h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                <p>{emailReminderError}</p>
+                <p className="mt-1">This won't affect your ability to save button settings.</p>
+              </div>
+              <div className="mt-4">
+                <Button variant="outline" onClick={handleRetryEmailReminder} className="text-sm">
+                  Retry Loading
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <TriggersEmailTab
+        emailToOrganization={buttonSettings?.replytoemail || ""}
+        includePdfInEmail={buttonSettings?.include_pdf || false}
+        submissionNotifyEmail={buttonSettings?.submissionNotifyEmail || false}
+        emailToOrganizationEnabled={buttonSettings?.emailToOrganizationEnabled || false}
+        enableEngagementCallback={buttonSettings?.engagement_callback || false}
+        autoJson={buttonSettings?.autojson || false}
+        callbackUrl={buttonSettings?.callbackurl || ""}
+        addGoogleSheetUrl={buttonSettings?.googleSheet || false}
+        enableSalesforce={buttonSettings?.enableSalesforce || false}
+        includeOriginalFilename={buttonSettings?.includeOriginalFilename || false}
+        enableCustomTemplate={buttonSettings?.enableCustomTemplate || false}
+        emailTemplate={buttonSettings?.emailnotetemplate}
+        emailReminder={emailReminder}
+        emailReminderLoading={emailReminderLoading}
+        emailReminderError={emailReminderError}
+        diroCertificate={buttonSettings?.diro_certificate || false}
+        originalDoc={buttonSettings?.original_doc || false}
+        shareOnlyJson={buttonSettings?.shareonlyjson || false}
+        onEmailToOrganizationChange={(value: string) => dispatch(setEmailToOrganization(value))}
+        onIncludePdfInEmailChange={(checked: boolean) => dispatch(setIncludePdfInEmail(checked))}
+        onSubmissionNotificationViaEmailChange={(checked: boolean) => dispatch(setSubmissionNotificationViaEmail(checked))}
+        onEmailToOrganizationEnabledChange={(checked: boolean) => dispatch(setEmailToOrganizationEnabled(checked))}
+        onEnableEngagementCallbackChange={(checked: boolean) => dispatch(setEnableEngagementCallback(checked))}
+        onAutoJsonChange={(checked: boolean) => dispatch(setAutoJson(checked))}
+        onCallbackUrlChange={(value: string) => dispatch(setCallbackUrl(value))}
+        onAddGoogleSheetUrlChange={(checked: boolean) => dispatch(setAddGoogleSheetUrl(checked))}
+        onEnableSalesforceChange={(checked: boolean) => dispatch(setEnableSalesforce(checked))}
+        onDiroCertificateChange={(checked: boolean) => dispatch(setDiroCertificate(checked))}
+        onOriginalDocChange={(checked: boolean) => dispatch(setOriginalDoc(checked))}
+        onIncludeOriginalFilenameChange={(checked: boolean) => dispatch(setIncludeOriginalFilename(checked))}
+        onEnableCustomTemplateChange={(checked: boolean) => dispatch(setEnableCustomTemplate(checked))}
+        onEmailTemplateChange={(value: string) => dispatch(setEmailTemplate(value))}
+      />
+    );
   };
 
   return (

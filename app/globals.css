@@ -140,4 +140,14 @@
       transform: scale(1);
     }
   }
+
+  @keyframes checkbox-wave {
+    50% {
+      transform: scale(0.9);
+    }
+  }
+
+  .checkbox-wrapper input[type="checkbox"]:checked+.cbx span:first-child {
+    animation: checkbox-wave 0.4s ease;
+  }
 }
