@@ -70,7 +70,7 @@ interface ButtonOption {
 
 export default function ApiReferencePage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
-  const [currentButtonId, setCurrentButtonId] = useState("dev");
+  const [currentButtonId, setCurrentButtonId] = useState("");
   const [apikey, setApikey] = useState("");
   const [token, setToken] = useState("");
   
@@ -80,11 +80,8 @@ export default function ApiReferencePage() {
     name: string;
   }
   
-  const [buttonList, setButtonList] = useState<ButtonOption[]>([
-    { id: "dev", name: "Development" },
-    { id: "stage", name: "Staging" },
-    { id: "prod", name: "Production" },
-  ]);
+  // Remove default values, start with empty array
+  const [buttonList, setButtonList] = useState<ButtonOption[]>([]);
   
   const [copied, setCopied] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
@@ -106,6 +103,7 @@ export default function ApiReferencePage() {
     success: false,
     message: ''
   });
+  const [hasButtonData, setHasButtonData] = useState(false);
 
   // Helper function to get the current button name
   const getCurrentButtonName = () => {
@@ -180,22 +178,26 @@ export default function ApiReferencePage() {
             
           if (buttons.length > 0) {
             setButtonList(buttons);
+            setHasButtonData(true); // Set flag indicating we have button data
             // Always set the first button as the current button
             setCurrentButtonId(buttons[0].id);
             
             // Also fetch details for this button immediately
             fetchButtonDetails(buttons[0].id);
           } else {
-            console.warn("No valid buttons returned from API, using default list");
-            // Keep the default buttons
+            console.warn("No valid buttons returned from API");
+            setHasButtonData(false);
+            setButtonList([]);
           }
         } else {
           console.error("Failed to fetch button list:", response.error);
           setButtonLoadError(response.error || "Failed to fetch button list");
+          setHasButtonData(false);
         }
       } catch (error: any) {
         console.error("Error fetching button list:", error);
         setButtonLoadError(error.message || "An error occurred while fetching the button list.");
+        setHasButtonData(false);
       } finally {
         setIsLoadingButtons(false);
       }
@@ -487,131 +489,75 @@ export default function ApiReferencePage() {
                         <Label htmlFor="select-button" className="font-medium text-sm whitespace-nowrap">
                           Select API Environment
                         </Label>
-                        <Select value={currentButtonId} onValueChange={handleButtonChange} disabled={isLoadingButtons}>
-                          <SelectTrigger className="w-[230px] border-indigo-100 dark:border-indigo-900/40 focus:ring-indigo-500 bg-white dark:bg-gray-800">
-                            {isLoadingButtons ? (
-                              <div className="flex items-center text-gray-400">
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                <span>Loading...</span>
-                              </div>
-                            ) : (
+                        
+                        {isLoadingButtons ? (
+                          <div className="w-[230px] h-10 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400 animate-spin" />
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Loading environments...</span>
+                          </div>
+                        ) : hasButtonData ? (
+                          <Select value={currentButtonId} onValueChange={handleButtonChange} disabled={isLoadingButtons}>
+                            <SelectTrigger className="w-[230px] border-indigo-100 dark:border-indigo-900/40 focus:ring-indigo-500 bg-white dark:bg-gray-800">
                               <div className="flex items-center justify-between w-full overflow-hidden">
                                 <div className="truncate font-medium text-indigo-600 dark:text-indigo-400">
                                   {getCurrentButtonName()}
                                 </div>
                               </div>
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            {buttonLoadError ? (
-                              <div className="px-2 py-1 text-sm text-red-500">{buttonLoadError}</div>
-                            ) : (
-                              buttonList.map((button) => (
-                                <SelectItem 
-                                  key={button.id} 
-                                  value={button.id}
-                                  className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                                >
-                                  {button.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Public API Key */}
-                      <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-2 flex-shrink-0">
-                            <KeyIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300 whitespace-nowrap">Public API Key</h4>
-                          
-                          {isLoadingButtonDetails ? (
-                            <div className="ml-2 p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-md">
-                              <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
-                            </div>
-                          ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button 
-                                    className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
-                                              dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
-                                              hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
-                                    onClick={() => copyToClipboard(apikey)}
-                                    disabled={!apikey || isLoadingButtonDetails}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {buttonLoadError ? (
+                                <div className="px-2 py-1 text-sm text-red-500">{buttonLoadError}</div>
+                              ) : (
+                                buttonList.map((button) => (
+                                  <SelectItem 
+                                    key={button.id} 
+                                    value={button.id}
+                                    className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                                   >
-                                    {copied ? (
-                                      <CheckIcon className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <Copy className="h-3.5 w-3.5" />
-                                    )}
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                        
-                       
+                                    {button.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="w-[230px] h-10 px-3 border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 rounded-md flex items-center justify-center">
+                            {buttonLoadError ? (
+                              <span className="text-sm text-red-600 dark:text-red-400">{buttonLoadError}</span>
+                            ) : (
+                              <span className="text-sm text-red-600 dark:text-red-400">No environments available</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Secret Access Token */}
-                      <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg mr-2 flex-shrink-0">
-                            <ShieldIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <h4 className="text-base font-semibold text-emerald-800 dark:text-emerald-300 whitespace-nowrap">Secret Access Token</h4>
-                          
-                          <div className="ml-2 flex items-center gap-2">
-                            {isLoadingButtonDetails ? (
-                              <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-md">
-                                <Loader2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                      {/* Only show credential sections if we have button data */}
+                      {hasButtonData ? (
+                        <>
+                          {/* Public API Key */}
+                          <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-2 flex-shrink-0">
+                                <KeyIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               </div>
-                            ) : (
-                              <>
-                                {currentEmail === ownerEmail && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <button 
-                                          className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                                    dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
-                                                    hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
-                                          onClick={generateNewToken}
-                                          disabled={isGeneratingToken || isLoadingButtonDetails || !token}
-                                        >
-                                          {isGeneratingToken ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                          ) : (
-                                            <RefreshCw className="h-3.5 w-3.5" />
-                                          )}
-                                        </button>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top">
-                                        <p>Generate new token</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                                
+                              <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300 whitespace-nowrap">Public API Key</h4>
+                              
+                              {isLoadingButtonDetails ? (
+                                <div className="ml-2 p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded-md">
+                                  <Loader2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
+                                </div>
+                              ) : (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <button 
-                                        className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                                  dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
-                                                  hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
-                                        onClick={() => copyToClipboard(token, true)}
-                                        disabled={!token || isLoadingButtonDetails}
+                                        className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
+                                                  dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
+                                                  hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
+                                        onClick={() => copyToClipboard(apikey)}
+                                        disabled={!apikey || isLoadingButtonDetails}
                                       >
-                                        {copiedToken ? (
+                                        {copied ? (
                                           <CheckIcon className="h-3.5 w-3.5" />
                                         ) : (
                                           <Copy className="h-3.5 w-3.5" />
@@ -619,17 +565,95 @@ export default function ApiReferencePage() {
                                       </button>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">
-                                      <p>{copiedToken ? "Copied!" : "Copy to clipboard"}</p>
+                                      <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                              </>
-                            )}
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Secret Access Token */}
+                          <div className="flex-1 space-y-2 lg:space-y-0 mx-auto text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg mr-2 flex-shrink-0">
+                                <ShieldIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                              <h4 className="text-base font-semibold text-emerald-800 dark:text-emerald-300 whitespace-nowrap">Secret Access Token</h4>
+                              
+                              <div className="ml-2 flex items-center gap-2">
+                                {isLoadingButtonDetails ? (
+                                  <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-md">
+                                    <Loader2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                                  </div>
+                                ) : (
+                                  <>
+                                    {currentEmail === ownerEmail && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button 
+                                              className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                                        dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                        hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                              onClick={generateNewToken}
+                                              disabled={isGeneratingToken || isLoadingButtonDetails || !token}
+                                            >
+                                              {isGeneratingToken ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                              ) : (
+                                                <RefreshCw className="h-3.5 w-3.5" />
+                                              )}
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <p>Generate new token</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button 
+                                            className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
+                                                      dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                      hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
+                                            onClick={() => copyToClipboard(token, true)}
+                                            disabled={!token || isLoadingButtonDetails}
+                                          >
+                                            {copiedToken ? (
+                                              <CheckIcon className="h-3.5 w-3.5" />
+                                            ) : (
+                                              <Copy className="h-3.5 w-3.5" />
+                                            )}
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          <p>{copiedToken ? "Copied!" : "Copy to clipboard"}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full flex-1 mt-4 lg:mt-0">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
+                            <div className="text-gray-600 dark:text-gray-400">
+                              {buttonLoadError ? (
+                                <p>Failed to load API environments. Please try again later.</p>
+                              ) : (
+                                <p>No API environments available. The API returned no data.</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        
-                     
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -739,7 +763,22 @@ export default function ApiReferencePage() {
             {/* Main API Documentation Section */}
             <div className="bg-card rounded-lg border shadow-lg dark:shadow-gray-900/30 overflow-hidden mb-10">
               <div className="p-0">
-                <SwaggerUI endpoint="verification" token={token} />
+                {hasButtonData ? (
+                  <SwaggerUI endpoint="verification" token={token} />
+                ) : (
+                  <div className="p-8 text-center">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-12 max-w-2xl mx-auto">
+                      <ServerIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">API documentation unavailable</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Unable to load API documentation because no environment data is available.
+                      </p>
+                      <p className="text-gray-500 dark:text-gray-500 text-sm">
+                        Please ensure your API is returning valid environment data.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
