@@ -213,7 +213,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "integrations",
       icon: Gauge,
-      label: "Integrations",
+      label: "Integration",
       href: "/client/integrations",
     },
     {

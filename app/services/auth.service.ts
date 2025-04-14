@@ -115,6 +115,7 @@ export interface ForgotPasswordData {
   password?: string;
   token?: string;
   userEmail?: string;
+  resend?: boolean;
   [key: string]: any;
 }
 
@@ -736,7 +737,7 @@ class AuthService {
   async forgotPassword(forgotData: ForgotPasswordData, history: any): Promise<any> {
     // Dispatch loading action
     dispatchAction({ type: "START_REG_LOADER" });
-
+    console.log("forgotData", forgotData);
     const config = {
       headers: {
         "Content-Type": "application/json",

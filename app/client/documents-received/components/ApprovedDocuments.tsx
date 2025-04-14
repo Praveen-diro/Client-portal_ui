@@ -663,8 +663,26 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
                               </span>
                             ))
                           : null
+                      ): doc?.file?.combinedJSON ? (
+                      doc.file.combinedJSON?.map((item, index) =>
+                        item?.accountdetails?.map((detail, i) => (
+                          <span
+                            key={i} 
+                            style={{
+                              display: "flex ",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: "13px",
+                              fontWeight: "400",
+                              lineHeight: "1",
+                              color: "black",
+                            }}
+                          >
+                            {detail?.name}
+                          </span>
+                        ))
                       )
-                    : null}
+                    ) : null}
                 </>
               )}
             </TableCell>
