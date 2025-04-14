@@ -441,23 +441,7 @@ export default function ApiReferencePage() {
                     <code className="font-mono bg-white dark:bg-gray-800 px-3 py-1 ml-2 rounded-md text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-700">
                       api.dirolabs.com
                     </code>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button 
-                            className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
-                                      dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
-                                      hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
-                            onClick={() => copyToClipboard("api.dirolabs.com")}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Copy base URL</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  
                   </div>
                 </div>
               </div>

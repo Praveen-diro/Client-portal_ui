@@ -17,6 +17,7 @@ import { authService } from "@/app/services/auth.service";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Loader from "@/components/ui/loader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // Custom styles to hide the default close button
 const customDialogStyles = `
@@ -26,7 +27,15 @@ const customDialogStyles = `
 `;
 
 // Color input component with validation and preview
-const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
+const ColorInput = ({ 
+  value, 
+  onChange,
+  validateOnBlur 
+}: { 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  validateOnBlur?: (fieldId: string, value: string) => boolean;
+}) => {
   // Function to check if a color is valid
   const isValidColor = (color: string): boolean => {
     if (!color) return false;
@@ -57,11 +66,23 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
       "teal",
       "aqua",
       "silver",
-      "white",
     ];
 
     return commonColors.includes(color.toLowerCase());
   };
+  
+  // Check if color is white
+  const isWhiteColor = (color: string): boolean => {
+    const lowerColor = color.toLowerCase();
+    return lowerColor === 'white' || lowerColor === '#ffffff' || lowerColor === '#fff' || lowerColor === 'rgb(255, 255, 255)';
+  };
+
+  // Check if the current color is valid and not white
+  const hasColorError = value ? (!isValidColor(value) || isWhiteColor(value)) : false;
+  const errorMessage = value ? (
+    isWhiteColor(value) ? "White color is not allowed" : 
+    !isValidColor(value) ? "Invalid color name or code" : ""
+  ) : "";
 
   // State for color picker
   const [isOpen, setIsOpen] = useState(false);
@@ -338,13 +359,25 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
   // Calculate the base color for the gradient based on the slider position
   const baseColor = `hsl(${sliderPosition * 360}, 100%, 50%)`;
 
+  // Validate on blur
+  const handleBlur = () => {
+    // Run the validation only if there's a validateOnBlur function
+    if (value && validateOnBlur) {
+      // Only validate if we don't already have a local error message
+      // This prevents duplicate error messages
+      if (!errorMessage) {
+        validateOnBlur('setcolor', value);
+      }
+    }
+  };
+
   return (
     <div className="space-y-1.5">
       <Label htmlFor="setcolor">Color</Label>
       <div className="flex gap-2 items-center">
         <Input
           id="setcolor"
-          className="h-9 flex-1"
+          className={`h-9 flex-1 ${hasColorError ? 'border-red-300 focus:ring-red-500' : ''}`}
           placeholder="Enter color name or code"
           value={value}
           onChange={(e) => {
@@ -358,6 +391,7 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
             };
             onChange(syntheticEvent);
           }}
+          onBlur={handleBlur}
         />
 
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -500,12 +534,12 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
 
         {value && isValidColor(value) && (
           <div
-            className="h-9 w-9 rounded-full border-2 border-border flex-shrink-0 relative overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-105"
+            className={`h-9 w-9 rounded-full border-2 border-border flex-shrink-0 relative overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-105 ${isWhiteColor(value) ? 'border-red-300' : ''}`}
             title={value}
             onClick={() => setIsOpen(true)}
           >
             <div className="absolute inset-0" style={{ backgroundColor: value }} />
-            {value.toLowerCase() === "white" && (
+            {isWhiteColor(value) && (
               <div className="absolute inset-0 flex items-center justify-center text-xs text-red-500 bg-gray-100">
                 <span className="font-bold">!</span>
               </div>
@@ -513,7 +547,11 @@ const ColorInput = ({ value, onChange }: { value: string; onChange: (e: React.Ch
           </div>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">*Do not select white color/code.</p>
+      {errorMessage ? (
+        <p className="text-xs text-red-500">{errorMessage}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">*Do not select white color/code.</p>
+      )}
     </div>
   );
 };
@@ -531,19 +569,40 @@ export function OrganizationSection() {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [isRemovingBackground, setIsRemovingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Updated validation state with all possible field errors
+  const [validationErrors, setValidationErrors] = useState<{
+    color?: string;
+    website?: string;
+    email?: string;
+    name?: string;
+    displayname?: string;
+    organizationtype?: string;
+    country?: string;
+    registrationNumber?: string;
+    invoicedescription?: string;
+    hmackey?: string;
+  }>({});
+  
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning'>('success');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [inputType, setInputType] = useState("password");
+  const [isCopied, setIsCopied] = useState(false);
 
-  // Apply custom styles to hide the close button
-  useEffect(() => {
-    // Create style element
-    const styleElement = document.createElement("style");
-    styleElement.innerHTML = customDialogStyles;
-    document.head.appendChild(styleElement);
+  // Toggle password visibility
+  const toggleInputType = () => {
+    setInputType(inputType === "password" ? "text" : "password");
+  };
 
-    // Cleanup on unmount
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
+  // Copy HMAC key to clipboard
+  const copyToClipboard = () => {
+    if (formData.hmackey) {
+      navigator.clipboard.writeText(formData.hmackey);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
 
   // New state for dragging position
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -636,58 +695,103 @@ export function OrganizationSection() {
     }
   };
 
-  // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
+  // Define the isValidColorFn function
+  const isValidColorFn = (color: string): boolean => {
+    if (!color) return false;
+
+    // Check for hex colors
+    if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) return true;
+
+    // Check for rgb/rgba colors
+    if (/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i.test(color)) return true;
+
+    // Check for common color names
+    const commonColors = [
+      "red", "blue", "green", "yellow", "purple", "orange", "black",
+      "gray", "pink", "brown", "cyan", "magenta", "lime", "olive",
+      "navy", "teal", "aqua", "silver"
+    ];
+
+    return commonColors.includes(color.toLowerCase());
   };
 
-  // Handle select changes
-  const handleSelectChange = (id: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-  };
+  // Function to validate the form
+  const validateForm = (): boolean => {
+    const errors: {
+      color?: string;
+      website?: string;
+      email?: string;
+      name?: string;
+      displayname?: string;
+      organizationtype?: string;
+      country?: string;
+      registrationNumber?: string;
+      invoicedescription?: string;
+      hmackey?: string;
+    } = {};
+    
+    let isValid = true;
 
-  // Function to verify and ensure base64 format
-  const ensureBase64Format = async (imageUrl: string): Promise<string> => {
-    // If already in base64 format, return as is
-    if (imageUrl.startsWith("data:image")) {
-      return imageUrl;
-    }
-
-    // If it's a URL, convert to base64
-    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-      try {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64data = reader.result as string;
-            console.log("Converted URL to base64:", base64data.substring(0, 50) + "...");
-            resolve(base64data);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (error) {
-        console.error("Error converting image to base64:", error);
-        return imageUrl; // Return original if conversion fails
+   
+    // Validate color - only add error if not already shown in the component
+    if (formData.setcolor) {
+      const colorLower = formData.setcolor.toLowerCase();
+      const isWhiteColor = colorLower === 'white' || 
+                           colorLower === '#ffffff' || 
+                           colorLower === '#fff' ||
+                           colorLower === 'rgb(255, 255, 255)';
+      
+      // Only add validation error if not already shown in component
+      if (isWhiteColor || !isValidColorFn(formData.setcolor)) {
+        // Don't set error message here since it's already shown in component
+        isValid = false;
       }
     }
 
-    // If not recognized format, return as is
-    return imageUrl;
+    // Validate website URL
+    if (formData.website && !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(formData.website)) {
+      errors.website = "Please enter a valid website URL";
+      isValid = false;
+    }
+
+    // Validate registration number (if it should be numeric)
+    if (formData.registrationnumber && !/^\d+$/.test(formData.registrationnumber)) {
+      errors.registrationNumber = "Registration number should contain only digits";
+      isValid = false;
+    }
+
+    // Validate HMAC key (no spaces)
+    if (formData.hmackey && /\s/.test(formData.hmackey)) {
+      errors.hmackey = "HMAC key cannot contain spaces";
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+    return isValid;
   };
 
-  // Handle form submission
+  // Show alert function
+  const showAlertMessage = (type: 'success' | 'error' | 'warning', message: string) => {
+    setAlertType(type);
+    setAlertMessage(message);
+    setShowAlert(true);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+      setShowAlert(false);
+    }, 5000);
+  };
+
+  // Handle form submission with validation
   const handleSaveProfile = async () => {
+    // Validate form first
+    if (!validateForm()) {
+      // Show error message
+      const errorMessages = Object.values(validationErrors).filter(Boolean);
+      showAlertMessage('error', errorMessages[0] || 'Please fix form errors before submitting');
+      return;
+    }
+
     dispatch(setLoading(true));
 
     try {
@@ -698,7 +802,6 @@ export function OrganizationSection() {
       const updateData = {
         ...formData,
         baseimage: baseImageData, // Use the base64 image data
-        // Add any other fields needed for the API
       };
 
       console.log("Submitting form with base64 image:", baseImageData.substring(0, 50) + "...");
@@ -709,12 +812,17 @@ export function OrganizationSection() {
         // Update Redux store with the updated data
         if (response.data) {
           dispatch(getOrgItem(response.data));
+          showAlertMessage('success', 'Organization updated successfully!');
         }
       } else {
         dispatch(setError(response.error || "Failed to update organization"));
+        showAlertMessage('error', response.error || "Failed to update organization");
       }
     } catch (error) {
       dispatch(setError(error));
+      showAlertMessage('error', 'An error occurred while updating');
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
@@ -908,31 +1016,177 @@ export function OrganizationSection() {
     return <SelectItem value="af">Afghanistan</SelectItem>;
   };
 
-  const [inputType, setInputType] = useState("password");
-  const [isCopied, setIsCopied] = useState(false);
-
-  // Toggle password visibility
-  const toggleInputType = () => {
-    setInputType(inputType === "password" ? "text" : "password");
+  // Input sanitization function to prevent XSS
+  const sanitizeInput = (input: string): string => {
+    return input.replace(/[<>]/g, '');
   };
 
-  // Copy HMAC key to clipboard
-  const copyToClipboard = () => {
-    if (formData.hmackey) {
-      navigator.clipboard.writeText(formData.hmackey);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+  // Modified handleInputChange to include sanitization and handle different input types
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { id, value } = e.target;
+    
+    // Special handling for HMAC key - no spaces allowed
+    if (id === 'hmackey' && /\s/.test(value)) {
+      return; // Don't update if spaces detected
+    }
+    
+    // Sanitize input
+    const sanitizedValue = sanitizeInput(value);
+    
+    setFormData((prev) => ({
+      ...prev,
+      [id]: sanitizedValue,
+    }));
+    
+    // Clear any validation error for this field when user changes it
+    if (validationErrors[id as keyof typeof validationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [id]: undefined
+      }));
     }
   };
 
-  // Handle HMAC key input change with space validation
-  const handleHmacKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    if (!/\s/.test(newValue)) {
-      handleInputChange(e);
+  // Validate a specific field on blur
+  const validateOnBlur = (fieldId: string, value: string) => {
+    // Create a mini validation just for this field
+    let error: string | undefined = undefined;
+    
+    switch (fieldId) {
+      case 'name':
+        if (!value.trim()) {
+          error = "Organization name is required";
+        }
+        break;
+      case 'website':
+        if (value && !/^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(value)) {
+          error = "Please enter a valid website URL";
+        }
+        break;
+      case 'registrationnumber':
+        if (value && !/^\d+$/.test(value)) {
+          error = "Registration number should contain only digits";
+        }
+        break;
+      case 'setcolor':
+        const colorLower = value.toLowerCase();
+        if (colorLower === 'white' || colorLower === '#ffffff' || colorLower === '#fff' || colorLower === 'rgb(255, 255, 255)') {
+          error = "White color is not allowed";
+        } else if (value) {
+          // Check if valid color
+          const isValidColorFn = (color: string): boolean => {
+            if (!color) return false;
+            if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) return true;
+            if (/^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i.test(color)) return true;
+            
+            const commonColors = [
+              "red", "blue", "green", "yellow", "purple", "orange", "black", 
+              "gray", "pink", "brown", "cyan", "magenta", "lime", "olive", 
+              "navy", "teal", "aqua", "silver"
+            ];
+            
+            return commonColors.includes(colorLower);
+          };
+          
+          if (!isValidColorFn(value)) {
+            error = "Invalid color name or code";
+          }
+        }
+        break;
+      case 'hmackey':
+        if (value && /\s/.test(value)) {
+          error = "HMAC key cannot contain spaces";
+        }
+        break;
+      default:
+        break;
+    }
+    
+    // Update validation errors
+    if (error) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [fieldId]: error
+      }));
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Handle select changes with a different approach to avoid type errors
+  const handleSelectChange = (id: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+    
+    // Clear any validation error for this field
+    if (validationErrors[id as keyof typeof validationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [id]: undefined
+      }));
+    }
+    
+    // Run validation for select fields when changed
+    if (id === 'organizationtype' || id === 'country') {
+      // Only validate required fields
+      if (!value) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [id]: `${id === 'organizationtype' ? 'Organization type' : 'Country'} is required`
+        }));
+      }
     }
   };
 
+  // Apply custom styles to hide the close button
+  useEffect(() => {
+    // Create style element
+    const styleElement = document.createElement("style");
+    styleElement.innerHTML = customDialogStyles;
+    document.head.appendChild(styleElement);
+
+    // Cleanup on unmount
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
+  // Function to verify and ensure base64 format
+  const ensureBase64Format = async (imageUrl: string): Promise<string> => {
+    // If already in base64 format, return as is
+    if (imageUrl.startsWith("data:image")) {
+      return imageUrl;
+    }
+
+    // If it's a URL, convert to base64
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result as string;
+            console.log("Converted URL to base64:", base64data.substring(0, 50) + "...");
+            resolve(base64data);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error("Error converting image to base64:", error);
+        return imageUrl; // Return original if conversion fails
+      }
+    }
+
+    // If not recognized format, return as is
+    return imageUrl;
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: 200 }}
@@ -940,6 +1194,21 @@ export function OrganizationSection() {
       transition={transitionConfig}
       className="w-full space-y-8 max-w-6xl mx-auto px-4 sm:px-6"
     >
+      {/* Alert for validation errors or success messages */}
+      {showAlert && (
+        <Alert 
+          variant={alertType === 'success' ? 'default' : alertType === 'warning' ? 'default' : 'destructive'}
+          className={`${alertType === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 
+                       alertType === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 
+                       'bg-red-50 border-red-200 text-red-800'} shadow-sm`}
+        >
+          <AlertTitle className="text-sm font-medium">
+            {alertType === 'success' ? 'Success' : alertType === 'warning' ? 'Warning' : 'Error'}
+          </AlertTitle>
+          <AlertDescription className="text-sm">{alertMessage}</AlertDescription>
+        </Alert>
+      )}
+
       {/* <motion.div
         initial={{ opacity: 0, x: 200 }}
         animate={{ opacity: 1, x: 0 }}
@@ -1148,37 +1417,42 @@ export function OrganizationSection() {
           className="space-y-8 bg-card rounded-lg p-6 shadow-sm border mt-6"
         >
           <motion.div variants={formItem} className="space-y-6">
-            <h3 className="text-lg font-semibold border-b pb-3">Organization Details</h3>
+            <h3 className="text-lg font-semibold border-b pb-3">Organization details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="name">Organization</Label>
                 <Input
                   id="name"
-                  className="h-9 w-full"
+                  className={`h-9 w-full ${validationErrors.name ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter organization name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  onBlur={(e) => validateOnBlur('name', e.target.value)}
                 />
+                {validationErrors.name && <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="displayname">Organization display name</Label>
                 <Input
                   id="displayname"
-                  className="h-9 w-full"
+                  className={`h-9 w-full ${validationErrors.displayname ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter display name"
                   value={formData.displayname}
                   onChange={handleInputChange}
                 />
+                {validationErrors.displayname && <p className="text-xs text-red-500 mt-1">{validationErrors.displayname}</p>}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="registrationnumber">Registration number</Label>
                 <Input
                   id="registrationnumber"
-                  className="h-9 w-full"
+                  className={`h-9 w-full ${validationErrors.registrationNumber ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter registration number"
                   value={formData.registrationnumber}
                   onChange={handleInputChange}
+                  onBlur={(e) => validateOnBlur('registrationnumber', e.target.value)}
                 />
+                {validationErrors.registrationNumber && <p className="text-xs text-red-500 mt-1">{validationErrors.registrationNumber}</p>}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="organizationtype">Organization type</Label>
@@ -1186,7 +1460,7 @@ export function OrganizationSection() {
                   value={formData.organizationtype}
                   onValueChange={(value) => handleSelectChange("organizationtype", value)}
                 >
-                  <SelectTrigger id="organizationtype" className="h-9 w-full">
+                  <SelectTrigger id="organizationtype" className={`h-9 w-full ${validationErrors.organizationtype ? 'border-red-300 focus:ring-red-500' : ''}`}>
                     <SelectValue placeholder="Select organization type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1196,26 +1470,30 @@ export function OrganizationSection() {
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.organizationtype && <p className="text-xs text-red-500 mt-1">{validationErrors.organizationtype}</p>}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="website">Website URL</Label>
                 <Input
                   id="website"
                   type="url"
-                  className="h-9 w-full"
+                  className={`h-9 w-full ${validationErrors.website ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter website URL"
                   value={formData.website}
                   onChange={handleInputChange}
+                  onBlur={(e) => validateOnBlur('website', e.target.value)}
                 />
+                {validationErrors.website && <p className="text-xs text-red-500 mt-1">{validationErrors.website}</p>}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="country">Country</Label>
                 <Select value={formData.country} onValueChange={(value) => handleSelectChange("country", value)}>
-                  <SelectTrigger id="country" className="h-9 w-full">
+                  <SelectTrigger id="country" className={`h-9 w-full ${validationErrors.country ? 'border-red-300 focus:ring-red-500' : ''}`}>
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
                   <SelectContent>{renderCountryOptions()}</SelectContent>
                 </Select>
+                {validationErrors.country && <p className="text-xs text-red-500 mt-1">{validationErrors.country}</p>}
               </motion.div>
             </div>
           </motion.div>
@@ -1225,7 +1503,13 @@ export function OrganizationSection() {
             {/* <h3 className="text-lg font-semibold pt-2">Appearance & Security</h3> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <motion.div variants={formItem} className="space-y-1.5">
-                <ColorInput value={formData.setcolor} onChange={handleInputChange} />
+                <ColorInput 
+                  value={formData.setcolor} 
+                  onChange={handleInputChange} 
+                />
+                {validationErrors.color && (
+                  <p className="text-xs text-red-500 mt-0">{validationErrors.color}</p>
+                )}
               </motion.div>
               <motion.div variants={formItem} className="space-y-1.5">
                 <Label htmlFor="hmackey" className="flex items-center gap-1">
@@ -1279,18 +1563,22 @@ export function OrganizationSection() {
                     id="hmackey"
                     type={inputType}
                     placeholder="Add key"
-                    className="h-9 flex-1"
+                    className={`h-9 flex-1 ${validationErrors.hmackey ? 'border-red-300 focus:ring-red-500' : ''}`}
                     value={formData.hmackey}
-                    onChange={handleHmacKeyChange}
+                    onChange={handleInputChange}
                   />
                   <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleInputType} disabled={!formData.hmackey}>
-                    <Eye className="h-4 w-4" />
+                    {inputType === "password" ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </Button>
                   <Button variant="ghost" size="icon" className="h-9 w-9" onClick={copyToClipboard} disabled={!formData.hmackey}>
                     {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">*Spaces are not allowed in the HMAC Key</p>
+                {validationErrors.hmackey ? (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.hmackey}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">*Spaces are not allowed in the HMAC Key</p>
+                )}
               </motion.div>
             </div>
           </motion.div>
@@ -1302,10 +1590,11 @@ export function OrganizationSection() {
               <Textarea
                 id="invoicedescription"
                 placeholder="Enter billing details"
-                className="min-h-[120px] resize-none w-full"
+                className={`min-h-[120px] resize-none w-full ${validationErrors.invoicedescription ? 'border-red-300 focus:ring-red-500' : ''}`}
                 value={formData.invoicedescription}
                 onChange={handleInputChange}
               />
+              {validationErrors.invoicedescription && <p className="text-xs text-red-500 mt-1">{validationErrors.invoicedescription}</p>}
             </div>
           </motion.div>
 
