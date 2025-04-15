@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { ZapierIntegration } from "./integrations/ZapierIntegration";
 import { Textarea } from "@/components/ui/textarea";
+import { buttonService } from "../../../services/button.service";
 
 interface TriggersEmailTabProps {
   emailToOrganization: string;
@@ -43,6 +44,7 @@ interface TriggersEmailTabProps {
   autoJson: boolean;
   callbackUrl: string;
   addGoogleSheetUrl: boolean;
+  googleSheetUrl?: string;
   enableSalesforce: boolean;
   includeOriginalFilename: boolean;
   enableCustomTemplate: boolean;
@@ -53,6 +55,16 @@ interface TriggersEmailTabProps {
   originalDoc?: boolean;
   shareOnlyJson?: boolean;
   emailTemplate?: string;
+  salesforceConfig?: Record<string, string>;
+  smtpConfig?: Array<{
+    server: string;
+    password: string;
+    security: boolean;
+    port: string;
+    username: string;
+  }>;
+  redirecturl?: string;
+  redirectmessage?: string;
   onEmailToOrganizationChange: (value: string) => void;
   onIncludePdfInEmailChange: (checked: boolean) => void;
   onSubmissionNotificationViaEmailChange: (checked: boolean) => void;
@@ -60,13 +72,26 @@ interface TriggersEmailTabProps {
   onEnableEngagementCallbackChange: (checked: boolean) => void;
   onAutoJsonChange: (checked: boolean) => void;
   onCallbackUrlChange: (value: string) => void;
-  onAddGoogleSheetUrlChange: (checked: boolean) => void;
+  onAddGoogleSheetChange: (checked: boolean) => void;
+  onGoogleSheetUrlChange: (value: string) => void;
   onEnableSalesforceChange: (checked: boolean) => void;
+  onSalesforceConfigChange?: (config: Record<string, string>) => void;
+  onSmtpConfigChange?: (
+    config: Array<{
+      server: string;
+      password: string;
+      security: boolean;
+      port: string;
+      username: string;
+    }>
+  ) => void;
   onDiroCertificateChange?: (checked: boolean) => void;
   onOriginalDocChange?: (checked: boolean) => void;
   onIncludeOriginalFilenameChange: (checked: boolean) => void;
   onEnableCustomTemplateChange: (checked: boolean) => void;
   onEmailTemplateChange?: (value: string) => void;
+  onRedirectUrlChange?: (value: string) => void;
+  onRedirectMessageChange?: (value: string) => void;
 }
 
 // Section type for navigation
@@ -81,6 +106,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   autoJson,
   callbackUrl,
   addGoogleSheetUrl,
+  googleSheetUrl,
   enableSalesforce,
   includeOriginalFilename,
   enableCustomTemplate,
@@ -91,6 +117,10 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   originalDoc,
   shareOnlyJson,
   emailTemplate,
+  salesforceConfig = {},
+  smtpConfig = [],
+  redirecturl = "",
+  redirectmessage = "",
   onEmailToOrganizationChange,
   onIncludePdfInEmailChange,
   onSubmissionNotificationViaEmailChange,
@@ -98,13 +128,18 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   onEnableEngagementCallbackChange,
   onAutoJsonChange,
   onCallbackUrlChange,
-  onAddGoogleSheetUrlChange,
+  onAddGoogleSheetChange,
+  onGoogleSheetUrlChange,
   onEnableSalesforceChange,
+  onSalesforceConfigChange = () => {},
+  onSmtpConfigChange = () => {},
   onDiroCertificateChange = () => {},
   onOriginalDocChange = () => {},
   onIncludeOriginalFilenameChange,
   onEnableCustomTemplateChange,
   onEmailTemplateChange = () => {},
+  onRedirectUrlChange = () => {},
+  onRedirectMessageChange = () => {},
 }) => {
   // Active section state
   const [activeSection, setActiveSection] = useState<Section>("Triggers");
@@ -112,6 +147,16 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   // State for callback test
   const [testingCallback, setTestingCallback] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
+  const [callbackModalState, setCallbackModalState] = useState<{
+    type: string;
+    message: string;
+    loading: boolean;
+  }>({
+    type: "",
+    message: "",
+    loading: false,
+  });
 
   // Email reminders
   const [reminderRows, setReminderRows] = useState([
@@ -136,17 +181,58 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   };
 
   // Test callback function
-  const testCallback = () => {
-    setTestingCallback(true);
-    setTimeout(() => {
-      const success = Math.random() > 0.3;
-      setTestResult({
-        success,
-        message: success ? "Callback test successful" : "Callback test failed: Connection timeout",
+  const testCallback = async () => {
+    if (!callbackUrl) return;
+
+    setIsCallbackModalOpen(true);
+    setCallbackModalState({
+      type: "loading",
+      message: "Testing your callback URL...",
+      loading: true,
+    });
+
+    try {
+      const response = await buttonService.testCallbackUrl(callbackUrl);
+
+      if (response.success) {
+        setCallbackModalState({
+          type: "success",
+          message: response.data?.message ?? "Callback URL tested successfully",
+          loading: false,
+        });
+      } else {
+        const message =
+          response.data?.type === "error"
+            ? `Please ensure:\n${response.data?.message ?? ""}`
+            : response.data?.message ?? "An error occurred";
+
+        setCallbackModalState({
+          type: response.data?.type ?? "error",
+          message,
+          loading: false,
+        });
+      }
+    } catch (error: any) {
+      setCallbackModalState({
+        type: "error",
+        message: error.message || "An unexpected error occurred",
+        loading: false,
       });
-      setTestingCallback(false);
-      setTimeout(() => setTestResult(null), 3000);
-    }, 1500);
+    }
+  };
+
+  const handleCallbackClose = () => {
+    setIsCallbackModalOpen(false);
+    setCallbackModalState({
+      type: "",
+      message: "",
+      loading: false,
+    });
+  };
+
+  const handleForceSave = (e: React.MouseEvent) => {
+    // Implement your force save logic here
+    handleCallbackClose();
   };
 
   return (
@@ -426,13 +512,13 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                   {/* <div className="font-medium">Callback URL</div> */}
                   <div className="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
                     <div className="space-y-3">
-                      <Label htmlFor="callback-url">Custom callback URL</Label>
+                      <Label htmlFor="callback-url">Override default callback url</Label>
                       <div className="flex gap-2">
                         <Input
                           id="callback-url"
                           value={callbackUrl}
                           onChange={(e) => onCallbackUrlChange(e.target.value)}
-                          placeholder="https://your-domain.com/callback"
+                          placeholder="Enter your callback URL"
                           className="flex-1 h-12 px-4"
                         />
                         <Button
@@ -497,7 +583,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                         <p className="font-medium">Google Sheets</p>
                         <p className="text-sm text-muted-foreground">Push data to Google Sheets</p>
                       </div>
-                      <Switch checked={addGoogleSheetUrl} onCheckedChange={onAddGoogleSheetUrlChange} />
+                      <Switch checked={addGoogleSheetUrl} onCheckedChange={onAddGoogleSheetChange} />
                     </div>
 
                     {addGoogleSheetUrl && (
@@ -505,7 +591,13 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                         <Separator />
                         <div className="pl-11 space-y-1">
                           <Label htmlFor="google-sheet-url">Google sheet URL</Label>
-                          <Input id="google-sheet-url" placeholder="Enter a google sheet URL" className="h-11" />
+                          <Input
+                            id="google-sheet-url"
+                            placeholder="Enter a google sheet URL"
+                            className="h-11"
+                            value={googleSheetUrl || ""}
+                            onChange={(e) => onGoogleSheetUrlChange(e.target.value)}
+                          />
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground flex items-start">
                               <span className="mr-2">*</span>
@@ -564,54 +656,89 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                       <>
                         <Separator />
                         <div className="pl-11 space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                              <Label>Auth URL</Label>
-                              <Input placeholder="Enter auth URL" className="h-11" />
+                              <Label htmlFor="authurl">Auth URL</Label>
+                              <Input
+                                id="authurl"
+                                placeholder="https://login.salesforce.com/services/oauth2/token"
+                                value={salesforceConfig?.authurl || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ authurl: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-2">
-                              <Label>Username</Label>
-                              <Input placeholder="Enter username" className="h-11" />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Password</Label>
-                              <Input type="password" placeholder="Enter password" className="h-11" />
+                              <Label htmlFor="apiurl">API URL</Label>
+                              <Input
+                                id="apiurl"
+                                placeholder="https://yourdomain.my.salesforce.com/services/data/v50.0/"
+                                value={salesforceConfig?.apiurl || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ apiurl: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-2">
-                              <Label>Client ID</Label>
-                              <Input placeholder="Enter client ID" className="h-11" />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Client Secret</Label>
-                              <Input placeholder="Enter client secret" className="h-11" />
+                              <Label htmlFor="username">Username</Label>
+                              <Input
+                                id="username"
+                                placeholder="username@example.com"
+                                value={salesforceConfig?.username || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ username: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-2">
-                              <Label>Owner ID</Label>
-                              <Input placeholder="Enter owner ID" className="h-11" />
+                              <Label htmlFor="password">Password</Label>
+                              <Input
+                                id="password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={salesforceConfig?.password || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ password: e.target.value })}
+                              />
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>API URL</Label>
-                              <Input placeholder="Enter API URL" className="h-11" />
+                              <Label htmlFor="clientID">Client ID</Label>
+                              <Input
+                                id="clientID"
+                                placeholder="Client ID from Salesforce"
+                                value={salesforceConfig?.clientID || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ clientID: e.target.value })}
+                              />
                             </div>
                             <div className="space-y-2">
-                              <Label>Location</Label>
-                              <Input placeholder="Enter location" className="h-11" />
+                              <Label htmlFor="clientSecret">Client Secret</Label>
+                              <Input
+                                id="clientSecret"
+                                type="password"
+                                placeholder="••••••••"
+                                value={salesforceConfig?.clientSecret || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ clientSecret: e.target.value })}
+                              />
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>First Publish Location ID</Label>
-                              <Input placeholder="Enter first publish location ID" className="h-11" />
+                              <Label htmlFor="ownerid">Owner ID</Label>
+                              <Input
+                                id="ownerid"
+                                placeholder="Salesforce Owner ID"
+                                value={salesforceConfig?.ownerid || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ ownerid: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="location">Location</Label>
+                              <Input
+                                id="location"
+                                placeholder="Location"
+                                value={salesforceConfig?.location || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ location: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="firstPublishLocationId">First Publish Location ID</Label>
+                              <Input
+                                id="firstPublishLocationId"
+                                placeholder="Location ID"
+                                value={salesforceConfig?.firstPublishLocationId || ""}
+                                onChange={(e) => onSalesforceConfigChange?.({ firstPublishLocationId: e.target.value })}
+                              />
                             </div>
                           </div>
                         </div>
@@ -665,39 +792,93 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="smtp-username">SMTP Username</Label>
-                      <Input id="smtp-username" placeholder="username@example.com" />
+                      <Input
+                        id="smtp-username"
+                        placeholder="username@example.com"
+                        value={smtpConfig[0]?.username || ""}
+                        onChange={(e) => {
+                          const newConfig = smtpConfig.length
+                            ? smtpConfig.map((item, index) => (index === 0 ? { ...item, username: e.target.value } : { ...item }))
+                            : [{ server: "", password: "", security: false, port: "", username: e.target.value }];
+                          onSmtpConfigChange(newConfig);
+                        }}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="smtp-password">SMTP Password</Label>
-                      <Input id="smtp-password" type="password" placeholder="••••••••" />
+                      <Input
+                        id="smtp-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={smtpConfig[0]?.password || ""}
+                        onChange={(e) => {
+                          const newConfig = smtpConfig.length
+                            ? smtpConfig.map((item, index) => (index === 0 ? { ...item, password: e.target.value } : { ...item }))
+                            : [{ server: "", password: e.target.value, security: false, port: "", username: "" }];
+                          onSmtpConfigChange(newConfig);
+                        }}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="smtp-server">SMTP Server</Label>
-                      <Input id="smtp-server" placeholder="smtp.example.com" />
+                      <Input
+                        id="smtp-server"
+                        placeholder="smtp.example.com"
+                        value={smtpConfig[0]?.server || ""}
+                        onChange={(e) => {
+                          const newConfig = smtpConfig.length
+                            ? smtpConfig.map((item, index) => (index === 0 ? { ...item, server: e.target.value } : { ...item }))
+                            : [{ server: e.target.value, password: "", security: false, port: "", username: "" }];
+                          onSmtpConfigChange(newConfig);
+                        }}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="smtp-port">SMTP Port</Label>
-                      <Input id="smtp-port" placeholder="587" />
+                      <Input
+                        id="smtp-port"
+                        placeholder="587"
+                        value={smtpConfig[0]?.port || ""}
+                        onChange={(e) => {
+                          const newConfig = smtpConfig.length
+                            ? smtpConfig.map((item, index) => (index === 0 ? { ...item, port: e.target.value } : { ...item }))
+                            : [{ server: "", password: "", security: false, port: e.target.value, username: "" }];
+                          onSmtpConfigChange(newConfig);
+                        }}
+                      />
                     </div>
                   </div>
 
-                  <div className="mt-4 text-xs text-muted-foreground">
-                    <p className="flex items-center">
-                      <Info className="h-3 w-3 mr-1" />
+                  <div className="mt-4 flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="smtp-security"
+                        checked={smtpConfig[0]?.security || false}
+                        onCheckedChange={(checked) => {
+                          const newConfig = smtpConfig.length
+                            ? smtpConfig.map((item, index) => (index === 0 ? { ...item, security: checked } : { ...item }))
+                            : [{ server: "", password: "", security: checked, port: "", username: "" }];
+                          onSmtpConfigChange(newConfig);
+                        }}
+                      />
+                      <Label htmlFor="smtp-security">Enable security</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <Info className="h-3 w-3 inline-block mr-1" />
                       Common SMTP ports: 25 (default), 465 (SSL), 587 (TLS)
                     </p>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                {/* <div className="flex justify-end">
                   <Button variant="outline" className="mr-2">
                     Test Connection
                   </Button>
                   <Button>Save SMTP Settings</Button>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           )}
@@ -851,7 +1032,12 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                     <div className="space-y-3">
                       <div className="space-y-2">
                         <Label htmlFor="redirect-url">Redirect URL</Label>
-                        <Input id="redirect-url" placeholder="https://example.com/thank-you" />
+                        <Input
+                          id="redirect-url"
+                          placeholder="https://example.com/thank-you"
+                          value={redirecturl}
+                          onChange={(e) => onRedirectUrlChange(e.target.value)}
+                        />
                         <p className="text-xs text-muted-foreground">
                           Users will be redirected to this URL after verification is complete
                         </p>
@@ -859,7 +1045,12 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
 
                       <div className="space-y-2">
                         <Label htmlFor="redirect-msg">Redirect message</Label>
-                        <Input id="redirect-msg" placeholder="You are being redirected to..." />
+                        <Input
+                          id="redirect-msg"
+                          placeholder="You are being redirected to..."
+                          value={redirectmessage}
+                          onChange={(e) => onRedirectMessageChange(e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -890,7 +1081,6 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                   </ul>
                 </div>
               </div>
-
             </div>
 
             <div className="mt-6 bg-slate-50 dark:bg-slate-900 p-4 rounded border border-slate-200 dark:border-slate-800">
@@ -914,6 +1104,59 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCallbackModalOpen} onOpenChange={setIsCallbackModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {callbackModalState.loading
+                ? "Testing Callback URL"
+                : callbackModalState.type === "success"
+                ? "Callback URL Test Result"
+                : "Callback URL Error"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-6">
+            {callbackModalState.loading ? (
+              <div className="flex justify-center items-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2">Testing callback URL...</span>
+              </div>
+            ) : (
+              <div
+                className={`text-sm ${
+                  callbackModalState.type === "success" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {callbackModalState.type === "error" && <h5 className="font-medium mb-2">Please ensure:</h5>}
+                <p className="whitespace-pre-line">{callbackModalState.message}</p>
+              </div>
+            )}
+          </div>
+
+          {!callbackModalState.loading && (
+            <DialogFooter className="sm:justify-center">
+              {callbackModalState.type === "success" ||
+              callbackModalState.type === "not-found" ||
+              callbackModalState.type === "method-not-allowed" ? (
+                <Button variant="default" onClick={handleCallbackClose}>
+                  Close
+                </Button>
+              ) : callbackModalState.type === "error" ? (
+                <div className="space-x-2">
+                  <Button variant="default" onClick={handleForceSave}>
+                    Yes
+                  </Button>
+                  <Button variant="destructive" onClick={handleCallbackClose}>
+                    No
+                  </Button>
+                </div>
+              ) : null}
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

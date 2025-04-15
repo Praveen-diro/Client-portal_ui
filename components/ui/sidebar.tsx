@@ -189,6 +189,12 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       href: "/client/documents-received",
     },
     {
+      id: "logs",
+      icon: FileText,
+      label: "Callback Logs",
+      href: "/client/callback-logs",
+    },
+    {
       id: "coverage",
       icon: Earth,
       label: "Coverage",

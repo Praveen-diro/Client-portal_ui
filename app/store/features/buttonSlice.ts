@@ -561,14 +561,30 @@ const buttonSlice = createSlice({
         state.btn.btndata.callbackurl = action.payload;
       }
     },
-    setAddGoogleSheetUrl: (state, action: PayloadAction<boolean>) => {
+    setGooglesheet: (state, action: PayloadAction<boolean>) => {
       if (state.btn?.btndata) {
         state.btn.btndata.googleSheet = action.payload;
+      }
+    },
+    setGooglesheeturl: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.googlesheeturl = action.payload;
       }
     },
     setEnableSalesforce: (state, action: PayloadAction<boolean>) => {
       if (state.btn?.btndata) {
         state.btn.btndata.enableSalesforce = action.payload;
+      }
+    },
+    setSalesforceConfig: (state, action: PayloadAction<Record<string, string>>) => {
+      if (state.btn?.btndata) {
+        // Initialize privacytext object if it doesn't exist
+        if (!state.btn.btndata.salesforce) {
+          state.btn.btndata.salesforce = {};
+        }
+        Object.keys(action.payload).forEach((key) => {
+          state.btn.btndata.salesforce[key] = action.payload[key];
+        });
       }
     },
     setRejectReasons: (state, action: PayloadAction<string[]>) => {
@@ -716,6 +732,14 @@ const buttonSlice = createSlice({
     setEmailTemplate: (state, action: PayloadAction<string>) => {
       state.btn.btndata.emailnotetemplate = action.payload;
     },
+
+    setRedirectUrl: (state, action: PayloadAction<string>) => {
+      state.btn.btndata.redirecturl = action.payload;
+    },
+
+    setRedirectMessage: (state, action: PayloadAction<string>) => {
+      state.btn.btndata.redirectmessage = action.payload;
+    },
   },
 });
 
@@ -775,8 +799,10 @@ export const {
   setEnableEngagementCallback,
   setAutoJson,
   setCallbackUrl,
-  setAddGoogleSheetUrl,
+  setGooglesheet,
+  setGooglesheeturl,
   setEnableSalesforce,
+  setSalesforceConfig,
   setRejectReasons,
   setDocumentSelect,
   setProxy,
@@ -800,6 +826,8 @@ export const {
   setOriginalDoc,
   setFullTextSearchData,
   setEmailTemplate,
+  setRedirectUrl,
+  setRedirectMessage,
 } = buttonSlice.actions;
 
 export default buttonSlice.reducer;

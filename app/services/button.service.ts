@@ -66,6 +66,13 @@ export interface ButtonSandboxResponse {
   error?: any;
 }
 
+interface CallbackResponse {
+  statusCode?: number;
+  status?: number;
+  message?: string;
+  [key: string]: any;
+}
+
 class ButtonService {
   private buttonAddCount: number = 0;
 
@@ -539,6 +546,83 @@ class ButtonService {
       return {
         success: false,
         error: error.message || "An unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Tests a callback URL by sending a test request
+   * @param url The callback URL to test
+   * @returns Promise with the test response
+   */
+  async testCallbackUrl(url: string): Promise<ButtonResponse<CallbackResponse>> {
+    try {
+      // Validate URL using regex pattern
+      const isValidURL =
+        /^(?:(?:(?:https?|ftp):)?\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:[/?#]\S*)?$/i.test(
+          url
+        );
+
+      if (!isValidURL) {
+        return {
+          success: false,
+          error: "Invalid URL format",
+          data: {
+            statusCode: 400,
+            type: "validation_error",
+          },
+        };
+      }
+
+      const testData = {
+        callbackUrl: url,
+        date: new Date().toISOString(),
+        request: {
+          type: "Sample",
+          sandbox: cookies.get("authMode") === "2",
+          stage: "Sample",
+          docid: "Sample",
+        },
+        testcallback: true,
+      };
+
+      const response = await this.makeRequest<CallbackResponse>(env.getSingleRequestCallback, testData, true);
+
+      // Map response status codes to meaningful messages
+      const statusMessages: Record<number, { success: boolean; message: string; type: string }> = {
+        200: { success: true, message: "Callback URL tested successfully.", type: "success" },
+        401: { success: false, message: "Unauthorized access. Please check your credentials.", type: "error" },
+        403: { success: false, message: "Forbidden. Please verify CORS configuration and URL whitelist.", type: "error" },
+        404: { success: false, message: "Callback URL not found.", type: "not-found" },
+        405: {
+          success: false,
+          message: "Method not allowed. Please check the callback URL configuration.",
+          type: "method-not-allowed",
+        },
+        500: { success: false, message: "Internal server error occurred.", type: "server-error" },
+      };
+
+      const status = response.data?.statusCode || response.data?.status || 500;
+      const responseInfo = statusMessages[status] || { success: false, message: "Unknown error occurred", type: "error" };
+
+      return {
+        success: responseInfo.success,
+        data: {
+          statusCode: status,
+          type: responseInfo.type,
+          message: responseInfo.message,
+          ...(response.data || {}),
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || "Failed to test callback URL",
+        data: {
+          statusCode: 500,
+          type: "error",
+          message: "An unexpected error occurred while testing the callback URL",
+        },
       };
     }
   }

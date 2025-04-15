@@ -65,7 +65,8 @@ import {
   setEnableEngagementCallback,
   setAutoJson,
   setCallbackUrl,
-  setAddGoogleSheetUrl,
+  setGooglesheet,
+  setGooglesheeturl,
   setEnableSalesforce,
   setDisplaySettings,
   setDisplayPrivacyItems,
@@ -97,6 +98,8 @@ import {
   setDiroCertificate,
   setOriginalDoc,
   setEmailTemplate,
+  setRedirectUrl,
+  setRedirectMessage,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -457,6 +460,22 @@ export default function EditButton() {
     [dispatch]
   );
 
+  const handleRedirectUrlChange = useCallback(
+    (value: string) => {
+      console.log("Changing redirecturl to:", value);
+      dispatch(setRedirectUrl(value));
+    },
+    [dispatch]
+  );
+
+  const handleRedirectMessageChange = useCallback(
+    (value: string) => {
+      console.log("Changing redirectmessage to:", value);
+      dispatch(setRedirectMessage(value));
+    },
+    [dispatch]
+  );
+
   // Render content based on loading and error state
   const renderContent = () => {
     if (isLoading) {
@@ -756,6 +775,10 @@ export default function EditButton() {
                   onStrongPrivacyTextChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext: value }))}
                   onSecureTextChange={(value) => dispatch(setDisplayPrivacyItems({ securetext: value }))}
                   onDataPurgeTextChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge: value }))}
+                  onNoPasswordHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword_heading: value }))}
+                  onStrongPrivacyHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext_heading: value }))}
+                  onSecureTextHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ securetext_heading: value }))}
+                  onDataPurgeHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge_heading: value }))}
                   onLoginTextChange={(value) => dispatch(setDisplayGuideItems({ logintext: value }))}
                   onInstructionTextChange={(value) => dispatch(setDisplayGuideItems({ gototext: value }))}
                   onSuccessHeadingChange={(value) => dispatch(setDisplayExitItems({ successheading: value }))}
@@ -769,10 +792,6 @@ export default function EditButton() {
                   strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading || ""}
                   secureTextHeading={buttonSettings?.privacytext?.securetext_heading || ""}
                   dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading || ""}
-                  onNoPasswordHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword_heading: value }))}
-                  onStrongPrivacyHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext_heading: value }))}
-                  onSecureTextHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ securetext_heading: value }))}
-                  onDataPurgeHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge_heading: value }))}
                 />
               )}
               {activeTab === 5 && (
@@ -1027,7 +1046,10 @@ export default function EditButton() {
         autoJson={buttonSettings?.autojson || false}
         callbackUrl={buttonSettings?.callbackurl || ""}
         addGoogleSheetUrl={buttonSettings?.googleSheet || false}
+        googleSheetUrl={buttonSettings?.googlesheeturl || ""}
         enableSalesforce={buttonSettings?.enableSalesforce || false}
+        salesforceConfig={buttonSettings?.salesforce || {}}
+        smtpConfig={buttonSettings?.smtp || []}
         includeOriginalFilename={buttonSettings?.includeOriginalFilename || false}
         enableCustomTemplate={buttonSettings?.enableCustomTemplate || false}
         emailTemplate={buttonSettings?.emailnotetemplate}
@@ -1037,6 +1059,8 @@ export default function EditButton() {
         diroCertificate={buttonSettings?.diro_certificate || false}
         originalDoc={buttonSettings?.original_doc || false}
         shareOnlyJson={buttonSettings?.shareonlyjson || false}
+        redirecturl={buttonSettings?.redirecturl || ""}
+        redirectmessage={buttonSettings?.redirectmessage || ""}
         onEmailToOrganizationChange={(value: string) => dispatch(setEmailToOrganization(value))}
         onIncludePdfInEmailChange={(checked: boolean) => dispatch(setIncludePdfInEmail(checked))}
         onSubmissionNotificationViaEmailChange={(checked: boolean) => dispatch(setSubmissionNotificationViaEmail(checked))}
@@ -1044,13 +1068,42 @@ export default function EditButton() {
         onEnableEngagementCallbackChange={(checked: boolean) => dispatch(setEnableEngagementCallback(checked))}
         onAutoJsonChange={(checked: boolean) => dispatch(setAutoJson(checked))}
         onCallbackUrlChange={(value: string) => dispatch(setCallbackUrl(value))}
-        onAddGoogleSheetUrlChange={(checked: boolean) => dispatch(setAddGoogleSheetUrl(checked))}
+        onAddGoogleSheetChange={(checked: boolean) => dispatch(setGooglesheet(checked))}
+        onGoogleSheetUrlChange={(value: string) => dispatch(setGooglesheeturl(value))}
         onEnableSalesforceChange={(checked: boolean) => dispatch(setEnableSalesforce(checked))}
+        onSalesforceConfigChange={(config: Record<string, string>) => {
+          const updatedBtnData = {
+            ...buttonSettings,
+            salesforce: {
+              ...buttonSettings?.salesforce,
+              ...config,
+            },
+          };
+          dispatch(setBtn({ btndata: updatedBtnData }));
+        }}
+        onSmtpConfigChange={(
+          config: Array<{
+            server: string;
+            password: string;
+            security: boolean;
+            port: string;
+            username: string;
+          }>
+        ) => {
+          // Update the SMTP config using the setBtn action
+          const updatedBtnData = {
+            ...buttonSettings,
+            smtp: config,
+          };
+          dispatch(setBtn({ btndata: updatedBtnData }));
+        }}
         onDiroCertificateChange={(checked: boolean) => dispatch(setDiroCertificate(checked))}
         onOriginalDocChange={(checked: boolean) => dispatch(setOriginalDoc(checked))}
         onIncludeOriginalFilenameChange={(checked: boolean) => dispatch(setIncludeOriginalFilename(checked))}
         onEnableCustomTemplateChange={(checked: boolean) => dispatch(setEnableCustomTemplate(checked))}
         onEmailTemplateChange={(value: string) => dispatch(setEmailTemplate(value))}
+        onRedirectUrlChange={handleRedirectUrlChange}
+        onRedirectMessageChange={handleRedirectMessageChange}
       />
     );
   };
