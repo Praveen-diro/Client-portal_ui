@@ -536,7 +536,7 @@ export default function ApiReferencePage() {
                                     <TooltipTrigger asChild>
                                       <button 
                                         className="ml-2 text-blue-500 hover:text-blue-700 dark:text-blue-400 
-                                                  dark:hover:text-blue-300 bg-blue-100 dark:bg-blue-900/40 p-1.5 rounded-md
+                                                  dark:hover:text-blue-300  dark:bg-blue-900/40 p-1.5 rounded-md
                                                   hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
                                         onClick={() => copyToClipboard(apikey)}
                                         disabled={!apikey || isLoadingButtonDetails}
@@ -578,7 +578,7 @@ export default function ApiReferencePage() {
                                           <TooltipTrigger asChild>
                                             <button 
                                               className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                                        dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                                        dark:hover:text-emerald-300  dark:bg-emerald-900/40 p-1.5 rounded-md
                                                         hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
                                               onClick={generateNewToken}
                                               disabled={isGeneratingToken || isLoadingButtonDetails || !token}
@@ -601,8 +601,8 @@ export default function ApiReferencePage() {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <button 
-                                            className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 
-                                                      dark:hover:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md
+                                            className="text-emerald-500  dark:text-emerald-400 
+                                                       p-1.5 rounded-md
                                                       hover:bg-emerald-200 dark:hover:bg-emerald-800/60 transition-colors"
                                             onClick={() => copyToClipboard(token, true)}
                                             disabled={!token || isLoadingButtonDetails}

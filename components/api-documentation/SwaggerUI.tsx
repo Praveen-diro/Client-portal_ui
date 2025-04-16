@@ -131,7 +131,7 @@ const SwaggerStyle = () => (
       font-size: 13px;
       border-radius: 4px;
       font-family: 'Fira Code', monospace;
-      background: #f7fafc;
+  
       padding: 12px;
     }
     .swagger-ui .opblock .opblock-section-header {
@@ -1252,7 +1252,7 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
           persistAuthorization={true}
           displayOperationId={true}
           filter={true}
-          withCredentials={true}
+          // withCredentials={true}
           syntaxHighlight={{
             activated: true,
             theme: "agate"
@@ -1269,10 +1269,20 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
               req.url = `https://api.dirolabs.com${path}`;
             }
             
+            // Get secrettoken from cookie
+            const secretToken = getCookie("secrettoken");
+            
             if (token) {
-              req.headers["Authorization"] = ` ${token}`;
+              // Make sure there's no extra space
+              // If token already includes "Bearer", use it as is
+              if (token.trim().startsWith("Bearer")) {
+                req.headers["Authorization"] = token.trim();
+              } else {
+                // Otherwise, add the Bearer prefix with exactly one space
+                req.headers["Authorization"] = `Bearer ${token.trim()}`;
+              }
             }
-
+          
             // Add x-api-key only for smart endpoints
             if (
               req.url.includes("/betav3/smartFeedback") ||
@@ -1282,11 +1292,15 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
               if (apiKeyFromCookie) {
                 req.headers["x-api-key"] = apiKeyFromCookie;
               }
-
+          
               // Override Authorization for these specific endpoints
-              const secretToken = getCookie("secrettoken");
               if (secretToken) {
-                req.headers.Authorization = secretToken;
+                // Make sure there's no extra space in the secretToken
+                if (secretToken.trim().startsWith("Bearer")) {
+                  req.headers.Authorization = secretToken.trim();
+                } else {
+                  req.headers.Authorization = `Bearer ${secretToken.trim()}`;
+                }
               }
             }
             
@@ -1302,4 +1316,4 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
       </div>
     </div>
   );
-} 
+}

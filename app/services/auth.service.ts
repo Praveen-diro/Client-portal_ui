@@ -115,7 +115,6 @@ export interface ForgotPasswordData {
   password?: string;
   token?: string;
   userEmail?: string;
-  resend?: boolean;
   [key: string]: any;
 }
 
@@ -293,7 +292,9 @@ class AuthService {
       if (response.data.error === true) {
         dispatchAction(loginFail({ payload: response.data }));
       } else if (response.data.statusCode === 242) {
-        const isSandbox = !(response.data.sandbox === false || response.data.sandbox === "1");
+
+        const isSandbox = response.data.sandbox !== false;
+
         this.handleTwoFactorLogin(response, credentials, isSandbox);
       } else if (response.data.statusCode === 200) {
         this.handleDirectLoginSuccess(response, credentials);

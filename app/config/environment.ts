@@ -350,7 +350,7 @@ const stage2: Environment = {
   expireRefreshtoken: baseurl.stage2nodeurl + "org/api/expireRefreshtoken",
   twofactorAutomatedOtp: baseurl.stage2nodeurl + "org/api/twofactorAutomatedOtp",
   generateSecretToken: baseurl.stage2baseurl + "organization-2.0/generatesecrettoken",
-  bypassEmails: ["deepak@diro.io", "praveen@diro.io"],
+  bypassEmails: ["deepak@diro.io", "praveen@diro.io","mamta@diro.io"],
   getAutoNavData: "https://api2.diro.live/auto_nav/getAutoNavData",
   getSingleRequestCallback: "https://stage2.diro.live/Zuul-1.0/boards-2.0/sendcallback",
   allowedOrigin: "https://client2.diro.live",
