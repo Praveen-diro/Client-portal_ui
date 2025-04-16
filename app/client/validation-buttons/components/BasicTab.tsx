@@ -1097,46 +1097,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
 
                         {localLimitCountryEnabled && (
                           <div className="space-y-3 mt-2 pl-1">
-                            <Label className="text-sm">Selected Countries</Label>
-                            <div className="flex flex-wrap gap-1.5 mb-3 min-h-8">
-                              {selectedCountries.length > 0 ? (
-                                selectedCountries.map((countryItem, index) => {
-                                  // Use the country object directly instead of finding it by key
-                                  const countryKey = typeof countryItem === "string" ? countryItem : countryItem.value;
-                                  const country =
-                                    typeof countryItem === "string"
-                                      ? countryOptions.find((c) => c.value === countryItem)
-                                      : countryItem;
-
-                                  return (
-                                    <Badge
-                                      key={countryKey || index}
-                                      variant="outline"
-                                      className="flex items-center gap-1 py-1 px-2 bg-primary/5 hover:bg-primary/10"
-                                    >
-                                      {country?.flag && (
-                                        <img src={country.flag} alt={country.label} className="h-4 w-auto object-contain" />
-                                      )}
-                                      <span>{country?.label || countryKey}</span>
-                                      <button
-                                        onClick={() =>
-                                          onSelectedCountriesChange(
-                                            selectedCountries.filter((c) =>
-                                              typeof c === "string" ? c !== countryKey : c.value !== countryKey
-                                            )
-                                          )
-                                        }
-                                        className="ml-1 hover:text-destructive"
-                                      >
-                                        ×
-                                      </button>
-                                    </Badge>
-                                  );
-                                })
-                              ) : (
-                                <p className="text-sm text-muted-foreground italic">No countries selected</p>
-                              )}
-                            </div>
+                     
 
                             <MultiSelectDropdown
                               options={countryOptions}

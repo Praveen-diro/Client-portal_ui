@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Bell,
   FileText,
@@ -25,6 +26,11 @@ import {
   Server,
   Calendar,
   CheckSquare,
+  Building,
+  Clock,
+  Pencil,
+  Trash2,
+  User,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -158,26 +164,101 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
     loading: false,
   });
 
-  // Email reminders
-  const [reminderRows, setReminderRows] = useState([
-    { id: 1, trigger: "submission_completed", filter: "all", active: true, customer: true, organization: false, delay: 0 },
-  ]);
+  // Define the structure for a reminder row
+  interface ReminderRow {
+    id: number;
+    trigger: string;
+    filter: string;
+    customerCheck: boolean;
+    organizationCheck: boolean;
+    delay: string;
+    activate: boolean;
+  }
+
+  // Email reminders state using the interface
+  const [reminderRows, setReminderRows] = useState<ReminderRow[]>([]); // Initialize as empty or with defaults based on props
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const addReminderRow = () => {
-    setReminderRows([
-      ...reminderRows,
-      {
-        id: Date.now(),
-        trigger: "submission_completed",
-        filter: "all",
-        active: true,
-        customer: true,
-        organization: false,
-        delay: 0,
-      },
-    ]);
+    const newReminder: ReminderRow = {
+      id: Date.now(),
+      trigger: "Document not submitted", // Default based on image
+      filter: "", // Empty filter requiring manual selection
+      customerCheck: false,
+      organizationCheck: false,
+      delay: "0.0",
+      activate: false, // Default to inactive
+    };
+    setReminderRows([...reminderRows, newReminder]);
+  };
+
+  // Handle trigger change
+  const handleTriggerChange = (triggerId: number, value: string) => {
+    setReminderRows((rows) =>
+      rows.map((row) => {
+        if (row.id === triggerId) {
+          // Reset filter when trigger changes
+          return { ...row, trigger: value, filter: "" };
+        }
+        return row;
+      })
+    );
+  };
+
+  // Handle filter change
+  const handleFilterChange = (triggerId: number, value: string) => {
+    setReminderRows((rows) =>
+      rows.map((row) => {
+        if (row.id === triggerId) {
+          return { ...row, filter: value };
+        }
+        return row;
+      })
+    );
+  };
+
+  // Handle toggle changes
+  const handleToggleChange = (
+    triggerId: number,
+    toggleName: "customerCheck" | "organizationCheck" | "activate",
+    checked: boolean
+  ) => {
+    setReminderRows((rows) =>
+      rows.map((row) => {
+        if (row.id === triggerId) {
+          return { ...row, [toggleName]: checked };
+        }
+        return row;
+      })
+    );
+  };
+
+  // Handle delay changes with validation for up to 1 decimal place
+  const handleDelayChange = (triggerId: number, value: string) => {
+    console.log("delay value", value);
+
+    // Allow empty string or number with optional one decimal
+    if (/^\d*\.?\d?$/.test(value) || value === "") {
+      setReminderRows((rows) =>
+        rows.map((row) => {
+          if (row.id === triggerId) {
+            return { ...row, delay: value };
+          }
+          return row;
+        })
+      );
+    }
+  };
+
+  // Function to convert days to hours
+  const daysToHours = (days: string) => {
+    return (parseFloat(days || "0") * 24).toFixed(1);
+  };
+
+  // Format days to display with 1 decimal place
+  const formatDays = (days: string) => {
+    return parseFloat(days || "0").toFixed(1);
   };
 
   // Test callback function
@@ -239,13 +320,8 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
     <div className="lg:col-span-3 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left sidebar navigation */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-4 space-y-2">
-            <div className="mb-4">
-              <h3 className="text-xl font-medium">Settings</h3>
-              <p className="text-sm text-muted-foreground">Configure triggers and integrations</p>
-            </div>
-
+        <div className="lg:col-span-1/2">
+          <div className="sticky top-4 space-y-3 space-x-2">
             <Button
               variant={activeSection === "Triggers" ? "default" : "ghost"}
               className="w-full justify-start text-left"
@@ -310,8 +386,8 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
           {activeSection === "Triggers" && (
             <Card>
               <CardHeader>
-                {/* <CardTitle>Email Notifications</CardTitle> */}
-                {/* <CardDescription>Configure notifications sent after verification</CardDescription> */}
+                <CardTitle className="text-xl font-semibold tracking-tight">Email Notifications</CardTitle>
+                <CardDescription>Configure notifications sent after verification</CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
@@ -490,7 +566,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
           {activeSection === "callbacks" && (
             <Card>
               <CardHeader>
-                <CardTitle>Callback Configuration</CardTitle>
+                <CardTitle className="text-xl font-semibold tracking-tight">Callback Configuration</CardTitle>
                 <CardDescription>Configure how data is sent to external systems</CardDescription>
               </CardHeader>
 
@@ -883,124 +959,318 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
             </Card>
           )}
 
-          {/* Reminders Section */}
+          {/* Customer Reminders Section */}
           {activeSection === "Customer Reminders" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Reminder Schedules</CardTitle>
-                <CardDescription>Configure automated email Customer Reminders</CardDescription>
+            <Card className="shadow-sm border-slate-200 dark:border-slate-800">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 pb-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2.5 rounded-full">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-semibold tracking-tight">Customer Reminders</CardTitle>
+                      <CardDescription>Automate notifications throughout the verification process</CardDescription>
+                    </div>
+                  </div>
+                  <Button onClick={addReminderRow} className="shadow-sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Reminder
+                  </Button>
+                </div>
               </CardHeader>
 
-              <CardContent className="space-y-6">
-                {emailReminderLoading ? (
-                  <div className="flex justify-center items-center p-8 border rounded-lg bg-slate-50 dark:bg-slate-900">
-                    <RefreshCw className="h-5 w-5 animate-spin mr-2 text-primary" />
-                    <span>Loading reminder settings...</span>
-                  </div>
-                ) : emailReminderError ? (
-                  <div className="flex items-start p-6 border rounded-lg bg-red-50 dark:bg-red-900/30">
-                    <XCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-red-700 dark:text-red-400">Failed to load reminder settings</h4>
-                      <p className="text-sm text-red-600 dark:text-red-300 mt-1">{emailReminderError}</p>
-                      <p className="text-xs text-red-500 dark:text-red-400 mt-2">
-                        This won't affect your ability to save other settings.
-                      </p>
-                      <Button variant="outline" className="mt-3 text-sm px-3 py-1 h-auto">
-                        Try Again
-                      </Button>
+              <CardContent className="p-6">
+                {emailReminderLoading && (
+                  <div className="flex justify-center items-center py-20">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="relative h-12 w-12">
+                        <div className="absolute inset-0 rounded-full border-4 border-primary/10 border-t-primary animate-spin"></div>
+                        <Calendar className="h-6 w-6 text-primary/60 absolute inset-0 m-auto" />
+                      </div>
+                      <span className="text-slate-600 dark:text-slate-300 font-medium">Loading reminders...</span>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="mb-4">
-                      <p className="text-sm text-muted-foreground">
-                        Configure automated email reminders to be sent based on verification status
-                      </p>
-                    </div>
+                )}
 
-                    {reminderRows.map((row, index) => (
-                      <div key={row.id} className="border rounded-lg overflow-hidden mb-4">
-                        <div className="bg-slate-100 dark:bg-slate-800 p-3 flex justify-between items-center">
-                          <div className="font-medium">Reminder #{index + 1}</div>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <XCircle className="h-4 w-4" />
+                {!emailReminderLoading && emailReminderError && (
+                  <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-6 border border-red-100 dark:border-red-900/20 shadow-sm animate-in fade-in duration-300">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full flex-shrink-0">
+                        <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-base font-medium text-red-800 dark:text-red-400">Unable to load reminders</h3>
+                        <p className="text-sm text-red-600 dark:text-red-300">{emailReminderError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800/40 dark:text-red-400"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                          Retry
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!emailReminderLoading && !emailReminderError && (
+                  <>
+                    {reminderRows.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <div className="max-w-md mx-auto">
+                          <div className="mb-6 relative">
+                            <div className="bg-primary/5 p-6 rounded-full h-24 w-24 flex items-center justify-center mx-auto">
+                              <Calendar className="h-10 w-10 text-primary/40" />
+                            </div>
+                            <div className="absolute top-3 right-3 border-2 border-dashed border-primary/20 w-6 h-6 rounded-full"></div>
+                            <div className="absolute bottom-1 left-1 border-2 border-dashed border-primary/20 w-8 h-8 rounded-full"></div>
+                          </div>
+                          <h3 className="text-xl font-medium mb-3 text-slate-900 dark:text-slate-100">No reminders configured</h3>
+                          <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+                            Create automated reminders to keep customers engaged and improve completion rates for your
+                            verification process.
+                          </p>
+                          <Button onClick={addReminderRow} className="shadow-sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Your First Reminder
                           </Button>
                         </div>
-
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Trigger Event</Label>
-                            <Select defaultValue={row.trigger}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="submission_completed">Submission completed</SelectItem>
-                                <SelectItem value="verification_pending">Verification pending</SelectItem>
-                                <SelectItem value="verification_rejected">Verification rejected</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Additional Filter</Label>
-                            <Select defaultValue={row.filter}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All submissions</SelectItem>
-                                <SelectItem value="first_time">First-time users</SelectItem>
-                                <SelectItem value="returning">Returning users</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Delay (days)</Label>
-                            <div className="flex items-center">
-                              <Input type="number" className="w-20" defaultValue={row.delay} />
-                              <span className="text-sm text-muted-foreground ml-2">days after trigger</span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <Button variant="outline" size="sm" className="mb-2">
-                              Edit Email Template
-                            </Button>
-
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="flex items-center">
-                                  <CheckSquare className="h-4 w-4 mr-2" />
-                                  Send to customer
-                                </Label>
-                                <Switch checked={row.customer} />
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <Label className="flex items-center">
-                                  <CheckSquare className="h-4 w-4 mr-2" />
-                                  Send to organization
-                                </Label>
-                                <Switch checked={row.organization} />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="md:col-span-2 pt-2 flex justify-between items-center border-t">
-                            <p className="text-sm text-muted-foreground">Enable this reminder</p>
-                            <Switch checked={row.active} />
-                          </div>
-                        </div>
                       </div>
-                    ))}
+                    ) : (
+                      <Accordion type="multiple" className="space-y-4">
+                        {reminderRows.map((row, index) => {
+                          // Define theme colors based on trigger type
+                          let accentColor = "text-green-600 dark:text-green-500";
+                          let borderColor = "border-green-200 dark:border-green-900/40";
+                          let bgColor = "bg-green-50 dark:bg-green-900/10";
+                          let iconBg = "bg-green-100 dark:bg-green-900/30";
+                          let icon = <CheckCircle className="h-4 w-4" />;
+                          let statusBg = row.activate
+                            ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400";
 
-                    <Button className="w-full" variant="outline" onClick={addReminderRow}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add New Reminder
-                    </Button>
+                          if (row.trigger === "verification_pending" || row.trigger === "Document not submitted") {
+                            accentColor = "text-amber-600 dark:text-amber-500";
+                            borderColor = "border-amber-200 dark:border-amber-900/40";
+                            bgColor = "bg-amber-50 dark:bg-amber-900/10";
+                            iconBg = "bg-amber-100 dark:bg-amber-900/30";
+                            icon = <Clock className="h-4 w-4" />;
+                            statusBg = row.activate
+                              ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400";
+                          } else if (row.trigger === "verification_rejected") {
+                            accentColor = "text-red-600 dark:text-red-500";
+                            borderColor = "border-red-200 dark:border-red-900/40";
+                            bgColor = "bg-red-50 dark:bg-red-900/10";
+                            iconBg = "bg-red-100 dark:bg-red-900/30";
+                            icon = <XCircle className="h-4 w-4" />;
+                            statusBg = row.activate
+                              ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400";
+                          }
+
+                          return (
+                            <AccordionItem
+                              key={row.id}
+                              value={`reminder-${row.id}`}
+                              className={`border rounded-lg shadow-sm ${borderColor} overflow-hidden`}
+                            >
+                              <AccordionTrigger
+                                className={`${bgColor} p-4 px-5 hover:no-underline group [&[data-state=open]>svg]:rotate-180`}
+                              >
+                                <div className="flex items-center justify-between w-full pr-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`${iconBg} p-2 rounded-full ${accentColor}`}>{icon}</div>
+                                    <div className="text-left">
+                                      <p className="font-medium text-base">Customer Reminder-{index + 1}</p>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                        {row.trigger === "submission_completed" && "Submission Completed"}
+                                        {row.trigger === "Document not submitted" && "Document not submitted"}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3">
+                                    <span className={`${statusBg} px-2.5 py-1 rounded-full text-xs font-medium hidden md:flex`}>
+                                      {row.activate ? "Active" : "Inactive"}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-500"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Add delete logic here
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+
+                              <AccordionContent className="p-0">
+                                <div className="p-5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                    <div className="md:col-span-6 space-y-5 gap-4">
+                                      <div className="grid grid-cols-6 gap-4">
+                                        <div className="col-span-6 sm:col-span-6 space-y-2">
+                                          <Label className="text-md">Trigger</Label>
+                                          <Select
+                                            defaultValue={row.trigger}
+                                            onValueChange={(value) => handleTriggerChange(row.id, value)}
+                                          >
+                                            <SelectTrigger className="bg-white dark:bg-slate-800 h-10">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="Document not submitted">
+                                                <div className="flex items-center font-medium">
+                                                  <XCircle className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
+                                                  Document not submitted
+                                                </div>
+                                              </SelectItem>
+                                              <SelectItem value="submission_completed">
+                                                <div className="flex items-center font-medium">
+                                                  <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                                                  Submission completed
+                                                </div>
+                                              </SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+
+                                        <div className="col-span-6 sm:col-span-6 space-y-2">
+                                          <Label className="text-md">Additional Filter</Label>
+                                          <Select value={row.filter} onValueChange={(value) => handleFilterChange(row.id, value)}>
+                                            <SelectTrigger className="bg-white dark:bg-slate-800 h-10">
+                                              <SelectValue placeholder="Select a filter" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {row.trigger === "submission_completed" ? (
+                                                <>
+                                                  <SelectItem value="Bad Document">Bad Document</SelectItem>
+                                                  <SelectItem value="Document rejected">Document rejected</SelectItem>
+                                                  <SelectItem value="Document accepted">Document accepted</SelectItem>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <SelectItem value="Live feedback accepted">Live feedback accepted</SelectItem>
+                                                  <SelectItem value="Live feedback rejection">Live feedback rejection</SelectItem>
+                                                </>
+                                              )}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+
+                                        <div className="col-span-12 sm:col-span-6 space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-md">Delay (In days)</Label>
+                                            <div className="text-xs text-slate-500">
+                                              {parseFloat(row.delay || "0") > 0 ? (
+                                                <span className="font-medium">
+                                                  {formatDays(row.delay)} day{parseFloat(row.delay) !== 1 && "s"} (
+                                                  {daysToHours(row.delay)} hours)
+                                                </span>
+                                              ) : (
+                                                <span className="font-medium">0.0 days</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex space-x-2">
+                                            <Input
+                                              type="text"
+                                              className="bg-white dark:bg-slate-800 h-10"
+                                              value={row.delay}
+                                              placeholder="0.0"
+                                              onChange={(e) => handleDelayChange(row.id, e.target.value)}
+                                              style={{ width: "100%" }}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center space-x-2">
+                                        <Label className="text-sm">Activate reminder</Label>
+                                        <Switch
+                                          checked={row.activate}
+                                          onCheckedChange={(checked) =>
+                                            handleToggleChange(row.id, "activate", checked as boolean)
+                                          }
+                                          className="data-[state=checked]:bg-primary"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="md:col-span-6 mt-4">
+                                      <div className="rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+                                          <h4 className="font-medium text-sm text-slate-900 dark:text-slate-100 flex items-center">
+                                            <Mail className="h-3.5 w-3.5 mr-2 text-slate-500" />
+                                            Notification Recipients
+                                          </h4>
+                                        </div>
+
+                                        <div className="p-4 space-y-3">
+                                          <div className="flex items-center justify-between py-2 border-b border-dashed border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center">
+                                              <CheckSquare className="h-4 w-4 text-slate-500 mr-3" />
+                                              <div>
+                                                <p className="text-sm font-medium">Customer</p>
+                                                <p className="text-xs text-slate-500">End user verification</p>
+                                              </div>
+                                            </div>
+                                            <Switch
+                                              checked={row.customerCheck}
+                                              onCheckedChange={(checked) =>
+                                                handleToggleChange(row.id, "customerCheck", checked as boolean)
+                                              }
+                                              className="data-[state=checked]:bg-primary"
+                                              disabled={!row.filter}
+                                            />
+                                          </div>
+
+                                          <div className="flex items-center justify-between py-2">
+                                            <div className="flex items-center">
+                                              <Building className="h-4 w-4 text-slate-500 mr-3" />
+                                              <div>
+                                                <p className="text-sm font-medium">Organization</p>
+                                                <p className="text-xs text-slate-500">Admin account</p>
+                                              </div>
+                                            </div>
+                                            <Switch
+                                              checked={row.organizationCheck}
+                                              onCheckedChange={(checked) =>
+                                                handleToggleChange(row.id, "organizationCheck", checked as boolean)
+                                              }
+                                              className="data-[state=checked]:bg-primary"
+                                              disabled={!row.filter}
+                                            />
+                                          </div>
+
+                                          <Separator className="my-2" />
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full mt-2 border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                                          >
+                                            <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                            Edit templates
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    )}
                   </>
                 )}
               </CardContent>
