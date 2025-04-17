@@ -89,6 +89,16 @@ interface FormattedButton {
   timestamp: number;
 }
 
+interface AuthUser {
+  apikey: string;
+  [key: string]: any;
+}
+
+interface AuthState {
+  user: AuthUser | null;
+  [key: string]: any;
+}
+
 export default function ValidationButtons() {
   const [buttons, setButtons] = useState<FormattedButton[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -122,7 +132,7 @@ export default function ValidationButtons() {
   const itemsPerPage = 10;
 
   // Add this to access Redux auth state for debugging
-  const auth = useSelector((state: RootState) => state.auth);
+  const auth = useSelector((state: RootState) => state.auth) as AuthState;
   const buttonsData = useSelector((state: RootState) => state.buttons.buttons);
   const userRoles = useSelector((state: RootState) => state.auth.roles);
   const authMode = useSelector((state: RootState) => state.auth.authMode);
@@ -705,7 +715,8 @@ export default function ValidationButtons() {
   // Silent version that doesn't show any UI feedback
   const copyButtonToProductionSilently = async (buttonId: string, sheetUrl?: string) => {
     try {
-      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+      const apiKey = auth.user?.apikey || Cookies.get("apikey") || "";
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, apiKey);
 
       if (response.success) {
         // Just refresh button list silently
@@ -727,7 +738,8 @@ export default function ValidationButtons() {
   // Fix the missing copyButtonToProduction function
   const copyButtonToProduction = async (buttonId: string, sheetUrl?: string) => {
     try {
-      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+      const apiKey = auth.user?.apikey;
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, apiKey);
       if (response.success) {
         refreshButtonsList();
       } else {
@@ -933,6 +945,7 @@ export default function ValidationButtons() {
               {/* Create Button Confirmation Modal - Horizontal Layout */}
               <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Create Button</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1166,6 +1179,7 @@ export default function ValidationButtons() {
               {/* Success Modal with Rename Option - Horizontal Layout */}
               <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1441,6 +1455,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Duplicate Button</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1780,6 +1795,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Copy to Production Confirmation</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1900,6 +1916,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Copy to Production Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2081,6 +2098,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+                  <DialogTitle className="sr-only">Button Duplicated Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}

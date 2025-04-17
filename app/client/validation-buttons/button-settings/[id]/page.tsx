@@ -1041,6 +1041,7 @@ export default function EditButton() {
         emailToOrganization={buttonSettings?.replytoemail || ""}
         includePdfInEmail={buttonSettings?.include_pdf || false}
         submissionNotifyEmail={buttonSettings?.submissionNotifyEmail || false}
+        emailReminderData={store.getState().buttons.emailreminderdata || []}
         emailToOrganizationEnabled={buttonSettings?.emailToOrganizationEnabled || false}
         enableEngagementCallback={buttonSettings?.engagement_callback || false}
         autoJson={buttonSettings?.autojson || false}

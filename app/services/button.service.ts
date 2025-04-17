@@ -146,7 +146,7 @@ class ButtonService {
   }
 
   async updateButton(buttonData: any): Promise<ButtonResponse<any>> {
-    return this.makeRequest(env.update_btn, buttonData);
+    return this.makeRequest(env.update_btn, buttonData,false);
   }
 
   async deleteButton(buttonId: string): Promise<ButtonResponse<any>> {

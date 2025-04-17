@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FancyCheckbox } from "@/components/ui/fancy-checkbox";
 import { ZapierIntegration } from "./integrations/ZapierIntegration";
@@ -42,6 +42,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { buttonService } from "../../../services/button.service";
 import { CustomizeTemplateModal } from "./CustomizeTemplateModal";
 import { store } from "@/app/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { updateButton } from "@/app/store/features/buttonSlice";
 
 // Define types for the email reminder data structure
 interface EmailTemplate {
@@ -143,7 +145,7 @@ const getTemplateByCondition = (condition: string, emailReminderData: any): { su
   }
 
   // First try looking directly at the indices we know
-  const submissionCompletedGroup = emailReminderData[3]?.data; // index 3 for submission_completed
+  const submissionCompletedGroup = emailReminderData[3]?.data; // index 3 for Submission completed
   const documentNotSubmittedGroup = emailReminderData[4]?.data; // index 4 for document not submitted
 
   console.log("submissionCompletedGroup", submissionCompletedGroup);
@@ -196,7 +198,7 @@ const getDefaultTemplates = (
       customerCondition = "Live feedback rejected, but documents not submitted by customer";
       orgCondition = "Live feedback rejected, but documents not submitted organization";
     }
-  } else if (trigger === "submission_completed") {
+  } else if (trigger === "Submission completed") {
     if (additional_filter === "Document accepted") {
       customerCondition = "Document accepted";
       orgCondition = "Document Submission Accepted Org";
@@ -288,17 +290,98 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
     loading: false,
   });
 
-  // Email reminders state using the interface
-  const [reminderRows, setReminderRows] = useState<ReminderRow[]>([]); // Initialize as empty or with defaults based on props
+  // Redux integration
+  const dispatch = useDispatch();
+  const buttonData = useSelector((state: any) => state.buttons.btn?.btndata);
+  const emailReminderTemplates = useSelector((state: any) => state.buttons.emailreminderdata);
+  const buttonId = useSelector((state: any) => state.buttons.buttonid);
+
+  // Initialize reminders from Redux state
+  const [reminderRows, setReminderRows] = useState<ReminderRow[]>(buttonData?.reminders || []);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<ReminderRow | null>(null);
-  const emailReminderTemplates = store.getState().buttons.emailreminderdata;
-  console.log("emailReminderTemplates", emailReminderTemplates);
+
+  // Sync with Redux state when it changes
+  useEffect(() => {
+    if (buttonData?.reminders) {
+      setReminderRows(buttonData.reminders);
+    }
+  }, [buttonData?.reminders]);
+
+  // Function to update a specific reminder in Redux
+  const updateReminder = (index: number, updatedData: Partial<ReminderRow>) => {
+    const updatedReminders = reminderRows.map((reminder, idx) => (idx === index ? { ...reminder, ...updatedData } : reminder));
+
+    // Update local state
+    setReminderRows(updatedReminders);
+
+    // Dispatch to Redux
+    dispatch(
+      updateButton({
+        buttonid: buttonId,
+        data: {
+          reminders: updatedReminders,
+        },
+      })
+    );
+  };
+
+  // Handle trigger change
+  const handleTriggerChange = (triggerId: number, value: string) => {
+    const reminderIndex = reminderRows.findIndex((row) => row.id === triggerId);
+    if (reminderIndex === -1) return;
+
+    const newTemplates = getDefaultTemplates(value, "", emailReminderTemplates);
+    updateReminder(reminderIndex, {
+      trigger: value,
+      additional_filter: "",
+      ...newTemplates,
+    });
+  };
+
+  // Handle filter change
+  const handleFilterChange = (triggerId: number, value: string) => {
+    const reminderIndex = reminderRows.findIndex((row) => row.id === triggerId);
+    if (reminderIndex === -1) return;
+
+    const newTemplates = getDefaultTemplates(reminderRows[reminderIndex].trigger, value, emailReminderTemplates);
+    updateReminder(reminderIndex, {
+      additional_filter: value,
+      ...newTemplates,
+    });
+  };
+
+  // Handle toggle changes
+  const handleToggleChange = (
+    triggerId: number,
+    toggleName: "customerCheck" | "organizationCheck" | "activate",
+    checked: boolean
+  ) => {
+    const reminderIndex = reminderRows.findIndex((row) => row.id === triggerId);
+    if (reminderIndex === -1) return;
+
+    updateReminder(reminderIndex, {
+      [toggleName]: checked,
+    });
+  };
+
+  // Handle delay changes
+  const handleDelayChange = (triggerId: number, value: string) => {
+    if (!/^\d*\.?\d?$/.test(value) && value !== "") return;
+
+    const reminderIndex = reminderRows.findIndex((row) => row.id === triggerId);
+    if (reminderIndex === -1) return;
+
+    updateReminder(reminderIndex, {
+      delay: value,
+    });
+  };
+
+  // Add new reminder
   const addReminderRow = () => {
-    const defaultTrigger = "Document not submitted";
-    const defaultFilter = "Live feedback accepted"; // Start with no additional_filter selected
-    // Get templates (will be empty initially due to empty additional_filter)
+    const defaultTrigger = "Submission completed";
+    const defaultFilter = "";
     const defaultTemplates = getDefaultTemplates(defaultTrigger, defaultFilter, emailReminderTemplates);
 
     const newReminder: ReminderRow = {
@@ -309,9 +392,29 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
       organizationCheck: false,
       delay: "0.0",
       activate: false,
-      ...defaultTemplates, // Spread the default templates with new keys
+      ...defaultTemplates,
     };
-    setReminderRows([...reminderRows, newReminder]);
+
+    const updatedReminders = [...reminderRows, newReminder];
+    setReminderRows(updatedReminders);
+
+    dispatch(
+      updateButton({
+        buttonid: buttonId,
+        data: {
+          reminders: updatedReminders,
+        },
+      })
+    );
+  };
+
+  // Save customized template
+  const handleSaveCustomizedTemplate = (updatedReminder: ReminderRow) => {
+    const reminderIndex = reminderRows.findIndex((row) => row.id === updatedReminder.id);
+    if (reminderIndex === -1) return;
+
+    updateReminder(reminderIndex, updatedReminder);
+    handleCloseCustomizeModal();
   };
 
   // Function to open the customize template modal
@@ -326,93 +429,6 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   const handleCloseCustomizeModal = () => {
     setEditingReminder(null);
     setIsCustomizeModalOpen(false);
-  };
-
-  // Placeholder function to handle saving the customized template
-  const handleSaveCustomizedTemplate = (updatedReminder: ReminderRow) => {
-    console.log("Saving updated reminder:", updatedReminder); // Log before saving
-    setReminderRows((rows) => rows.map((row) => (row.id === updatedReminder.id ? updatedReminder : row)));
-    handleCloseCustomizeModal(); // Close modal after saving
-  };
-
-  // Handle trigger change
-  const handleTriggerChange = (triggerId: number, value: string) => {
-    // Reset additional_filter and get empty templates for the new trigger
-    const newTemplates = getDefaultTemplates(value, "", emailReminderTemplates);
-    setReminderRows((rows) =>
-      rows.map((row) => {
-        if (row.id === triggerId) {
-          return {
-            ...row,
-            trigger: value,
-            additional_filter: "", // Reset additional_filter
-            ...newTemplates, // Apply (empty) templates with new keys
-          };
-        }
-        return row;
-      })
-    );
-  };
-
-  // Handle additional_filter change
-  const handleFilterChange = (triggerId: number, value: string) => {
-    setReminderRows((rows) =>
-      rows.map((row) => {
-        if (row.id === triggerId) {
-          // Fetch default templates for the new trigger/additional_filter combination
-          const newTemplates = getDefaultTemplates(row.trigger, value, emailReminderTemplates);
-          return {
-            ...row,
-            additional_filter: value,
-            ...newTemplates, // Apply fetched templates with new keys
-          };
-        }
-        return row;
-      })
-    );
-  };
-
-  // Handle toggle changes
-  const handleToggleChange = (
-    triggerId: number,
-    toggleName: "customerCheck" | "organizationCheck" | "activate",
-    checked: boolean
-  ) => {
-    setReminderRows((rows) =>
-      rows.map((row) => {
-        if (row.id === triggerId) {
-          return { ...row, [toggleName]: checked };
-        }
-        return row;
-      })
-    );
-  };
-
-  // Handle delay changes with validation for up to 1 decimal place
-  const handleDelayChange = (triggerId: number, value: string) => {
-    console.log("delay value", value);
-
-    // Allow empty string or number with optional one decimal
-    if (/^\d*\.?\d?$/.test(value) || value === "") {
-      setReminderRows((rows) =>
-        rows.map((row) => {
-          if (row.id === triggerId) {
-            return { ...row, delay: value };
-          }
-          return row;
-        })
-      );
-    }
-  };
-
-  // Function to convert days to hours
-  const daysToHours = (days: string) => {
-    return (parseFloat(days || "0") * 24).toFixed(1);
-  };
-
-  // Format days to display with 1 decimal place
-  const formatDays = (days: string) => {
-    return parseFloat(days || "0").toFixed(1);
   };
 
   // Test callback function
@@ -1240,7 +1256,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                     <div className="text-left">
                                       <p className="font-medium text-base">Customer Reminder-{index + 1}</p>
                                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                        {row.trigger === "submission_completed" && "Submission Completed"}
+                                        {row.trigger === "submission completed" && "Submission Completed"}
                                         {row.trigger === "Document not submitted" && "Document not submitted"}
                                       </p>
                                     </div>
@@ -1256,7 +1272,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                       className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-500"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        // Add delete logic here
+                                        updateReminder(index, { activate: false });
                                       }}
                                     >
                                       <Trash2 className="h-4 w-4" />
@@ -1286,7 +1302,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                                   Document not submitted
                                                 </div>
                                               </SelectItem>
-                                              <SelectItem value="submission_completed">
+                                              <SelectItem value="Submission completed">
                                                 <div className="flex items-center font-medium">
                                                   <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />
                                                   Submission completed
@@ -1306,7 +1322,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                               <SelectValue placeholder="Select a additional_filter" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                              {row.trigger === "submission_completed" ? (
+                                              {row.trigger === "Submission completed" ? (
                                                 <>
                                                   <SelectItem value="Bad Document">Bad Document</SelectItem>
                                                   <SelectItem value="Document rejected">Document rejected</SelectItem>
@@ -1445,17 +1461,6 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
               </CardHeader>
 
               <CardContent className="space-y-6">
-                <div className="flex items-center space-x-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
-                  <div className="flex-shrink-0 bg-primary/10 p-2 rounded-full">
-                    <ArrowRight className="h-5 w-5 text-primary" />
-                  </div>
-
-                  <div className="flex-grow space-y-1">
-                    <p className="font-medium">Post-verification Redirection</p>
-                    <p className="text-sm text-muted-foreground">Direct users to specific pages after verification completes</p>
-                  </div>
-                </div>
-
                 <div className="space-y-4">
                   <div className="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
                     <div className="space-y-3">

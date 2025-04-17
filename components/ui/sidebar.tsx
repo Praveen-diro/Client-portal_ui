@@ -17,11 +17,13 @@ import {
   UserCircle2,
   Gauge,
   LifeBuoy,
+  LogOut,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ModeToggle, ModeToggleRef } from "./mode-toggle";
 import { cookies } from "@/app/services/cookie.service";
+import { authService } from "@/app/services/auth.service";
 
 interface SidebarProps {
   onExpandedChange?: (expanded: boolean) => void;
@@ -229,6 +231,19 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       onClick: () => {
         if (!mounted) return;
         setTheme(theme === "light" ? "dark" : "light");
+      },
+    },
+    {
+      id: "logout",
+      icon: LogOut,
+      label: "Logout",
+      onClick: async () => {
+        try {
+          await authService.logout();
+          router.push("/authentication/login");
+        } catch (error) {
+          console.error("Logout failed:", error);
+        }
       },
     },
   ];
