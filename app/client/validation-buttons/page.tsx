@@ -45,6 +45,7 @@ import { getButtons, addButton, getButton } from "@/app/store/features/buttonSli
 import Loader from "@/components/ui/loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AnimatePresence } from "framer-motion";
+import { CreateButton } from "./components/create-button";
 // import { getUserFromCookies } from "@/app/store/features/authSlice";
 
 const statsCards = [
@@ -135,9 +136,11 @@ export default function ValidationButtons() {
   const auth = useSelector((state: RootState) => state.auth) as AuthState;
   const buttonsData = useSelector((state: RootState) => state.buttons.buttons);
   const userRoles = useSelector((state: RootState) => state.auth.roles);
-  const authMode = useSelector((state: RootState) => state.auth.authMode);
-  console.log("auth state mode", authMode);
-  console.log("authMode value", authMode);
+  const authMode = useSelector((state: RootState) => state.auth.authMode) as number;
+
+  useEffect(() => {
+    console.log("Current authMode:", authMode);
+  }, [authMode]);
 
   // Add state for button operations
   const [duplicateButtonModalOpen, setDuplicateButtonModalOpen] = useState(false);
@@ -904,44 +907,13 @@ export default function ValidationButtons() {
       <PageContainer sidebarExpanded={sidebarExpanded}>
         <TooltipProvider>
           <div className="flex-1 relative">
-            <PageHeader title="Verification Buttons" description="Manage and monitor your verification button performance" />
-            <div className="container mx-auto px-8 py-8">
-              <motion.div
-                className="flex justify-end mb-6"
-                initial={initialAnimation}
-                animate={{ opacity: 1, x: 0 }}
-                transition={headerTransitionConfig}
-              >
-                <div className="flex items-center">
-                  {!adminAccess && (
-                    <span className="text-red-500 mr-4 text-sm">Access denied. You don't have permission to create buttons.</span>
-                  )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div style={{ cursor: "pointer" }}>
-                        <Button
-                          className={`${
-                            authMode === 1
-                              ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700"
-                              : "bg-foreground text-background hover:bg-foreground/90"
-                          }`}
-                          onClick={handleCreateButton}
-                          disabled={authMode === 1}
-                          suppressHydrationWarning
-                        >
-                          <Plus className="mr-2 h-4 w-4" /> Create Button
-                        </Button>
-                      </div>
-                    </TooltipTrigger>
-                    {authMode === 1 && (
-                      <TooltipContent>
-                        <p>To create a button, please switch to test mode</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </div>
-              </motion.div>
-
+            <PageHeader
+              title="Verification Buttons"
+              description="Manage and monitor your verification button performance"
+              action={<CreateButton onClick={handleCreateButton} authMode={authMode} adminAccess={adminAccess} />}
+            />
+            <div className="container mx-auto px-8 py-0">
+              {/* Remove the old create button section */}
               {/* Create Button Confirmation Modal - Horizontal Layout */}
               <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
@@ -2186,7 +2158,7 @@ export default function ValidationButtons() {
                 </DialogContent>
               </Dialog>
 
-              <div className="grid grid-cols-3 gap-6">
+              {/* <div className="grid grid-cols-3 gap-6">
                 {statsCards.map((card, index) => (
                   <motion.div
                     key={card.title}
@@ -2246,7 +2218,7 @@ export default function ValidationButtons() {
                     </Card>
                   </motion.div>
                 ))}
-              </div>
+              </div> */}
 
               <motion.div
                 initial={initialAnimation}
@@ -2413,45 +2385,37 @@ export default function ValidationButtons() {
                 })()}
 
                 {buttons.length > itemsPerPage && (
-                  <div className="flex items-center justify-center px-4 py-6">
-                    <div className="flex items-center border rounded-full overflow-hidden bg-card shadow-md w-64">
-                      {(() => {
-                        const prevButtonClasses =
-                          currentPage === 1
-                            ? "text-muted cursor-not-allowed"
-                            : "text-foreground hover:bg-primary/10 hover:text-primary";
-
-                        const nextButtonClasses =
-                          currentPage === totalPages
-                            ? "text-muted cursor-not-allowed"
-                            : "text-foreground hover:bg-primary/10 hover:text-primary";
-
-                        return (
-                          <>
-                            <button
-                              onClick={handlePrevPage}
-                              disabled={currentPage === 1}
-                              className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${prevButtonClasses}`}
-                            >
-                              <ChevronLeft className="h-4 w-4 mr-1" />
-                              Previous
-                            </button>
-                            <div className="px-4 border-l border-r border-border font-semibold text-sm text-primary">
-                              {currentPage}
-                            </div>
-                            <button
-                              onClick={handleNextPage}
-                              disabled={currentPage === totalPages}
-                              className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${nextButtonClasses}`}
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4 ml-1" />
-                            </button>
-                          </>
-                        );
-                      })()}
+                  <motion.div
+                    initial={initialAnimation}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      ...transitionConfig,
+                      delay: 0.6,
+                    }}
+                    className="flex items-center justify-center py-4"
+                  >
+                    <div className="inline-flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-full border px-3 py-1">
+                      <Button
+                        variant="ghost"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className="h-8 rounded-full flex items-center gap-2"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span>Previous</span>
+                      </Button>
+                      <span className="text-sm font-medium">{currentPage}</span>
+                      <Button
+                        variant="ghost"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="h-8 rounded-full flex items-center gap-2"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </motion.div>
             </div>

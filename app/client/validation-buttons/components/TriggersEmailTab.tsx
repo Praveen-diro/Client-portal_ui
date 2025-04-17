@@ -45,6 +45,15 @@ import { store } from "@/app/store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { updateButton } from "@/app/store/features/buttonSlice";
 
+// Utility functions for formatting days and hours
+const formatDays = (days: string): string => {
+  return parseFloat(days || "0").toFixed(1);
+};
+
+const daysToHours = (days: string): string => {
+  return (parseFloat(days || "0") * 24).toFixed(0);
+};
+
 // Define types for the email reminder data structure
 interface EmailTemplate {
   condition: string;
@@ -1243,8 +1252,8 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
 
                           return (
                             <AccordionItem
-                              key={row.id}
-                              value={`reminder-${row.id}`}
+                              key={`${index}-${row.trigger}`}
+                              value={`reminder-${row.id || index}`}
                               className={`border rounded-lg shadow-sm ${borderColor} overflow-hidden`}
                             >
                               <AccordionTrigger

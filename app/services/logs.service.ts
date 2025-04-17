@@ -1,3 +1,5 @@
+"use client";
+
 import axios, { AxiosResponse } from "axios";
 import ls from "localstorage-slim";
 import { env } from "../config/environment";
@@ -11,10 +13,10 @@ ls.config.encrypt = true;
 export interface LogResponse<T> extends ApiResponse<T> {}
 
 export interface LogParams {
-  offset: number;
-  limit: number;
-  order: string;
-  search?: string;
+  apikey: string;
+  offset?: number;
+  limit?: number;
+  order?: "asc" | "desc";
 }
 
 export interface LogMessage {
@@ -34,10 +36,33 @@ export interface LogError {
   errorCode: number;
 }
 
-class LogService {
+interface CallbackLog {
+  date: string;
+  orgid: string;
+  request: {
+    stage: string;
+    docid: string;
+    sandbox: boolean;
+    buttonid: string;
+    category: string;
+    email: string;
+    message: string;
+    name: string;
+    sourcecountry: string;
+    sourcename: string;
+    type: string;
+  };
+  status: number;
+}
+
+interface CallbackResponse {
+  ResponseFromCallBackUrl?: string;
+  error?: boolean;
+}
+
+class LogsService {
   private readonly DEFAULT_LIMIT = 10;
   private readonly DEFAULT_ORDER = "desc";
-  private readonly LOGS_URL = "https://api2.diro.live/logs/logs";
 
   constructor() {
     axiosService.setupAxiosDefaults();
@@ -47,20 +72,20 @@ class LogService {
     return cookies.get("apikey") || "";
   }
 
-  private async makeRequest<T>(url: string, data: any): Promise<LogResponse<T>> {
-    const requestData = { ...data, apikey: this.getApiKey() };
-    return apiService.makeRefreshAuthRequest<T>(url, requestData);
-  }
-
-  async getLogs(params: Partial<LogParams> = {}): Promise<LogResponse<any>> {
+  async getCallbackLogs(params: Partial<LogParams> = {}): Promise<LogResponse<any>> {
     const requestParams: LogParams = {
+      apikey: this.getApiKey(),
       offset: params.offset || 0,
       limit: params.limit || this.DEFAULT_LIMIT,
       order: params.order || this.DEFAULT_ORDER,
-      ...(params.search && { search: params.search }),
     };
 
-    return this.makeRequest(env.callbacklogs, requestParams);
+    return apiService.makeRequest(env.callbacklogs, requestParams);
+  }
+
+  async sendCallback(log: CallbackLog): Promise<LogResponse<CallbackResponse>> {
+    const requestPayload = { request: log.request };
+    return apiService.makeRequest<CallbackResponse>(env.getSingleRequestCallback, requestPayload);
   }
 
   async sendLogs(shortmsg: string, longmsg: any, facility: string, level?: string): Promise<LogResponse<any>> {
@@ -76,7 +101,7 @@ class LogService {
     };
 
     try {
-      const response = await axios.post(this.LOGS_URL, logMessage);
+      const response = await axios.post("https://api2.diro.live/logs/logs", logMessage);
       return {
         success: true,
         data: response.data,
@@ -144,4 +169,4 @@ class LogService {
   }
 }
 
-export const logService = new LogService();
+export const logsService = new LogsService();

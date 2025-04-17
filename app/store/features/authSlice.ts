@@ -204,14 +204,14 @@ const authSlice = createSlice({
         return;
       }
       state.countries = action.payload.data;
-      try {
-        const alldata = cookies.get("alldata");
-        console.log("Retrieved alldata from cookie:", alldata);
-        state.user = alldata || "";
-      } catch (e) {
-        console.error("Error parsing alldata cookie in getCountries:", e);
-        state.user = "";
-      }
+      // try {
+      //   const alldata = cookies.get("alldata");
+      //   console.log("Retrieved alldata from cookie:", alldata);
+      //   state.alldata = alldata || "";
+      // } catch (e) {
+      //   console.error("Error parsing alldata cookie in getCountries:", e);
+      //   state.alldata = "";
+      // }
       state.loadingcountry = false;
       console.log("Updated state:", { countries: state.countries, user: state.user, loadingcountry: state.loadingcountry });
     },
@@ -249,6 +249,7 @@ const authSlice = createSlice({
     loginSandboxTwoFactor: (state, action: PayloadAction<any>) => {
       const { doc } = action.payload.payload;
       const emptyString = "";
+      console.log("doc data in loginSandboxTwoFactor", doc);
 
       // Add proper error handling with optional chaining and fallback values
       // Set tokens with Bearer prefix - using nullish coalescing to handle missing properties
@@ -264,10 +265,15 @@ const authSlice = createSlice({
       cookies.set("tokenTest", doc?.sandbox?.accesstoken || emptyString);
 
       // Set user data with null checks
-      cookies.set("alldata", JSON.stringify(doc || {}));
-      cookies.set("alldataa", JSON.stringify(doc || {}));
+      try {
+        cookies.set("alldata", JSON.stringify(doc));
+        cookies.set("alldataa", JSON.stringify(doc));
+      } catch (error) {
+        console.error("Error setting alldata cookies:", error);
+      }
       cookies.set("stripeid", doc?.stripeid || emptyString);
       cookies.set("planid", doc?.planid || emptyString);
+      state.alldata = doc || "";
 
       if (doc?.roles?.length > 0) {
         cookies.set("roles", doc.roles[0]);
@@ -310,6 +316,7 @@ const authSlice = createSlice({
 
       // Set user data
       cookies.set("alldata", JSON.stringify(doc));
+
       cookies.set("alldataa", JSON.stringify(doc));
       cookies.set("stripeid", doc.stripeid);
       cookies.set("planid", doc.planid);

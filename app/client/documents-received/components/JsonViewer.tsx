@@ -811,7 +811,7 @@ export function JsonViewer({
                   </div>
                 )}
                 {activeTab === "raw-json" && (
-                  <div className="p-4">
+                  <div className={`p-4 ${isDarkMode ? "bg-gray-900" : "bg-white"}`}>
                     {searchTerm ? (
                       <div>
                         <div className="mb-4 px-3 py-2 border rounded bg-indigo-500/10 border-indigo-500/20">
@@ -830,7 +830,7 @@ export function JsonViewer({
                           displayDataTypes={false}
                           enableClipboard={false}
                           style={{
-                            backgroundColor: "transparent",
+                            backgroundColor: isDarkMode ? "rgb(17, 24, 39)" : "rgb(255, 255, 255)",
                             fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                             fontSize: "0.875rem",
                             lineHeight: "1.5",
@@ -838,6 +838,30 @@ export function JsonViewer({
                             padding: "12px",
                             boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                             border: isDarkMode ? "1px solid rgba(75, 85, 99, 0.2)" : "1px solid rgba(229, 231, 235, 0.8)",
+                          }}
+                          name={false}
+                          displayObjectSize={false}
+                          displayDataTypes={false}
+                          enableClipboard={false}
+                          collapsed={1}
+                          collapseStringsAfterLength={80}
+                          theme={{
+                            base00: isDarkMode ? "rgb(17, 24, 39)" : "rgb(255, 255, 255)", // background
+                            base01: isDarkMode ? "rgb(31, 41, 55)" : "rgb(243, 244, 246)", // slightly darker background
+                            base02: isDarkMode ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)", // borders
+                            base03: isDarkMode ? "rgb(156, 163, 175)" : "rgb(107, 114, 128)", // comments
+                            base04: isDarkMode ? "rgb(209, 213, 219)" : "rgb(75, 85, 99)", // dark gray
+                            base05: isDarkMode ? "rgb(229, 231, 235)" : "rgb(55, 65, 81)", // default text
+                            base06: isDarkMode ? "rgb(243, 244, 246)" : "rgb(31, 41, 55)", // light gray
+                            base07: isDarkMode ? "rgb(255, 255, 255)" : "rgb(17, 24, 39)", // bright text
+                            base08: isDarkMode ? "rgb(239, 68, 68)" : "rgb(220, 38, 38)", // red
+                            base09: isDarkMode ? "rgb(249, 115, 22)" : "rgb(234, 88, 12)", // orange
+                            base0A: isDarkMode ? "rgb(245, 158, 11)" : "rgb(217, 119, 6)", // yellow
+                            base0B: isDarkMode ? "rgb(34, 197, 94)" : "rgb(22, 163, 74)", // green
+                            base0C: isDarkMode ? "rgb(6, 182, 212)" : "rgb(8, 145, 178)", // cyan
+                            base0D: isDarkMode ? "rgb(59, 130, 246)" : "rgb(37, 99, 235)", // blue
+                            base0E: isDarkMode ? "rgb(168, 85, 247)" : "rgb(147, 51, 234)", // purple
+                            base0F: isDarkMode ? "rgb(236, 72, 153)" : "rgb(219, 39, 119)", // pink
                           }}
                         />
                       </div>
@@ -850,7 +874,7 @@ export function JsonViewer({
                         displayDataTypes={false}
                         enableClipboard={false}
                         style={{
-                          backgroundColor: "transparent",
+                          backgroundColor: isDarkMode ? "rgb(17, 24, 39)" : "rgb(255, 255, 255)",
                           fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                           fontSize: "0.875rem",
                           lineHeight: "1.5",
@@ -858,6 +882,30 @@ export function JsonViewer({
                           padding: "12px",
                           boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                           border: isDarkMode ? "1px solid rgba(75, 85, 99, 0.2)" : "1px solid rgba(229, 231, 235, 0.8)",
+                        }}
+                        name={false}
+                        displayObjectSize={false}
+                        displayDataTypes={false}
+                        enableClipboard={false}
+                        collapsed={2}
+                        collapseStringsAfterLength={80}
+                        theme={{
+                          base00: isDarkMode ? "rgb(17, 24, 39)" : "rgb(255, 255, 255)", // background
+                          base01: isDarkMode ? "rgb(31, 41, 55)" : "rgb(243, 244, 246)", // slightly darker background
+                          base02: isDarkMode ? "rgb(55, 65, 81)" : "rgb(229, 231, 235)", // borders
+                          base03: isDarkMode ? "rgb(156, 163, 175)" : "rgb(107, 114, 128)", // comments
+                          base04: isDarkMode ? "rgb(209, 213, 219)" : "rgb(75, 85, 99)", // dark gray
+                          base05: isDarkMode ? "rgb(229, 231, 235)" : "rgb(55, 65, 81)", // default text
+                          base06: isDarkMode ? "rgb(243, 244, 246)" : "rgb(31, 41, 55)", // light gray
+                          base07: isDarkMode ? "rgb(255, 255, 255)" : "rgb(17, 24, 39)", // bright text
+                          base08: isDarkMode ? "rgb(239, 68, 68)" : "rgb(220, 38, 38)", // red
+                          base09: isDarkMode ? "rgb(249, 115, 22)" : "rgb(234, 88, 12)", // orange
+                          base0A: isDarkMode ? "rgb(245, 158, 11)" : "rgb(217, 119, 6)", // yellow
+                          base0B: isDarkMode ? "rgb(34, 197, 94)" : "rgb(22, 163, 74)", // green
+                          base0C: isDarkMode ? "rgb(6, 182, 212)" : "rgb(8, 145, 178)", // cyan
+                          base0D: isDarkMode ? "rgb(59, 130, 246)" : "rgb(37, 99, 235)", // blue
+                          base0E: isDarkMode ? "rgb(168, 85, 247)" : "rgb(147, 51, 234)", // purple
+                          base0F: isDarkMode ? "rgb(236, 72, 153)" : "rgb(219, 39, 119)", // pink
                         }}
                       />
                     )}
