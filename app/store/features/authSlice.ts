@@ -16,127 +16,122 @@ const ensureTokenHasBearer = (token: string): string => {
 };
 
 interface AuthState {
-  user: any;
-  login_user: any;
+  loading: boolean;
+  isAuthenticated: boolean;
   token: string | null;
+  tokenTest: string;
+  sandboxapi: string;
+  liveapi: string;
+  fileurl: string;
+  alldata: string | null;
+  alldataa: string;
+  orgstripe_id: string;
   apikey: string | null;
   email: string | null;
   orgid: string | null;
-  secrettoken: string | null;
-  tempsecret: string | null;
-  isAuthenticated: boolean;
-  sandboxStatus: boolean;
-  loading: boolean;
-  regloading: boolean;
-  orgloader: boolean;
-  loadingcountry: boolean;
-  forgot: string | null;
-  loginmsg: any;
-  loginError: string | { message: string } | null;
-  statusCode: any;
-  registersucc: any;
-  registermsg: any;
-  countries: any[];
-  orgerr: any;
-  orgerrbool: boolean;
-  orgsuccess: boolean;
-  callsuccess: boolean;
-  callerr: any;
-  callerrbool: boolean;
-  loginloaders: boolean;
   roles: string | null;
   stripeid: string | null;
-  authMode: number | null;
-  onremove: any;
-  onremoveerror: any[];
-  samePasswordError: boolean;
-  resetLinkExpired: boolean;
-  isTwoFactor: boolean;
-  twoFactorId: string;
+  planid: string;
+  nickname: string;
+  flat_amount: string;
+  refreshToken: string;
+  firstbtnid: string;
+  secrettoken: string;
+  tempsecret: string;
+  user: string | null;
+  login_user: string;
+  countries: any[];
+  authMode: number;
+  sandboxStatus: boolean;
+  isSandbox: boolean;
+  error: string | null;
+  regloading: boolean;
+  orgloader: boolean;
+  registersucc: any;
+  registermsg: any;
+  orgerr: any;
+  orgerrbool: boolean;
+  callerrbool: boolean;
+  loginloaders: boolean;
   secret: string | null;
   secretBase32Encoded: string | null;
   multiFactorEnabled: boolean;
   method: string;
   qrLoading: boolean;
-  recoverCodes: any[];
+  recoverCodes: string[];
   loginOtp: string;
   methodId: string;
   isToken: boolean;
   forgetfail: boolean;
-  isSandbox: boolean;
-  error: string | null;
+  onremove: any;
+  onremoveerror: any[];
+  twoFactorId: string;
+  loadingcountry: boolean;
+  loginmsg: any;
+  orgsuccess: boolean;
+  callsuccess: boolean;
+  isTwoFactor: boolean;
+  callerr: any;
+  forgot: boolean;
+  samePasswordError: boolean;
+  resetLinkExpired: boolean;
+  loginError: string | null;
 }
 
 const initialState: AuthState = {
-  user: (() => {
+  loading: false,
+  isAuthenticated: false,
+  token: cookies.get("token") || null,
+  tokenTest: cookies.get("tokenTest") || "",
+  sandboxapi: cookies.get("sandboxapi") || "",
+  liveapi: cookies.get("liveapi") || "",
+  fileurl: cookies.get("fileurl") || "",
+  alldata: cookies.get("alldata") || null,
+  alldataa: cookies.get("alldataa") || "",
+  orgstripe_id: cookies.get("orgstripe_id") || "",
+  apikey: cookies.get("apikey") || null,
+  email: cookies.get("email") || null,
+  orgid: cookies.get("orgid") || null,
+  roles: cookies.get("roles") || null,
+  stripeid: cookies.get("stripeid") || null,
+  planid: cookies.get("planid") || "",
+  nickname: cookies.get("nickname") || "",
+  flat_amount: cookies.get("flat_amount") || "",
+  refreshToken: cookies.get("refreshToken") || "",
+  firstbtnid: cookies.get("firstbtnid") || "",
+  secrettoken: cookies.get("secrettoken") || "",
+  tempsecret: cookies.get("tempsecret") || "",
+  user: null,
+  login_user: "",
+  countries: [],
+  authMode: (() => {
     try {
-      const alldata = cookies.get("alldata");
-      return alldata || "";
-    } catch (e) {
-      console.error("Error parsing alldata cookie:", e);
-      return "";
-    }
-  })(),
-  login_user: (() => {
-    try {
-      const alldataa = cookies.get("alldataa");
-      return alldataa || "";
-    } catch (e) {
-      console.error("Error parsing alldataa cookie:", e);
-      return "";
-    }
-  })(),
-  token: cookies.get("token") as string,
-  apikey: cookies.get("apikey") as string,
-  email: cookies.get("email") as string,
-  orgid: cookies.get("orgid") as string,
-  secrettoken: cookies.get("secrettoken") as string,
-  tempsecret: cookies.get("tempsecret") as string,
-  isAuthenticated: cookies.get("apikey") ? true : false,
-  sandboxStatus: (() => {
-    try {
-      const authMode = cookies.get("authMode");
-      return authMode ? authMode === "2" : false;
+      const mode = cookies.get("authMode");
+      return mode ? parseInt(mode, 10) : 1; // Default to Production Mode (1)
     } catch (e) {
       console.error("Error parsing authMode cookie:", e);
+      return 1; // Default to Production Mode (1)
+    }
+  })(),
+  sandboxStatus: (() => {
+    try {
+      const mode = cookies.get("authMode");
+      return mode ? parseInt(mode, 10) === 2 : false;
+    } catch (e) {
+      console.error("Error parsing authMode cookie for sandboxStatus:", e);
       return false;
     }
   })(),
-  loading: true,
+  isSandbox: false,
+  error: null,
   regloading: false,
   orgloader: false,
-  loadingcountry: true,
-  forgot: null,
-  loginmsg: {},
-  loginError: null,
-  statusCode: {},
   registersucc: {},
   registermsg: {},
-  countries: [],
   orgerr: {},
   orgerrbool: false,
-  orgsuccess: false,
-  callsuccess: false,
-  callerr: {},
   callerrbool: false,
   loginloaders: true,
-  roles: cookies.get("roles") as string,
-  stripeid: cookies.get("stripeid") as string,
-  authMode: (() => {
-    try {
-      const authMode = cookies.get("authMode");
-      return authMode ? parseInt(authMode as string, 10) : null;
-    } catch (e) {
-      console.error("Error parsing authMode cookie:", e);
-      return null;
-    }
-  })(),
-  onremove: {},
-  onremoveerror: [],
-  samePasswordError: false,
-  resetLinkExpired: false,
-  isTwoFactor: false,
-  twoFactorId: "",
   secret: null,
   secretBase32Encoded: null,
   multiFactorEnabled: cookies.get("multiFactorEnabled") === "true",
@@ -147,8 +142,19 @@ const initialState: AuthState = {
   methodId: "",
   isToken: cookies.get("token") ? true : false,
   forgetfail: false,
-  isSandbox: false,
-  error: null,
+  onremove: {},
+  onremoveerror: [],
+  twoFactorId: "",
+  loadingcountry: false,
+  loginmsg: {},
+  orgsuccess: false,
+  callsuccess: false,
+  isTwoFactor: false,
+  callerr: {},
+  forgot: false,
+  samePasswordError: false,
+  resetLinkExpired: false,
+  loginError: null,
 };
 
 const clearCookies = () => {
@@ -185,10 +191,11 @@ const authSlice = createSlice({
       return { ...state, ...action.payload };
     },
     setAuthMode: (state, action: PayloadAction<number>) => {
-      cookies.set("authMode", action.payload.toString());
-      state.authMode = action.payload;
-      state.sandboxStatus = action.payload === 2;
-
+      const mode = action.payload;
+      cookies.set("authMode", mode.toString(), cookieOptions);
+      state.authMode = mode;
+      state.sandboxStatus = mode === 2;
+      console.log("Auth mode updated:", { mode, sandboxStatus: state.sandboxStatus });
     },
     getCountries: (state, action: PayloadAction<any>) => {
       console.log("getCountries reducer called with payload:", action.payload);
@@ -197,14 +204,14 @@ const authSlice = createSlice({
         return;
       }
       state.countries = action.payload.data;
-      try {
-        const alldata = cookies.get("alldata");
-        console.log("Retrieved alldata from cookie:", alldata);
-        state.user = alldata || "";
-      } catch (e) {
-        console.error("Error parsing alldata cookie in getCountries:", e);
-        state.user = "";
-      }
+      // try {
+      //   const alldata = cookies.get("alldata");
+      //   console.log("Retrieved alldata from cookie:", alldata);
+      //   state.alldata = alldata || "";
+      // } catch (e) {
+      //   console.error("Error parsing alldata cookie in getCountries:", e);
+      //   state.alldata = "";
+      // }
       state.loadingcountry = false;
       console.log("Updated state:", { countries: state.countries, user: state.user, loadingcountry: state.loadingcountry });
     },
@@ -242,6 +249,7 @@ const authSlice = createSlice({
     loginSandboxTwoFactor: (state, action: PayloadAction<any>) => {
       const { doc } = action.payload.payload;
       const emptyString = "";
+      console.log("doc data in loginSandboxTwoFactor", doc);
 
       // Add proper error handling with optional chaining and fallback values
       // Set tokens with Bearer prefix - using nullish coalescing to handle missing properties
@@ -257,10 +265,15 @@ const authSlice = createSlice({
       cookies.set("tokenTest", doc?.sandbox?.accesstoken || emptyString);
 
       // Set user data with null checks
-      cookies.set("alldata", JSON.stringify(doc || {}));
-      cookies.set("alldataa", JSON.stringify(doc || {}));
+      try {
+        cookies.set("alldata", JSON.stringify(doc));
+        cookies.set("alldataa", JSON.stringify(doc));
+      } catch (error) {
+        console.error("Error setting alldata cookies:", error);
+      }
       cookies.set("stripeid", doc?.stripeid || emptyString);
       cookies.set("planid", doc?.planid || emptyString);
+      state.alldata = doc || "";
 
       if (doc?.roles?.length > 0) {
         cookies.set("roles", doc.roles[0]);
@@ -303,6 +316,7 @@ const authSlice = createSlice({
 
       // Set user data
       cookies.set("alldata", JSON.stringify(doc));
+
       cookies.set("alldataa", JSON.stringify(doc));
       cookies.set("stripeid", doc.stripeid);
       cookies.set("planid", doc.planid);
@@ -565,6 +579,33 @@ const authSlice = createSlice({
         state.user = "";
       }
     },
+    setLoadingCountry: (state, action: PayloadAction<boolean>) => {
+      state.loadingcountry = action.payload;
+    },
+    setLoginMsg: (state, action: PayloadAction<any>) => {
+      state.loginmsg = action.payload;
+    },
+    setOrgSuccess: (state, action: PayloadAction<boolean>) => {
+      state.orgsuccess = action.payload;
+    },
+    setCallSuccess: (state, action: PayloadAction<boolean>) => {
+      state.callsuccess = action.payload;
+    },
+    setIsTwoFactor: (state, action: PayloadAction<boolean>) => {
+      state.isTwoFactor = action.payload;
+    },
+    setCallErr: (state, action: PayloadAction<any>) => {
+      state.callerr = action.payload;
+    },
+    setForgot: (state, action: PayloadAction<boolean>) => {
+      state.forgot = action.payload;
+    },
+    setSamePasswordError: (state, action: PayloadAction<boolean>) => {
+      state.samePasswordError = action.payload;
+    },
+    setLoginError: (state, action: PayloadAction<string | null>) => {
+      state.loginError = action.payload;
+    },
   },
 });
 
@@ -605,6 +646,15 @@ export const {
   sendLoginOtpSuccess,
   sendLoginOtpFailure,
   getUserFromCookies,
+  setLoadingCountry,
+  setLoginMsg,
+  setOrgSuccess,
+  setCallSuccess,
+  setIsTwoFactor,
+  setCallErr,
+  setForgot,
+  setSamePasswordError,
+  setLoginError,
 } = authSlice.actions;
 
 export default authSlice.reducer;

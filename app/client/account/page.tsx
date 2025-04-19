@@ -1,6 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersSection } from "./users-section";
@@ -35,11 +36,20 @@ const contentVariants = {
 };
 
 export default function AccountPage() {
-  const [activeTab, setActiveTab] = useState("users");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(tabParam || "users");
   const [direction, setDirection] = useState(0);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const dispatch = useAppDispatch();
   const [orgDataFetched, setOrgDataFetched] = useState(false);
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    if (tabParam && Object.keys(tabContent).includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // Fetch organization data only once when switching to the organization tab
   const fetchOrgData = React.useCallback(async () => {

@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, AlertTriangle, Check, Trash2, User, Loader2 } from "lucide-react";
 import { ReactNode, useState, useEffect } from "react";
+import React from "react";
 
 export interface ConfirmationModalProps {
   /**
@@ -47,7 +48,7 @@ export interface ConfirmationModalProps {
   /**
    * Type of confirmation - affects the color scheme
    */
-  variant?: "delete" | "warning" | "info";
+  variant?: "delete" | "warning" | "info" | "success" | "error";
   /**
    * Whether the confirmation action is currently loading
    */
@@ -122,6 +123,26 @@ export function ConfirmationModal({
             "from-blue-500/10 via-indigo-500/10 to-purple-500/10 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20",
           ring: "focus:ring-blue-500",
         };
+      case "success":
+        return {
+          gradientFrom: "from-emerald-500 via-green-600 to-teal-600",
+          gradientDark: "dark:from-emerald-700 dark:via-green-600 dark:to-teal-700",
+          iconColor: "text-emerald-500 dark:text-emerald-400",
+          buttonGradient: "from-emerald-500 via-green-600 to-teal-600 dark:from-emerald-600 dark:via-green-700 dark:to-teal-700",
+          backgroundGradient:
+            "from-emerald-500/10 via-green-500/10 to-teal-500/10 dark:from-emerald-900/20 dark:via-green-900/20 dark:to-teal-900/20",
+          ring: "focus:ring-emerald-500",
+        };
+      case "error":
+        return {
+          gradientFrom: "from-rose-500 via-red-600 to-pink-600",
+          gradientDark: "dark:from-rose-700 dark:via-red-600 dark:to-pink-700",
+          iconColor: "text-rose-500 dark:text-rose-400",
+          buttonGradient: "from-rose-500 via-red-600 to-pink-600 dark:from-rose-600 dark:via-red-700 dark:to-pink-700",
+          backgroundGradient:
+            "from-rose-500/10 via-red-500/10 to-pink-500/10 dark:from-rose-900/20 dark:via-red-900/20 dark:to-pink-900/20",
+          ring: "focus:ring-rose-500",
+        };
       default:
         return {
           gradientFrom: "from-red-500 via-red-600 to-rose-600",
@@ -136,6 +157,21 @@ export function ConfirmationModal({
   };
 
   const colors = getColors();
+
+  // Process the icon to ensure proper sizing and coloring
+  const processIcon = (iconElement: ReactNode) => {
+    // If icon is already a React element, clone it and add the sizing/color classes
+    if (React.isValidElement(iconElement)) {
+      // Check if the element type is a component that accepts className
+      return React.cloneElement(iconElement as React.ReactElement<{ className?: string }>, {
+        className: `h-9 w-9 ${colors.iconColor} ${
+          (iconElement as React.ReactElement<{ className?: string }>).props.className || ""
+        }`.trim(),
+      });
+    }
+    // Otherwise return it as is
+    return iconElement;
+  };
 
   const handleConfirm = () => {
     // Don't do anything if already loading
@@ -161,6 +197,10 @@ export function ConfirmationModal({
       case "warning":
         return <AlertTriangle className={`h-9 w-9 ${colors.iconColor}`} />;
       case "info":
+        return <AlertTriangle className={`h-9 w-9 ${colors.iconColor}`} />;
+      case "success":
+        return <Check className={`h-9 w-9 ${colors.iconColor}`} />;
+      case "error":
         return <AlertTriangle className={`h-9 w-9 ${colors.iconColor}`} />;
       default:
         return <User className={`h-9 w-9 ${colors.iconColor}`} />;
@@ -232,7 +272,7 @@ export function ConfirmationModal({
                       className={`w-20 h-20 bg-gradient-to-br ${colors.gradientFrom} ${colors.gradientDark} rounded-full flex items-center justify-center shadow-lg`}
                     >
                       <div className="w-16 h-16 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
-                        {icon || getDefaultIcon()}
+                        {icon ? processIcon(icon) : getDefaultIcon()}
                       </div>
                     </div>
 

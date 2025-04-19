@@ -236,29 +236,29 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
     toggleModal,
   }));
 
-  // Function to set API key based on environment
-  const setApiKeyForEnvironment = (isTest: boolean) => {
-    // Set appropriate API key based on environment
-    if (isTest) {
-      cookies.set("apikey", AuthReducer?.sandbox.apikey);
-      cookies.set("token", AuthReducer?.sandbox.accesstoken);
-    } else {
-      cookies.set("apikey", AuthReducer.apikey);
-      cookies.set("token", AuthReducer?.token);
-    }
-    console.log(`API key set for ${isTest ? "test" : "production"} environment`);
-  };
+  // // Function to set API key based on environment
+  // const setApiKeyForEnvironment = (isTest: boolean) => {
+  //   // Set appropriate API key based on environment
+  //   if (isTest) {
+  //     cookies.set("apikey", AuthReducer?.sandbox?.apikey);
+  //     cookies.set("token", AuthReducer?.sandbox?.accesstoken);
+  //   } else {
+  //     cookies.set("apikey", AuthReducer?.apikey);
+  //     cookies.set("token", AuthReducer?.token);
+  //   }
+  //   console.log(`API key set for ${isTest ? "test" : "production"} environment`);
+  // };
 
   // Load saved mode from cookies on component mount
-  useEffect(() => {
-    try {
-      const isTest = getAuthMode();
-      // Set API key based on saved mode
-      setApiKeyForEnvironment(isTest);
-    } catch (error) {
-      console.error("Error loading test mode from cookies:", error);
-    }
-  }, []);
+  // useEffect(() => {
+  //   try {
+  //     const isTest = getAuthMode();
+  //     // Set API key based on saved mode
+  //     setApiKeyForEnvironment(isTest);
+  //   } catch (error) {
+  //     console.error("Error loading test mode from cookies:", error);
+  //   }
+  // }, []);
 
   // Countdown effect for page reload
   useEffect(() => {
@@ -287,21 +287,21 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
 
       // Show success modal immediately with loading state
       setSuccessMessage(`Switching to ${newMode ? "test" : "production"} mode...`);
-      setShowSuccessModal(true);
-
       try {
         // Save mode to cookies
         cookies.set("testMode", newMode ? "true" : "false");
 
         // Update API key based on new environment
-        setApiKeyForEnvironment(newMode);
+        // setApiKeyForEnvironment(newMode);
 
         // Get email from cookies
         const email = cookies.get("email");
 
         // Call switchModeServer to change the server mode with the current authMode
         if (email) {
-          await authService.switchModeServer({ email, sandbox: currentAuthMode ? "true" : "false" });
+          const response = await authService.switchModeServer({ email, sandbox: currentAuthMode ? "true" : "false" });
+          setShowSuccessModal(true);
+          console.log("response switchModeServer", response);
           console.log(`Successfully switched to ${newMode ? "test" : "production"} mode on server`);
         } else {
           console.warn("Email not found in cookies, couldn't switch server mode");
@@ -357,11 +357,6 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
         type="success"
         isLoading={isLoading}
       >
-        {reloadCountdown > 0 && (
-          <p className="mt-2 text-center font-medium text-gray-700 dark:text-gray-300">
-            Page will reload in {reloadCountdown} {reloadCountdown === 1 ? "second" : "seconds"}...
-          </p>
-        )}
       </Modal>
     </div>
   );

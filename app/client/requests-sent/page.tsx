@@ -44,6 +44,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { tableService } from "@/app/services/table.service";
 import { getUserTime } from "@/app/utils/timeUtils";
 import Loader from "@/components/ui/loader";
+import { ErrorModal } from "@/components/ui/error-modal";
 // Define form schema for feedback
 const formSchema = z.object({
   comment: z.string().min(1, { message: "Comment is required" }),
@@ -240,6 +241,7 @@ export default function RequestsSent() {
   const [stats, setStats] = useState<StatsCard[]>(initialStatsCards);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -258,6 +260,7 @@ export default function RequestsSent() {
   const fetchRequests = async (page = 1, search = "") => {
     setIsLoading(true);
     setError(null);
+    setErrorModalOpen(false);
 
     try {
       const offset = page - 1; // Calculate offset based on current page
@@ -323,6 +326,7 @@ export default function RequestsSent() {
     } catch (err) {
       console.error("Error fetching requests:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setErrorModalOpen(true); // Open error modal on API error
     } finally {
       setIsLoading(false);
     }
@@ -432,6 +436,11 @@ export default function RequestsSent() {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
+  };
+
+  // Handle retry for API errors
+  const handleRetryFetch = () => {
+    fetchRequests(currentPage, searchQuery);
   };
 
   return (
@@ -548,12 +557,6 @@ export default function RequestsSent() {
                             <div className="flex justify-center items-center h-full">
                               <Loader />
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : error ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-red-500">
-                            Error loading requests: {error}
                           </TableCell>
                         </TableRow>
                       ) : requests.length === 0 ? (
@@ -759,6 +762,18 @@ export default function RequestsSent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={errorModalOpen}
+        onClose={() => setErrorModalOpen(false)}
+        onRetry={handleRetryFetch}
+        errorMessage={error || "Failed to load requests"}
+        errorCode="data"
+        errorDetails={`We encountered an error while trying to fetch your requests. Please try again or contact support if the issue persists.`}
+        retryText="Retry"
+        cancelText="Dismiss"
+      />
     </div>
   );
 }

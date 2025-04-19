@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,52 +30,33 @@ import {
   Camera,
   Upload,
   X,
-  ChevronDown,
-  Plus,
-  Hash,
-  Calendar,
-  Trash2,
-  FileJson,
-  Settings2,
-  Eye,
-  BellOff,
-  BarChart2,
-  HelpCircle,
-  Play,
-  ClipboardList,
-  Shield,
-  ChartBar,
   Check,
-  FileCheck,
-  Fingerprint,
-  Zap,
-  Download,
-  History,
-  Files,
-  Receipt,
-  BookOpen,
-  MessageSquare,
   RefreshCw,
-  CreditCard,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { buttonService } from "@/app/services/button.service";
-import { getButton } from "@/app/store/features/buttonSlice";
 import {
+  getButton,
+  getMasterFieldData,
+  getEmailReminderData,
+  getCountryListData,
+  setName,
+  setType,
+  setFixedUrl,
+  setCountry,
+  setLimitCountry,
+  setSelectedCountries,
+  setAllowOverridePeriod,
+  setAllowMissingStatement,
   setAutoDeletion,
   setShareOnlyJson,
   setShowFieldLabels,
   setDisableWebpagePrompts,
   setShowDetailedJson,
   setTransactionsExtraction,
-  addVerificationField,
-  removeVerificationField,
-  updateVerificationField,
-} from "@/app/store/features/privacySlice";
-import {
   setEmailToOrganization,
   setIncludePdfInEmail,
   setSubmissionNotificationViaEmail,
@@ -83,13 +64,58 @@ import {
   setEnableEngagementCallback,
   setAutoJson,
   setCallbackUrl,
-  setAddGoogleSheetUrl,
+  setGooglesheet,
+  setGooglesheeturl,
   setEnableSalesforce,
-} from "@/app/store/features/triggerSlice";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  setDisplaySettings,
+  setDisplayPrivacyItems,
+  setDisplayExitItems,
+  setDisplayGuideItems,
+  setRejectReasons,
+  setDocumentSelect,
+  setProxy,
+  setHybridMode,
+  setVerificationCategory,
+  setVerificationSubCategory,
+  getCountryLinks,
+  errCountryLinks,
+  loadCountryLinks,
+  setFixedUrlAddress,
+  setShowGoogleSearch,
+  setExpiry,
+  setResubmission,
+  setLiveFeedback,
+  setMultiDownload,
+  setImageUpload,
+  setExtractAllTransaction,
+  setCalculateBalanceAsOnDate,
+  setFullTextSearchData,
+  setDocumentExpiryValue,
+  setAutoNavigation,
+  setIncludeOriginalFilename,
+  setEnableCustomTemplate,
+  setDiroCertificate,
+  setOriginalDoc,
+  setEmailTemplate,
+  setRedirectUrl,
+  setRedirectMessage,
+  setAllowNonContinuousStatement,
+  setMaxNumberOfFiles,
+  setAllowOutsidePeriodFile,
+  setSalesforceConfig,
+  setLiveFeedbackInstruction,
+  setExpectedDays,
+  setValidDateRange,
+  setSmtpConfig,
+  setBtn,
+} from "@/app/store/features/buttonSlice";
+import { getCountries } from "@/app/store/features/authSlice";
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence } from "framer-motion";
 import React from "react";
 import Loader from "@/components/ui/loader";
+import { ErrorModal } from "@/components/ui/error-modal";
 
 // Add import for BasicTab component
 import { BasicTab } from "../../components/BasicTab";
@@ -99,19 +125,9 @@ import { TriggersEmailTab } from "../../components/TriggersEmailTab";
 import { DisplayTab } from "../../components/DisplayTab";
 import { RejectionTab } from "../../components/RejectionTab";
 import { AdvancedTab } from "../../components/AdvancedTab";
-import {
-  setVerificationMethod,
-  setDirectUrlEnabled,
-  setSelectedCountry,
-  setLimitCountryEnabled,
-  setSelectedCountries,
-  setAllowSubmissionOverride,
-  setAllowMissingStatements,
-  setDisplaySettings,
-  setDisallowedDocTypes,
-  setProxyLocation,
-  setAllowMethodSwitching,
-} from "@/app/store/features/buttonSettingsSlice";
+
+import { authService } from "@/app/services/auth.service";
+import { store } from "@/app/store/store";
 
 interface Tab {
   name: string;
@@ -138,18 +154,24 @@ const MultiSelect = ({
   placeholder,
   children,
 }: {
-  value: string[];
-  onValueChange: (value: string[]) => void;
+  value: (string | { label: string; value: string })[];
+  onValueChange: (value: (string | { label: string; value: string })[]) => void;
   placeholder: string;
   children: React.ReactNode;
 }) => {
   const [tempValue, setTempValue] = useState("");
 
-  const formatSelectedValue = (values: string[]) => {
+  const formatSelectedValue = (values: (string | { label: string; value: string })[]) => {
     if (values.length === 0) return placeholder;
+
     return values
       .map((v) => {
-        switch (v) {
+        // Handle both string and object formats
+        const valueStr = typeof v === "string" ? v : v.value;
+        const label = typeof v === "string" ? v : v.label;
+
+        // Apply specific formatting for known values or use the label directly
+        switch (valueStr) {
           case "loan-statements":
             return "Loan statements";
           case "bank-statement":
@@ -159,7 +181,7 @@ const MultiSelect = ({
           case "tax-document":
             return "Tax Document";
           default:
-            return v;
+            return label;
         }
       })
       .join(", ");
@@ -167,12 +189,16 @@ const MultiSelect = ({
 
   return (
     <Select
-      value={tempValue}
+      value={value.length > 0 ? "_multiple_values_" : "_empty_selection_"}
       onValueChange={(newValue) => {
-        if (!value.includes(newValue)) {
+        // Check if the new value already exists in the array
+        const valueExists = value.some((v) => (typeof v === "string" ? v === newValue : v.value === newValue));
+
+        if (!valueExists) {
           onValueChange([...value, newValue]);
         } else {
-          onValueChange(value.filter((v) => v !== newValue));
+          // Remove the value if it exists
+          onValueChange(value.filter((v) => (typeof v === "string" ? v !== newValue : v.value !== newValue)));
         }
         setTempValue("");
       }}
@@ -198,12 +224,36 @@ const MultiSelect = ({
   );
 };
 
+const ReduxDebug = () => {
+  const buttonState = useAppSelector((state) => state.buttons);
+
+  useEffect(() => {
+    console.log("Redux Store State:", {
+      buttonState,
+      btndata: buttonState?.btn?.btndata,
+      toggles: {
+        showgoogle: buttonState?.btn?.btndata?.showgoogle,
+        livefeedbackMode: buttonState?.btn?.btndata?.livefeedbackMode,
+        multidownload: buttonState?.btn?.btndata?.multidownload,
+        allowNonContinuousStatement: buttonState?.btn?.btndata?.allowNonContinuousStatement,
+        allowOutsidePeriodFile: buttonState?.btn?.btndata?.allowOutsidePeriodFile,
+      },
+    });
+  }, [buttonState]);
+
+  return null;
+};
+
 export default function EditButton() {
   const params = useParams() as PageParams;
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string>("data");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   // Fetch button data when component mounts or buttonId changes
   useEffect(() => {
@@ -212,21 +262,71 @@ export default function EditButton() {
 
     setIsLoading(true);
     setError(null);
+    setIsErrorModalOpen(false);
 
     buttonService
       .getButtonData(buttonId.toString())
       .then((response) => {
         if (response.success && response.data) {
           console.log("Button settings: data retrieved successfully", response.data);
+          console.log("Initial showgoogle value:", response.data?.btndata?.showgoogle);
+
+          // Initialize required nested objects if they don't exist
+          if (response.data.btndata) {
+            if (!response.data.btndata.privacytext) {
+              response.data.btndata.privacytext = {};
+            }
+            if (!response.data.btndata.welcomePage) {
+              response.data.btndata.welcomePage = {};
+            }
+            if (!response.data.btndata.exitpage) {
+              response.data.btndata.exitpage = {};
+            }
+          }
+
+          // Store the complete button data including any nested structure
           dispatch(getButton(response.data));
+
+          console.log("Button settings: data retrieved successfully", response.data);
+          // Set the button settings data for the UI fields
+          dispatch(setBtn(response.data));
         } else {
           console.error("Failed to get button data:", response.error || "Unknown error");
-          setError("Failed to load button data. Please try again.");
+
+          // Use a simpler approach to determine error type
+          let errorType = "data"; // Default to data error
+
+          // Try to detect network errors from error message
+          if (
+            response.error &&
+            typeof response.error === "string" &&
+            (response.error.includes("network") || response.error.includes("connection"))
+          ) {
+            errorType = "network";
+          }
+
+          setErrorCode(errorType);
+          setError(typeof response.error === "string" ? response.error : "Failed to load button data. Please try again.");
+          setIsErrorModalOpen(true);
         }
       })
       .catch((error) => {
         console.error("Error retrieving button data:", error);
-        setError("An error occurred while loading button data.");
+
+        // Try to determine error type
+        let errorType = "data";
+        if (error.response && error.response.status) {
+          errorType = error.response.status.toString();
+        } else if (
+          error.message &&
+          (error.message.includes("network") || error.message.includes("connection") || error.message.includes("offline"))
+        ) {
+          errorType = "network";
+        }
+
+        setErrorCode(errorType);
+        setError(error.message || "An error occurred while loading button data.");
+        setIsErrorModalOpen(true);
       })
       .finally(() => {
         setIsLoading(false);
@@ -234,36 +334,683 @@ export default function EditButton() {
   }, [params.id, dispatch]);
 
   // Get all state from buttonSettings
-  const { basic, privacy, trigger, display, rejection, advanced } = useAppSelector((state) => state.buttonSettings);
+  const buttonSettings = useAppSelector((state) => state.buttons?.btn?.btndata);
+
+  // Monitor changes to buttonSettings.showgoogle
+  useEffect(() => {
+    console.log("buttonSettings.showgoogle changed to:", buttonSettings?.showgoogle);
+  }, [buttonSettings?.showgoogle]);
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const [previousTab, setPreviousTab] = useState(0);
 
-  // Remove individual states that are now in Redux
-  const [triggerExpanded, setTriggerExpanded] = useState<boolean>(false);
-  const [redirectionExpanded, setRedirectionExpanded] = useState<boolean>(false);
-  const [emailSetupExpanded, setEmailSetupExpanded] = useState<boolean>(false);
-  const [customerRemindersExpanded, setCustomerRemindersExpanded] = useState<boolean>(false);
-  const [browserSettingsExpanded, setBrowserSettingsExpanded] = useState<boolean>(false);
-  const [desktopPreferenceExpanded, setDesktopPreferenceExpanded] = useState<boolean>(false);
-  const [colorExpanded, setColorExpanded] = useState<boolean>(false);
-  const [certifiedPdfExpanded, setCertifiedPdfExpanded] = useState<boolean>(false);
-  const [privacyScreenExpanded, setPrivacyScreenExpanded] = useState<boolean>(false);
-  const [guideScreenExpanded, setGuideScreenExpanded] = useState<boolean>(false);
-  const [exitScreenExpanded, setExitScreenExpanded] = useState<boolean>(false);
-  const [organizationDetailsExpanded, setOrganizationDetailsExpanded] = useState<boolean>(false);
+  // Fetch countries data
+  const [countriesLoading, setCountriesLoading] = useState(true);
+  const [countriesError, setCountriesError] = useState<string | null>(null);
+  const [countries, setCountries] = useState<string[]>([]);
 
-  const handleVerificationMethodChange = (value: string) => {
-    dispatch(setVerificationMethod(value));
-    // Reset related states when verification method changes
-    dispatch(setDirectUrlEnabled(false));
-    dispatch(setSelectedCountry(""));
+  useEffect(() => {
+    setCountriesLoading(true);
+    setCountriesError(null);
+
+    // Using authService.getCountries() which now uses makeRefreshAuthGetRequest for HTTP GET
+    buttonService
+      .getCountryList()
+      .then((response) => {
+        // Get countries from Redux store after calling the API
+        dispatch(getCountryListData(response));
+        const countriesData = store.getState().buttons.countryList.data;
+        setCountries(countriesData || []);
+        // The service already dispatches getCountries action, no need to dispatch again here
+      })
+      .catch((error) => {
+        console.error("Error fetching countries:", error);
+        setCountriesError("Failed to load countries data");
+      })
+      .finally(() => {
+        setCountriesLoading(false);
+      });
+  }, [dispatch]);
+
+  // Fetch email reminder data
+  const [emailReminderLoading, setEmailReminderLoading] = useState(true);
+  const [emailReminderError, setEmailReminderError] = useState<string | undefined>(undefined);
+  const [emailReminder, setEmailReminder] = useState<any>(null);
+  const [emailReminderRetryCount, setEmailReminderRetryCount] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchEmailReminder = async () => {
+      setEmailReminderLoading(true);
+      setEmailReminderError(undefined);
+
+      try {
+        const response = await buttonService.getEmailReminder();
+
+        if (!isMounted) return;
+
+        if (response.success && response.data) {
+          console.log("Email reminder retrieved successfully", response.data);
+          setEmailReminder(response.data);
+          // Dispatch getEmailReminderData action for Redux
+          dispatch(getEmailReminderData(response.data));
+        } else {
+          console.error("Failed to get email reminder:", response.error || "Unknown error");
+          setEmailReminderError("Failed to load email reminder data");
+        }
+      } catch (error) {
+        if (!isMounted) return;
+
+        console.error("Error retrieving email reminder:", error);
+        setEmailReminderError("Unable to load email reminder data. This won't affect saving button settings.");
+      } finally {
+        if (isMounted) {
+          setEmailReminderLoading(false);
+        }
+      }
+    };
+
+    fetchEmailReminder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, emailReminderRetryCount]);
+
+  // Add a retry function for email reminder loading
+  const handleRetryEmailReminder = useCallback(() => {
+    setEmailReminderRetryCount((prev) => prev + 1);
+  }, []);
+
+  // Fetch master fields data
+  const [masterFieldsLoading, setMasterFieldsLoading] = useState(true);
+  const [masterFieldsError, setMasterFieldsError] = useState<string | undefined>(undefined);
+  const [masterFields, setMasterFields] = useState<any[]>([]);
+
+  useEffect(() => {
+    setMasterFieldsLoading(true);
+    setMasterFieldsError(undefined);
+
+    // Using buttonService.getMasterFields() which now uses makeGetRequest for HTTP GET
+    buttonService
+      .getMasterFields()
+      .then((response) => {
+        if (response.success && response.data) {
+          console.log("Master fields retrieved successfully", response.data);
+          setMasterFields(response.data.data || []);
+          // Dispatch getMasterFieldData action for Redux
+          dispatch(getMasterFieldData(response.data));
+        } else {
+          console.error("Failed to get master fields:", response.error || "Unknown error");
+          setMasterFieldsError("Failed to load master fields data");
+        }
+      })
+      .catch((error) => {
+        console.error("Error retrieving master fields:", error);
+        setMasterFieldsError("An error occurred while loading master fields data");
+      })
+      .finally(() => {
+        setMasterFieldsLoading(false);
+      });
+  }, [dispatch]);
+
+  // Fetch full text search results
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | undefined>(undefined);
+
+  // Initialize search results state
+  useEffect(() => {
+    // Initialize search state, but don't perform search
+    setSearchResults([]);
+    setSearchLoading(false);
+    setSearchError(undefined);
+  }, []);
+
+  console.log("buttonSettings data", buttonSettings);
+  // Debug the showgoogle property
+  console.log("showgoogle property:", buttonSettings?.showgoogle);
+
+  const handleDiroCertificateChange = useCallback(
+    (checked: boolean) => {
+      console.log("Changing diroCertificate to:", checked);
+      dispatch(setDiroCertificate(checked));
+    },
+    [dispatch]
+  );
+
+  const handleOriginalDocChange = useCallback(
+    (checked: boolean) => {
+      console.log("Changing originalDoc to:", checked);
+      dispatch(setOriginalDoc(checked));
+    },
+    [dispatch]
+  );
+
+  const handleRedirectUrlChange = useCallback(
+    (value: string) => {
+      console.log("Changing redirecturl to:", value);
+      dispatch(setRedirectUrl(value));
+    },
+    [dispatch]
+  );
+
+  const handleRedirectMessageChange = useCallback(
+    (value: string) => {
+      console.log("Changing redirectmessage to:", value);
+      dispatch(setRedirectMessage(value));
+    },
+    [dispatch]
+  );
+
+  // Memoize the country links fetch handler
+  const handleFetchCountryLinks = useCallback(
+    async (countryUniqueKey: string, category: string) => {
+      dispatch(loadCountryLinks());
+      const payload = {
+        category: category,
+        country: countryUniqueKey,
+        index: 0,
+        offset: 100,
+        search: "",
+      };
+      try {
+        const response = await buttonService.getCountryLinks(payload);
+        dispatch(
+          getCountryLinks({
+            res: response,
+            searching: false,
+            cat: category,
+          })
+        );
+        return response;
+      } catch (error: unknown) {
+        dispatch(errCountryLinks(error instanceof Error ? error.message : "Failed to fetch country links"));
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
+  // Render content based on loading and error state
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader />
+        </div>
+      );
+    }
+
+    return (
+      <Tabs value={activeTab.toString()} onValueChange={handleTabChange} className="space-y-8">
+        <div className="relative">
+          <TabsList className="relative z-10 bg-white dark:bg-gray-900 p-1 rounded-xl shadow-lg">
+            {TABS.map((tab, index) => (
+              <TabsTrigger
+                key={index}
+                value={index.toString()}
+                className="relative data-[state=active]:text-primary data-[state=active]:bg-primary/10 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2 px-1">
+                  {renderTabIcon(tab)}
+                  <span>{tab.name}</span>
+                </div>
+                {activeTab === index && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
+                    layoutId="activeTab"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        <div className="relative" style={{ minHeight: "400px" }}>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+              {/* Existing tab content */}
+
+              {activeTab === 0 && (
+                <BasicTab
+                  // State props (data)
+                  name={buttonSettings?.name}
+                  verificationMethod={buttonSettings?.mode?.type}
+                  verificationCategory={buttonSettings?.coverage?.category}
+                  verificationSubCategory={buttonSettings?.subcategory}
+                  directUrlEnabled={buttonSettings?.coverage?.fixedurl}
+                  selectedCountry={buttonSettings?.countryUniqueKey || buttonSettings?.country}
+                  limitCountryEnabled={buttonSettings?.limitcountry}
+                  selectedCountries={buttonSettings?.selectedCountries}
+                  allowOverridePeriod={buttonSettings?.allowOverridePeriod}
+                  allowMissingStatements={buttonSettings?.allowMissingStatement}
+                  showGoogleSearch={buttonSettings?.showgoogle}
+                  resubmission={buttonSettings?.resubmission}
+                  expiryHours={
+                    buttonSettings?.expiry === undefined || buttonSettings?.expiry === null ? "2160" : buttonSettings.expiry
+                  }
+                  allowNonContinuousStatement={buttonSettings?.allowNonContinuousStatement}
+                  params={params}
+                  searchResults={searchResults}
+                  searchLoading={searchLoading}
+                  direct_link={buttonSettings?.coverage?.direct_link}
+                  livefeedback={buttonSettings?.livefeedbackMode}
+                  multidownload={buttonSettings?.multidownload}
+                  imageUpload={buttonSettings?.imageUpload}
+                  extractAllTransaction={buttonSettings?.extractAllTransaction}
+                  calculateBalanceAsOnDate={buttonSettings?.calculateBalanceAsOnDate}
+                  maxNumberOfFiles={buttonSettings?.maxNumberOfFiles || 1}
+                  allowOutsidePeriodFile={buttonSettings?.allowOutsidePeriodFile}
+                  liveFeedbackInstruction={buttonSettings?.liveFeedbackInstruction || ""}
+                  expectedDays={buttonSettings?.expectedDays || ""}
+                  validDateRange={buttonSettings?.validDateRange || ""}
+                  // Handler props (callbacks)
+                  onNameChange={(value) => dispatch(setName(value))}
+                  onUrlChange={handleUrlChange}
+                  onVerificationMethodChange={(value) => {
+                    dispatch(setType(value));
+                    if (value !== buttonSettings?.mode?.type) {
+                      dispatch(setFixedUrl(false));
+                      dispatch(setCountry(""));
+                    }
+                  }}
+                  onVerificationCategoryChange={handleVerificationCategoryChange}
+                  onVerificationSubCategoryChange={(values) => dispatch(setVerificationSubCategory(values))}
+                  onDirectUrlChange={(checked) => {
+                    dispatch(setFixedUrl(checked));
+                    if (!checked) {
+                      dispatch(setCountry(""));
+                      setSearchResults([]);
+                    } else if (checked && buttonSettings?.countryUniqueKey) {
+                      const countriesData = store.getState().buttons.countryList.data;
+                      if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
+                        const selectedCountry = countriesData.data.data.find(
+                          (country: any) => country.uniquekey === buttonSettings.countryUniqueKey
+                        );
+                        if (selectedCountry) {
+                          setSearchResults([selectedCountry]);
+                        }
+                      }
+                    }
+                  }}
+                  onSelectedCountryChange={(value) => handleCountryChange(value)}
+                  onLimitCountryEnabledChange={(checked) => {
+                    dispatch(setLimitCountry(checked));
+                    if (!checked) {
+                      dispatch(setSelectedCountries([]));
+                    }
+                  }}
+                  onSelectedCountriesChange={(values) => {
+                    const fullCountryObjects = values.map((country) => {
+                      if (typeof country === "string") {
+                        const countriesData = store.getState().buttons.countryList.data;
+                        if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
+                          const countryObj = countriesData.data.data.find((c: any) => c.uniquekey === country);
+                          if (countryObj) {
+                            return {
+                              flag: countryObj.flag || `https://flagcdn.com/w40/${countryObj.alpha2code.toLowerCase()}.png`,
+                              label: countryObj.country,
+                              uniquekey: countryObj.uniquekey,
+                              value: countryObj.alpha2code,
+                            };
+                          }
+                        }
+                        return country;
+                      }
+                      return country;
+                    });
+                    dispatch(setSelectedCountries(fullCountryObjects));
+                  }}
+                  onAllowOverridePeriodChange={(checked) => dispatch(setAllowOverridePeriod(checked))}
+                  onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowOverridePeriod(checked))}
+                  onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatement(checked))}
+                  onShowGoogleSearchChange={(checked) => dispatch(setShowGoogleSearch(checked))}
+                  onExpiryHoursChange={(value) => dispatch(setExpiry(value))}
+                  onResubmissionChange={(checked) => dispatch(setResubmission(checked))}
+                  onLiveFeedbackChange={(checked) => dispatch(setLiveFeedback(checked))}
+                  onMultiDownloadChange={(checked) => {
+                    dispatch(setMultiDownload(checked));
+                    if (checked && !buttonSettings?.livefeedbackMode) {
+                      dispatch(setLiveFeedback(true));
+                    }
+                  }}
+                  onImageUploadChange={(checked) => dispatch(setImageUpload(checked))}
+                  onExtractAllTransactionChange={(checked) => dispatch(setExtractAllTransaction(checked))}
+                  onCalculateBalanceAsOnDateChange={(checked) => dispatch(setCalculateBalanceAsOnDate(checked))}
+                  onAllowNonContinuousStatementChange={(checked) => dispatch(setAllowNonContinuousStatement(checked))}
+                  onMaxNumberOfFilesChange={(value) => dispatch(setMaxNumberOfFiles(value))}
+                  onAllowOutsidePeriodFileChange={(checked) => dispatch(setAllowOutsidePeriodFile(checked))}
+                  onFetchCountryLinks={handleFetchCountryLinks}
+                  onLiveFeedbackInstructionChange={(value) => dispatch(setLiveFeedbackInstruction(value))}
+                  onExpectedDaysChange={(value) => dispatch(setExpectedDays(value))}
+                  onValidDateRangeChange={(value) => dispatch(setValidDateRange(value))}
+                />
+              )}
+              {activeTab === 1 && <IntegrationTab verificationMethod={buttonSettings.mode.type} />}
+              {activeTab === 2 && (
+                <div className="lg:col-span-3 w-full">
+                  <PrivacyTab
+                    autoDeletionEnabled={buttonSettings.autodeleteenable}
+                    shareOnlyJson={buttonSettings.shareonlyjson}
+                    showFieldLabels={buttonSettings.field_label}
+                    disableWebpagePrompts={buttonSettings.hidediscover_popup}
+                    showDetailedJson={buttonSettings.showDetailedJson}
+                    transactionsExtraction={buttonSettings.transactionsExtraction}
+                    documentExpiryValue={buttonSettings.documentexpiryvalue || 7}
+                    onAutoDeletionChange={(checked: boolean) => dispatch(setAutoDeletion(checked))}
+                    onShareOnlyJsonChange={(checked: boolean) => dispatch(setShareOnlyJson(checked))}
+                    onShowFieldLabelsChange={(checked: boolean) => dispatch(setShowFieldLabels(checked))}
+                    onDisableWebpagePromptsChange={(checked: boolean) => dispatch(setDisableWebpagePrompts(checked))}
+                    onShowDetailedJsonChange={(checked: boolean) => dispatch(setShowDetailedJson(checked))}
+                    onTransactionsExtractionChange={(checked: boolean) => dispatch(setTransactionsExtraction(checked))}
+                    onDocumentExpiryValueChange={(days: number) => dispatch(setDocumentExpiryValue(days))}
+                  />
+                </div>
+              )}
+              {activeTab === 3 && (
+                <div className="lg:col-span-3">
+                  <TriggersEmailTab
+                    emailToOrganization={buttonSettings?.replytoemail || ""}
+                    includePdfInEmail={buttonSettings?.include_pdf || false}
+                    submissionNotifyEmail={buttonSettings?.submissionNotifyEmail || false}
+                    emailReminderData={store.getState().buttons.emailreminderdata || []}
+                    emailToOrganizationEnabled={buttonSettings?.emailToOrganizationEnabled || false}
+                    enableEngagementCallback={buttonSettings?.engagement_callback || false}
+                    autoJson={buttonSettings?.autojson || false}
+                    callbackUrl={buttonSettings?.callbackurl || ""}
+                    addGoogleSheetUrl={buttonSettings?.googleSheet || false}
+                    googleSheetUrl={buttonSettings?.googlesheeturl || ""}
+                    enableSalesforce={buttonSettings?.enableSalesforce || false}
+                    salesforceConfig={buttonSettings?.salesforce || {}}
+                    smtpConfig={buttonSettings?.smtp || []}
+                    includeOriginalFilename={buttonSettings?.includeOriginalFilename || false}
+                    enableCustomTemplate={buttonSettings?.enableCustomTemplate || false}
+                    emailTemplate={buttonSettings?.emailnotetemplate}
+                    emailReminder={emailReminder}
+                    emailReminderLoading={emailReminderLoading}
+                    emailReminderError={emailReminderError}
+                    diroCertificate={buttonSettings?.diro_certificate || false}
+                    originalDoc={buttonSettings?.original_doc || false}
+                    shareOnlyJson={buttonSettings?.shareonlyjson || false}
+                    redirecturl={buttonSettings?.redirecturl || ""}
+                    redirectmessage={buttonSettings?.redirectmessage || ""}
+                    onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
+                    onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
+                    onSubmissionNotificationViaEmailChange={(checked) => dispatch(setSubmissionNotificationViaEmail(checked))}
+                    onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
+                    onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
+                    onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
+                    onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
+                    onAddGoogleSheetChange={(checked) => dispatch(setGooglesheet(checked))}
+                    onGoogleSheetUrlChange={(value) => dispatch(setGooglesheeturl(value))}
+                    onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
+                    onSalesforceConfigChange={(config) => dispatch(setSalesforceConfig(config))}
+                    onSmtpConfigChange={(config) => dispatch(setSmtpConfig(config))}
+                    onDiroCertificateChange={(checked) => dispatch(setDiroCertificate(checked))}
+                    onOriginalDocChange={(checked) => dispatch(setOriginalDoc(checked))}
+                    onIncludeOriginalFilenameChange={(checked) => dispatch(setIncludeOriginalFilename(checked))}
+                    onEnableCustomTemplateChange={(checked) => dispatch(setEnableCustomTemplate(checked))}
+                    onEmailTemplateChange={(value) => dispatch(setEmailTemplate(value))}
+                    onRedirectUrlChange={(value) => dispatch(setRedirectUrl(value))}
+                    onRedirectMessageChange={(value) => dispatch(setRedirectMessage(value))}
+                    verificationMethod={buttonSettings?.mode?.type}
+                  />
+                </div>
+              )}
+              {activeTab === 4 && (
+                <DisplayTab
+                  startWithFullScreen={buttonSettings?.fullscreenmode}
+                  showPreview={buttonSettings?.showpreview}
+                  mobileview={buttonSettings?.mobileview}
+                  desktopCustomMessage={buttonSettings?.customMobileWarningText}
+                  colorValue={buttonSettings?.setcolor}
+                  includeFaqPage={buttonSettings?.includeFaqInPdf}
+                  includeQrCode={buttonSettings?.includeQRCode}
+                  noPasswordText={buttonSettings?.privacytext?.nopassword || ""}
+                  strongPrivacyText={buttonSettings?.privacytext?.strongtext || ""}
+                  secureText={buttonSettings?.privacytext?.securetext || ""}
+                  dataPurgeText={buttonSettings?.privacytext?.datapurge || ""}
+                  loginText={buttonSettings?.welcomePage?.logintext || ""}
+                  gototext={buttonSettings?.welcomePage?.gototext || ""}
+                  successHeading={buttonSettings?.exitpage?.successheading || ""}
+                  successMessage={buttonSettings?.exitpage?.successmessage || ""}
+                  failureHeading={buttonSettings?.exitpage?.failureheading || ""}
+                  failureMessage={buttonSettings?.exitpage?.failuremessage || ""}
+                  organizationName={buttonSettings?.overrideorgname}
+                  organizationLogo={buttonSettings?.organizationLogo}
+                  onStartWithFullScreenChange={(checked) => dispatch(setDisplaySettings({ fullscreenmode: checked }))}
+                  onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showpreview: checked }))}
+                  onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ mobileview: value }))}
+                  onDesktopCustomMessageChange={(value) => dispatch(setDisplaySettings({ customMobileWarningText: value }))}
+                  onColorValueChange={(value) => dispatch(setDisplaySettings({ setcolor: value }))}
+                  onIncludeFaqPageChange={(checked) => dispatch(setDisplaySettings({ includeFaqInPdf: checked }))}
+                  onIncludeQrCodeChange={(checked) => dispatch(setDisplaySettings({ includeQRCode: checked }))}
+                  onNoPasswordTextChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword: value }))}
+                  onStrongPrivacyTextChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext: value }))}
+                  onSecureTextChange={(value) => dispatch(setDisplayPrivacyItems({ securetext: value }))}
+                  onDataPurgeTextChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge: value }))}
+                  onNoPasswordHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ nopassword_heading: value }))}
+                  onStrongPrivacyHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ strongtext_heading: value }))}
+                  onSecureTextHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ securetext_heading: value }))}
+                  onDataPurgeHeadingChange={(value) => dispatch(setDisplayPrivacyItems({ datapurge_heading: value }))}
+                  onLoginTextChange={(value) => dispatch(setDisplayGuideItems({ logintext: value }))}
+                  onInstructionTextChange={(value) => dispatch(setDisplayGuideItems({ gototext: value }))}
+                  onSuccessHeadingChange={(value) => dispatch(setDisplayExitItems({ successheading: value }))}
+                  onSuccessMessageChange={(value) => dispatch(setDisplayExitItems({ successmessage: value }))}
+                  onFailureHeadingChange={(value) => dispatch(setDisplayExitItems({ failureheading: value }))}
+                  onFailureMessageChange={(value) => dispatch(setDisplayExitItems({ failuremessage: value }))}
+                  onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ overrideorgname: value }))}
+                  onOrganizationLogoChange={(logo) => dispatch(setDisplaySettings({ organizationLogo: logo }))}
+                  noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading || ""}
+                  strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading || ""}
+                  secureTextHeading={buttonSettings?.privacytext?.securetext_heading || ""}
+                  dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading || ""}
+                  verificationMethod={buttonSettings?.mode?.type}
+                />
+              )}
+              {activeTab === 5 && (
+                <RejectionTab
+                  disallowedDocTypes={buttonSettings?.documentSelect || []}
+                  onDisallowedDocTypesChange={(value) => dispatch(setDocumentSelect(value))}
+                  // @ts-ignore: Type error with null vs undefined
+                  masterFields={masterFields}
+                  masterFieldsLoading={masterFieldsLoading}
+                  // @ts-ignore: Type error with null vs undefined
+                  masterFieldsError={masterFieldsError}
+                  category={buttonSettings?.coverage?.category}
+                  rejectionReasons={buttonSettings?.reject_reasons || []}
+                  onRejectionReasonsChange={(reasons) => dispatch(setRejectReasons(reasons))}
+                />
+              )}
+              {activeTab === 6 && (
+                <AdvancedTab
+                  proxyLocation={buttonSettings?.proxy || "defaultproxy"}
+                  allowMethodSwitching={buttonSettings?.hybridMode}
+                  autoNavigation={buttonSettings?.autoNavigation || false}
+                  onAutoNavigationChange={(checked) => {
+                    console.log("Parent: dispatching setAutoNavigation with value:", checked);
+                    dispatch(setAutoNavigation(checked));
+                    // Log the updated state after dispatch
+                    setTimeout(() => {
+                      console.log(
+                        "After dispatch - autoNavigation value:",
+                        store.getState().buttons?.btn?.btndata?.autoNavigation
+                      );
+                    }, 100);
+                  }}
+                  verificationType={buttonSettings?.mode?.type || ""}
+                  category={buttonSettings?.coverage?.category}
+                  onProxyLocationChange={(value) => dispatch(setProxy(value))}
+                  onAllowMethodSwitchingChange={(checked) => dispatch(setHybridMode(checked))}
+                  onDelete={() => {
+                    // Handle delete action
+                    console.log("Delete button clicked");
+                  }}
+                  buttonId={params.id?.toString()}
+                  buttonName={buttonSettings?.name || "this button"}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </Tabs>
+    );
   };
 
-  const handleDirectUrlChange = (checked: boolean) => {
-    dispatch(setDirectUrlEnabled(checked));
-    if (!checked) {
-      dispatch(setSelectedCountry(""));
+  // Handle save changes handler
+  const handleSaveChanges = async () => {
+    try {
+      const buttonId = params.id;
+      setIsSaving(true);
+      setSaveSuccess(false);
+      setError(null);
+
+      // Log button settings state for debugging
+      console.log("Button settings to save:", buttonSettings);
+
+      // Construct button data for API
+      const buttonData = {
+        buttonid: buttonId.toString(),
+        data: buttonSettings || {},
+      };
+
+      // Regardless of whether email reminder data loaded successfully or not,
+      // we can still save the button settings
+      if (emailReminderError) {
+        console.log("Proceeding with save despite email reminder loading error:", emailReminderError);
+      }
+
+      const response = await buttonService.updateButton(buttonData);
+
+      if (response.success) {
+        console.log("Button settings saved successfully");
+        setSaveSuccess(true);
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 3000);
+      } else {
+        console.error("Failed to save button settings:", response.error);
+        setError("Failed to save button settings: " + (response.error?.message || "Unknown error"));
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
+      }
+    } catch (err) {
+      console.error("Error saving button settings:", err);
+      setError("An unexpected error occurred while saving button settings");
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle tab change with state preservation
+  const handleTabChange = (tabIndex: string) => {
+    setPreviousTab(activeTab);
+    setActiveTab(parseInt(tabIndex));
+  };
+
+  const handleVerificationMethodChange = (value: string) => {
+    // Update the type directly
+    dispatch(setType(value));
+
+    // Reset related states when verification method changes
+    dispatch(setFixedUrl(false));
+    dispatch(setCountry(""));
+  };
+
+  const handleVerificationCategoryChange = (value: string) => {
+    dispatch(setVerificationCategory(value));
+  };
+
+  const handleVerificationSubCategoryChange = (values: string[]) => {
+    // Use a proper action to update the verification subcategory
+    dispatch(setVerificationSubCategory(values));
+  };
+
+  const handleCountryChange = (uniqueKey: string) => {
+    // Find the selected country from the countryList data
+    const countriesData = store.getState().buttons.countryList.data;
+    if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
+      const selectedCountry = countriesData.data.data.find((country: any) => country.uniquekey === uniqueKey);
+
+      if (selectedCountry) {
+        // Update country in state
+        dispatch(
+          setCountry({
+            uniquekey: selectedCountry.uniquekey,
+            alpha2code: selectedCountry.alpha2code,
+            countryName: selectedCountry.country,
+          })
+        );
+
+        // Get country name for search
+        const countryName = selectedCountry.country;
+
+        // Check if direct URL is enabled
+        if (buttonSettings?.coverage?.fixedurl) {
+          // Set country as search result when direct URL is enabled
+          setSearchResults([selectedCountry]);
+        }
+
+        // Also fetch country links if a category is selected
+        const verificationCategory = buttonSettings?.coverage?.category;
+        if (verificationCategory) {
+          // Set loading state
+          dispatch(loadCountryLinks());
+
+          // Prepare payload with uniquekey
+          const payload = {
+            category: verificationCategory,
+            country: selectedCountry.uniquekey, // Use uniquekey instead of alpha2code
+            index: 0,
+            offset: 100,
+            search: "",
+          };
+
+          console.log("Fetching country links with payload:", payload);
+
+          // Call the API
+          buttonService
+            .getCountryLinks(payload)
+            .then((response) => {
+              console.log("Country links response:", response);
+              // Dispatch the response to Redux
+              dispatch(
+                getCountryLinks({
+                  res: response,
+                  searching: false,
+                  cat: verificationCategory,
+                })
+              );
+            })
+            .catch((error: unknown) => {
+              console.error("Error fetching country links:", error);
+              // Handle error by dispatching to Redux
+              dispatch(errCountryLinks(error instanceof Error ? error.message : "Failed to fetch country links"));
+            });
+        }
+      } else {
+        // Fallback to just the uniqueKey if country object not found
+        dispatch(setCountry(uniqueKey));
+      }
+    } else {
+      dispatch(setCountry(uniqueKey));
     }
   };
 
@@ -272,445 +1019,174 @@ export default function EditButton() {
     return <TabIcon className="h-4 w-4" />;
   };
 
-  const renderIntegrationContent = () => {
-    if (basic.verificationMethod === "download") {
-      return (
-        <>
-          {/* Widget Integration for Download */}
-          <Card className="relative overflow-hidden border-2 hover:border-blue-500 transition-all">
-            <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 text-xs rounded-bl-lg">Recommended</div>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Download Integration</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Document download workflow</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Secure document download with verification</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Automated document processing and validation</span>
-                  </li>
-                </ul>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="w-full" onClick={() => window.open("#", "_blank")}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Documentation
-                  </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => window.open("#", "_blank")}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Sample Flow
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Direct Link Integration for Download */}
-          <Card className="border-2 hover:border-purple-500 transition-all">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                  <Link className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Integration Links</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Direct download integration</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Verification Link</Label>
-                      <Button variant="ghost" size="sm" className="h-8">
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mt-2">
-                      <code className="text-sm text-gray-800 dark:text-gray-200">
-                        https://verification.example.com/download/123456
-                      </code>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Iframe Link</Label>
-                      <Button variant="ghost" size="sm" className="h-8">
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mt-2">
-                      <code className="text-sm text-gray-800 dark:text-gray-200">
-                        https://verification.example.com/iframe/download/123456
-                      </code>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      );
-    } else if (basic.verificationMethod === "smart-upload") {
-      return (
-        <>
-          {/* Widget Integration for Smart Upload */}
-          <Card className="relative overflow-hidden border-2 hover:border-blue-500 transition-all">
-            <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 text-xs rounded-bl-lg">Recommended</div>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Smart Upload Widget</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">AI-powered document upload</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      Intelligent document classification and validation
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Real-time document quality checks</span>
-                  </li>
-                </ul>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="w-full" onClick={() => window.open("#", "_blank")}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Documentation
-                  </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => window.open("#", "_blank")}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Try Demo
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Direct Link Integration for Smart Upload */}
-          <Card className="border-2 hover:border-purple-500 transition-all">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                  <Link className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Integration Link</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Direct upload integration</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Upload Portal Link</Label>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy
-                    </Button>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mt-2">
-                    <code className="text-sm text-gray-800 dark:text-gray-200">
-                      https://verification.example.com/upload/123456
-                    </code>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      );
-    } else if (basic.verificationMethod === "screenshot") {
-      return (
-        <>
-          {/* Widget Integration for Screenshot */}
-          <Card className="relative overflow-hidden border-2 hover:border-blue-500 transition-all">
-            <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 text-xs rounded-bl-lg">Recommended</div>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <Camera className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Screenshot Widget</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Capture and verify screenshots</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Built-in screenshot capture tool</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Automatic screenshot validation</span>
-                  </li>
-                </ul>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="w-full" onClick={() => window.open("#", "_blank")}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Documentation
-                  </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => window.open("#", "_blank")}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Preview Widget
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Direct Link Integration for Screenshot */}
-          <Card className="border-2 hover:border-purple-500 transition-all">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                  <Link className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Integration Link</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Direct screenshot capture</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Screenshot Portal Link</Label>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy
-                    </Button>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mt-2">
-                    <code className="text-sm text-gray-800 dark:text-gray-200">
-                      https://verification.example.com/screenshot/123456
-                    </code>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      );
-    }
+  // Add handleUrlChange function
+  const handleUrlChange = (url: string) => {
+    // Update the button settings with the selected direct_link
+    dispatch(setFixedUrlAddress(url));
   };
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50/30 via-gray-100/30 to-gray-50/30 dark:from-gray-900/30 dark:via-gray-800/30 dark:to-gray-900/30">
-      <div className="flex-none">
-        <Sidebar onExpandedChange={setSidebarExpanded} />
-      </div>
-      <PageContainer sidebarExpanded={sidebarExpanded}>
-        <div className="min-h-screen">
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
-            <div className="container mx-auto px-6">
-              <div className="h-16 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    onClick={() => router.back()}
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  <div>
-                    <h1 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
-                      Button Configuration
-                    </h1>
-                    <p className="text-sm text-muted-foreground">Configure verification settings and permissions</p>
-                  </div>
-                </div>
-                <Button className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all">
-                  <Save className="h-4 w-4" /> Save Changes
+  // Add this function before the return statement, after all other function definitions
+  const renderEmailReminderContent = () => {
+    if (emailReminderLoading) {
+      return (
+        <div className="flex justify-center items-center p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          <span className="ml-3">Loading email reminder settings...</span>
+        </div>
+      );
+    }
+
+    if (emailReminderError) {
+      return (
+        <div className="p-6 border rounded-md bg-red-50 dark:bg-red-900/20">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 text-red-500">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Email Reminder Settings Unavailable</h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                <p>{emailReminderError}</p>
+                <p className="mt-1">This won't affect your ability to save button settings.</p>
+              </div>
+              <div className="mt-4">
+                <Button variant="outline" onClick={handleRetryEmailReminder} className="text-sm">
+                  Retry Loading
                 </Button>
               </div>
             </div>
           </div>
-
-          {/* Content */}
-          <div className="container mx-auto px-8 py-8">
-            {isLoading ? (
-              <div className="flex items-center justify-center min-h-screen">
-                <Loader />
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center min-h-screen p-4">
-                <Alert variant="destructive" className="max-w-md">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                  <Button className="mt-4" variant="outline" onClick={() => router.push("/client/validation-buttons")}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Buttons
-                  </Button>
-                </Alert>
-              </div>
-            ) : (
-              <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="space-y-8">
-                <div className="relative">
-                  <TabsList className="relative z-10 bg-white dark:bg-gray-900 p-1 rounded-xl shadow-lg">
-                    {TABS.map((tab, index) => (
-                      <TabsTrigger
-                        key={index}
-                        value={index.toString()}
-                        className="relative data-[state=active]:text-primary data-[state=active]:bg-primary/10 transition-all duration-200"
-                      >
-                        <div className="flex items-center gap-2 px-1">
-                          {renderTabIcon(tab)}
-                          <span>{tab.name}</span>
-                        </div>
-                        {activeTab === index && (
-                          <motion.div
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60"
-                            layoutId="activeTab"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                          />
-                        )}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </div>
-
-                <div className="relative" style={{ minHeight: "400px" }}>
-                  <AnimatePresence initial={false} mode="wait">
-                    <motion.div
-                      key={activeTab}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.2 }}
-                      className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-                    >
-                      {/* Existing tab content */}
-                      {activeTab === 0 && (
-                        <BasicTab
-                          verificationMethod={basic.verificationMethod}
-                          directUrlEnabled={basic.directUrlEnabled}
-                          selectedCountry={basic.selectedCountry}
-                          limitCountryEnabled={basic.limitCountryEnabled}
-                          selectedCountries={basic.selectedCountries}
-                          allowSubmissionOverride={basic.allowSubmissionOverride}
-                          allowMissingStatements={basic.allowMissingStatements}
-                          onVerificationMethodChange={handleVerificationMethodChange}
-                          onDirectUrlChange={handleDirectUrlChange}
-                          onSelectedCountryChange={(value) => dispatch(setSelectedCountry(value))}
-                          onLimitCountryEnabledChange={(checked) => {
-                            dispatch(setLimitCountryEnabled(checked));
-                            if (!checked) {
-                              dispatch(setSelectedCountries([]));
-                            }
-                          }}
-                          onSelectedCountriesChange={(value) => dispatch(setSelectedCountries(value))}
-                          onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowSubmissionOverride(checked))}
-                          onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatements(checked))}
-                          params={params}
-                        />
-                      )}
-
-                      {activeTab === 1 && <IntegrationTab verificationMethod={basic.verificationMethod} />}
-
-                      {activeTab === 2 && (
-                        <PrivacyTab
-                          {...privacy}
-                          onAutoDeletionChange={(checked) => dispatch(setAutoDeletion({ enabled: checked }))}
-                          onShareOnlyJsonChange={(checked) => dispatch(setShareOnlyJson(checked))}
-                          onShowFieldLabelsChange={(checked) => dispatch(setShowFieldLabels(checked))}
-                          onDisableWebpagePromptsChange={(checked) => dispatch(setDisableWebpagePrompts(checked))}
-                          onShowDetailedJsonChange={(checked) => dispatch(setShowDetailedJson(checked))}
-                          onTransactionsExtractionChange={(checked) => dispatch(setTransactionsExtraction(checked))}
-                        />
-                      )}
-
-                      {activeTab === 3 && (
-                        <TriggersEmailTab
-                          {...trigger}
-                          onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
-                          onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
-                          onSubmissionNotificationViaEmailChange={(checked) =>
-                            dispatch(setSubmissionNotificationViaEmail(checked))
-                          }
-                          onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
-                          onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
-                          onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
-                          onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
-                          onAddGoogleSheetUrlChange={(checked) => dispatch(setAddGoogleSheetUrl(checked))}
-                          onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
-                        />
-                      )}
-
-                      {activeTab === 4 && (
-                        <DisplayTab
-                          {...display}
-                          onStartWithFullScreenChange={(checked) =>
-                            dispatch(setDisplaySettings({ startWithFullScreen: checked }))
-                          }
-                          onShowPreviewChange={(checked) => dispatch(setDisplaySettings({ showPreview: checked }))}
-                          onDesktopWarningChange={(value) => dispatch(setDisplaySettings({ desktopWarning: value }))}
-                          onDesktopCustomMessageChange={(value) => dispatch(setDisplaySettings({ desktopCustomMessage: value }))}
-                          onColorValueChange={(value) => dispatch(setDisplaySettings({ colorValue: value }))}
-                          onIncludeFaqPageChange={(checked) => dispatch(setDisplaySettings({ includeFaqPage: checked }))}
-                          onIncludeQrCodeChange={(checked) => dispatch(setDisplaySettings({ includeQrCode: checked }))}
-                          onNoPasswordTextChange={(value) => dispatch(setDisplaySettings({ noPasswordText: value }))}
-                          onStrongPrivacyTextChange={(value) => dispatch(setDisplaySettings({ strongPrivacyText: value }))}
-                          onSecureTextChange={(value) => dispatch(setDisplaySettings({ secureText: value }))}
-                          onDataPurgeTextChange={(value) => dispatch(setDisplaySettings({ dataPurgeText: value }))}
-                          onLoginTextChange={(value) => dispatch(setDisplaySettings({ loginText: value }))}
-                          onInstructionTextChange={(value) => dispatch(setDisplaySettings({ instructionText: value }))}
-                          onSuccessHeadingChange={(value) => dispatch(setDisplaySettings({ successHeading: value }))}
-                          onSuccessMessageChange={(value) => dispatch(setDisplaySettings({ successMessage: value }))}
-                          onFailureHeadingChange={(value) => dispatch(setDisplaySettings({ failureHeading: value }))}
-                          onFailureMessageChange={(value) => dispatch(setDisplaySettings({ failureMessage: value }))}
-                          onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ organizationName: value }))}
-                        />
-                      )}
-
-                      {activeTab === 5 && (
-                        <RejectionTab
-                          disallowedDocTypes={rejection.disallowedDocTypes}
-                          onDisallowedDocTypesChange={(value) => dispatch(setDisallowedDocTypes(value))}
-                        />
-                      )}
-
-                      {activeTab === 6 && (
-                        <AdvancedTab
-                          proxyLocation={advanced.proxyLocation}
-                          allowMethodSwitching={advanced.allowMethodSwitching}
-                          onProxyLocationChange={(value) => dispatch(setProxyLocation(value))}
-                          onAllowMethodSwitchingChange={(checked) => dispatch(setAllowMethodSwitching(checked))}
-                          onDelete={() => {
-                            // Handle delete action
-                            console.log("Delete button clicked");
-                          }}
-                        />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </Tabs>
-            )}
-          </div>
         </div>
-      </PageContainer>
-    </div>
+      );
+    }
+
+    return (
+      <TriggersEmailTab
+        emailToOrganization={buttonSettings?.replytoemail || ""}
+        includePdfInEmail={buttonSettings?.include_pdf || false}
+        submissionNotifyEmail={buttonSettings?.submissionNotifyEmail || false}
+        emailReminderData={store.getState().buttons.emailreminderdata || []}
+        emailToOrganizationEnabled={buttonSettings?.emailToOrganizationEnabled || false}
+        enableEngagementCallback={buttonSettings?.engagement_callback || false}
+        autoJson={buttonSettings?.autojson || false}
+        callbackUrl={buttonSettings?.callbackurl || ""}
+        addGoogleSheetUrl={buttonSettings?.googleSheet || false}
+        googleSheetUrl={buttonSettings?.googlesheeturl || ""}
+        enableSalesforce={buttonSettings?.enableSalesforce || false}
+        salesforceConfig={buttonSettings?.salesforce || {}}
+        smtpConfig={buttonSettings?.smtp || []}
+        includeOriginalFilename={buttonSettings?.includeOriginalFilename || false}
+        enableCustomTemplate={buttonSettings?.enableCustomTemplate || false}
+        emailTemplate={buttonSettings?.emailnotetemplate}
+        emailReminder={emailReminder}
+        emailReminderLoading={emailReminderLoading}
+        emailReminderError={emailReminderError}
+        diroCertificate={buttonSettings?.diro_certificate || false}
+        originalDoc={buttonSettings?.original_doc || false}
+        shareOnlyJson={buttonSettings?.shareonlyjson || false}
+        redirecturl={buttonSettings?.redirecturl || ""}
+        redirectmessage={buttonSettings?.redirectmessage || ""}
+        onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
+        onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
+        onSubmissionNotificationViaEmailChange={(checked) => dispatch(setSubmissionNotificationViaEmail(checked))}
+        onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
+        onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
+        onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
+        onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
+        onAddGoogleSheetChange={(checked) => dispatch(setGooglesheet(checked))}
+        onGoogleSheetUrlChange={(value) => dispatch(setGooglesheeturl(value))}
+        onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
+        onSalesforceConfigChange={(config) => dispatch(setSalesforceConfig(config))}
+        onSmtpConfigChange={(config) => dispatch(setSmtpConfig(config))}
+        onDiroCertificateChange={(checked) => dispatch(setDiroCertificate(checked))}
+        onOriginalDocChange={(checked) => dispatch(setOriginalDoc(checked))}
+        onIncludeOriginalFilenameChange={(checked) => dispatch(setIncludeOriginalFilename(checked))}
+        onEnableCustomTemplateChange={(checked) => dispatch(setEnableCustomTemplate(checked))}
+        onEmailTemplateChange={(value) => dispatch(setEmailTemplate(value))}
+        onRedirectUrlChange={(value) => dispatch(setRedirectUrl(value))}
+        onRedirectMessageChange={(value) => dispatch(setRedirectMessage(value))}
+        verificationMethod={buttonSettings?.mode?.type}
+      />
+    );
+  };
+
+  return (
+    <>
+      <ReduxDebug />
+      {isErrorModalOpen ? (
+        // When error modal is visible, only show the modal with a clean background
+        <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+          <ErrorModal
+            isOpen={isErrorModalOpen}
+            onClose={() => router.push("/client/validation-buttons")}
+            onRetry={() => window.location.reload()}
+            errorMessage={error || undefined}
+            errorCode={errorCode}
+            errorDetails={`Button ID: ${params.id}`}
+            hideDetails={true}
+            showIcon={false}
+            cancelText="Back"
+            retryText="Try Again"
+            isRetrying={false}
+            disableAnimation={true}
+          />
+        </div>
+      ) : (
+        // Only render the main content with sidebar when no error modal is displayed
+        <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50/30 via-gray-100/30 to-gray-50/30 dark:from-gray-900/30 dark:via-gray-800/30 dark:to-gray-900/30">
+          <div className="flex-none">
+            <Sidebar onExpandedChange={setSidebarExpanded} />
+          </div>
+          <PageContainer sidebarExpanded={sidebarExpanded}>
+            <div className="min-h-screen">
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
+                <div className="container mx-auto px-6">
+                  <div className="h-16 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        onClick={() => router.back()}
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                      </Button>
+                      <div>
+                        <h1 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+                          Button Configuration
+                        </h1>
+                        <p className="text-sm text-muted-foreground">Configure verification settings and permissions</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {saveSuccess && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                        >
+                          <Check className="h-3 w-3 mr-1" /> Changes saved
+                        </Badge>
+                      )}
+                      <Button
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {isSaving ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="container mx-auto px-8 py-8">{renderContent()}</div>
+            </div>
+          </PageContainer>
+        </div>
+      )}
+    </>
   );
 }

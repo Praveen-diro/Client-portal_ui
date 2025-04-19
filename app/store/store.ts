@@ -1,14 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
-import buttonSettingsReducer from "./features/buttonSettingsSlice";
 import authReducer from "./features/authSlice";
-import privacyReducer from "./features/privacySlice";
-import triggerReducer from "./features/triggerSlice";
 import tableReducer from "./features/tableSlice";
 import organizationReducer from "./features/organizationSlice";
 import billingReducer from "./features/billingSlice";
 import viewDocReducer from "./features/viewDocSlice";
 import buttonReducer from "./features/buttonSlice";
+import logsReducer from "./features/logsSlice";
 import sourceReducer from "./features/sourceSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
@@ -16,15 +14,13 @@ import { combineReducers } from "@reduxjs/toolkit";
 const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
-  buttonSettings: buttonSettingsReducer,
-  privacy: privacyReducer,
-  trigger: triggerReducer,
   table: tableReducer,
   organization: organizationReducer,
   billing: billingReducer,
   viewDoc: viewDocReducer,
   buttons: buttonReducer,
   source: sourceReducer,
+  logs: logsReducer,
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
@@ -79,9 +75,6 @@ if (
     [
       "./features/authSlice",
       "./features/userSlice",
-      "./features/buttonSettingsSlice",
-      "./features/privacySlice",
-      "./features/triggerSlice",
       "./features/tableSlice",
       "./features/organizationSlice",
       "./features/billingSlice",

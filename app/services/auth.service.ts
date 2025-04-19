@@ -29,6 +29,7 @@ import {
   loginSandboxTwoFactor,
 } from "../store/features/authSlice";
 import { dispatchAction } from "../store/hooks";
+import { apiService } from "./api.service";
 
 // Add a router reference that can be set from components
 let globalRouter: any = null;
@@ -118,23 +119,12 @@ export interface ForgotPasswordData {
   [key: string]: any;
 }
 
-class AuthService {
-  private async axiosWithRetry(url: string, data: any, retries = 3, delay = 1000): Promise<AxiosResponse> {
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await axios.post(url, data);
-      } catch (error) {
-        if (i < retries - 1) {
-          console.warn(`Retrying request... Attempt ${i + 1}`);
-          await new Promise((res) => setTimeout(res, delay * (i + 1))); // Exponential backoff
-        } else {
-          throw error;
-        }
-      }
-    }
-    throw new Error("Max retries reached");
-  }
+interface SwitchModeResponse {
+  sandbox: boolean;
+  message?: string;
+}
 
+class AuthService {
   async validateRecaptcha(token: string) {
     console.time("recaptchaValidation");
 
@@ -348,11 +338,8 @@ class AuthService {
 
     this.isLoadingCountries = true;
     try {
-      const response = await axios.get(env.verifiedcountrylist, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Use apiService's makeRefreshAuthGetRequest for consistent token handling
+      const response = await apiService.makeRefreshAuthGetRequest(env.verifiedcountrylist);
       store.dispatch(getCountries(response.data));
     } catch (error) {
       console.error("Error fetching countries:", error);
@@ -472,11 +459,49 @@ class AuthService {
     const switchPayload = { emailId: data.email, sandbox: data.sandbox };
 
     try {
-      const response = await this.axiosWithRetry(env.switchServer, switchPayload);
-      console.log("Mode Change:", response.data.sandbox);
+      // Use apiService.makeRequest instead of direct axios call
+      const response = await apiService.makeRequest<SwitchModeResponse>(
+        env.switchServer,
+        switchPayload,
+        "switchMode", // retryKey for tracking retries
+        3, // maxRetryCount
+        true, // shouldSetLoading
+        true // shouldLog
+      );
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to switch mode");
+      }
+
+      console.log("Mode Change:", response.data?.sandbox);
+
+      // Get the current user data from cookies
+      const userData = cookies.get("alldata");
+      const parsedUserData = userData ? JSON.parse(userData) : null;
+
+      // Determine the new mode
+      const newMode = response.data?.sandbox === true ? 2 : 1;
+
+      // Update API key and token based on mode
+      if (parsedUserData) {
+        if (newMode === 2) {
+          console.log("Sandbox mode");
+          console.log("parsedUserData", parsedUserData);
+          // Sandbox mode
+          cookies.set("apikey", parsedUserData.sandbox?.apikey || "");
+          cookies.set("token", parsedUserData.sandbox?.accesstoken || "");
+          cookies.set("sandboxapi", parsedUserData.sandbox?.apikey || "");
+          cookies.set("tokenTest", parsedUserData.sandbox?.accesstoken || "");
+        } else {
+          // Live mode
+          cookies.set("apikey", parsedUserData.apikey || "");
+          cookies.set("token", parsedUserData.token || "");
+          cookies.set("liveapi", parsedUserData.apikey || "");
+        }
+      }
 
       // Dispatch the auth mode change based on response
-      dispatchAction(setAuthMode(response.data.sandbox === true ? 2 : 1));
+      dispatchAction(setAuthMode(newMode));
     } catch (error) {
       console.error("Final failure in switching the Modes:", error);
       // Default to mode 1 (live) if there's an error
