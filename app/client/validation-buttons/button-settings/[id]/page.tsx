@@ -43,7 +43,6 @@ import {
   getMasterFieldData,
   getEmailReminderData,
   getCountryListData,
-  setBtn,
   setName,
   setType,
   setFixedUrl,
@@ -100,6 +99,15 @@ import {
   setEmailTemplate,
   setRedirectUrl,
   setRedirectMessage,
+  setAllowNonContinuousStatement,
+  setMaxNumberOfFiles,
+  setAllowOutsidePeriodFile,
+  setSalesforceConfig,
+  setLiveFeedbackInstruction,
+  setExpectedDays,
+  setValidDateRange,
+  setSmtpConfig,
+  setBtn,
 } from "@/app/store/features/buttonSlice";
 import { getCountries } from "@/app/store/features/authSlice";
 
@@ -214,6 +222,26 @@ const MultiSelect = ({
       <SelectContent>{children}</SelectContent>
     </Select>
   );
+};
+
+const ReduxDebug = () => {
+  const buttonState = useAppSelector((state) => state.buttons);
+
+  useEffect(() => {
+    console.log("Redux Store State:", {
+      buttonState,
+      btndata: buttonState?.btn?.btndata,
+      toggles: {
+        showgoogle: buttonState?.btn?.btndata?.showgoogle,
+        livefeedbackMode: buttonState?.btn?.btndata?.livefeedbackMode,
+        multidownload: buttonState?.btn?.btndata?.multidownload,
+        allowNonContinuousStatement: buttonState?.btn?.btndata?.allowNonContinuousStatement,
+        allowOutsidePeriodFile: buttonState?.btn?.btndata?.allowOutsidePeriodFile,
+      },
+    });
+  }, [buttonState]);
+
+  return null;
 };
 
 export default function EditButton() {
@@ -476,6 +504,35 @@ export default function EditButton() {
     [dispatch]
   );
 
+  // Memoize the country links fetch handler
+  const handleFetchCountryLinks = useCallback(
+    async (countryUniqueKey: string, category: string) => {
+      dispatch(loadCountryLinks());
+      const payload = {
+        category: category,
+        country: countryUniqueKey,
+        index: 0,
+        offset: 100,
+        search: "",
+      };
+      try {
+        const response = await buttonService.getCountryLinks(payload);
+        dispatch(
+          getCountryLinks({
+            res: response,
+            searching: false,
+            cat: category,
+          })
+        );
+        return response;
+      } catch (error: unknown) {
+        dispatch(errCountryLinks(error instanceof Error ? error.message : "Failed to fetch country links"));
+        throw error;
+      }
+    },
+    [dispatch]
+  );
+
   // Render content based on loading and error state
   const renderContent = () => {
     if (isLoading) {
@@ -535,22 +592,33 @@ export default function EditButton() {
                   selectedCountry={buttonSettings?.countryUniqueKey || buttonSettings?.country}
                   limitCountryEnabled={buttonSettings?.limitcountry}
                   selectedCountries={buttonSettings?.selectedCountries}
-                  allowSubmissionOverride={buttonSettings?.allowOverridePeriod}
+                  allowOverridePeriod={buttonSettings?.allowOverridePeriod}
                   allowMissingStatements={buttonSettings?.allowMissingStatement}
+                  showGoogleSearch={buttonSettings?.showgoogle}
+                  resubmission={buttonSettings?.resubmission}
+                  expiryHours={
+                    buttonSettings?.expiry === undefined || buttonSettings?.expiry === null ? "2160" : buttonSettings.expiry
+                  }
+                  allowNonContinuousStatement={buttonSettings?.allowNonContinuousStatement}
                   params={params}
                   searchResults={searchResults}
                   searchLoading={searchLoading}
                   direct_link={buttonSettings?.coverage?.direct_link}
-                  showGoogleSearch={buttonSettings?.showgoogle}
-                  expiryHours={
-                    buttonSettings?.expiry === undefined || buttonSettings?.expiry === null ? "2160" : buttonSettings.expiry
-                  }
+                  livefeedback={buttonSettings?.livefeedbackMode}
+                  multidownload={buttonSettings?.multidownload}
+                  imageUpload={buttonSettings?.imageUpload}
+                  extractAllTransaction={buttonSettings?.extractAllTransaction}
+                  calculateBalanceAsOnDate={buttonSettings?.calculateBalanceAsOnDate}
+                  maxNumberOfFiles={buttonSettings?.maxNumberOfFiles || 1}
+                  allowOutsidePeriodFile={buttonSettings?.allowOutsidePeriodFile}
+                  liveFeedbackInstruction={buttonSettings?.liveFeedbackInstruction || ""}
+                  expectedDays={buttonSettings?.expectedDays || ""}
+                  validDateRange={buttonSettings?.validDateRange || ""}
                   // Handler props (callbacks)
                   onNameChange={(value) => dispatch(setName(value))}
                   onUrlChange={handleUrlChange}
                   onVerificationMethodChange={(value) => {
                     dispatch(setType(value));
-                    // Reset related states when verification method changes
                     if (value !== buttonSettings?.mode?.type) {
                       dispatch(setFixedUrl(false));
                       dispatch(setCountry(""));
@@ -562,18 +630,14 @@ export default function EditButton() {
                     dispatch(setFixedUrl(checked));
                     if (!checked) {
                       dispatch(setCountry(""));
-                      // Clear search results when direct URL is disabled
                       setSearchResults([]);
                     } else if (checked && buttonSettings?.countryUniqueKey) {
-                      // If enabling direct URL and country is already selected, set empty search results
                       const countriesData = store.getState().buttons.countryList.data;
                       if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
                         const selectedCountry = countriesData.data.data.find(
                           (country: any) => country.uniquekey === buttonSettings.countryUniqueKey
                         );
-
                         if (selectedCountry) {
-                          // Set country as search result when direct URL is enabled
                           setSearchResults([selectedCountry]);
                         }
                       }
@@ -581,40 +645,18 @@ export default function EditButton() {
                   }}
                   onSelectedCountryChange={(value) => handleCountryChange(value)}
                   onLimitCountryEnabledChange={(checked) => {
-                    console.log("Parent: dispatching setLimitCountry with value:", checked);
                     dispatch(setLimitCountry(checked));
                     if (!checked) {
-                      // Clear selected countries when toggle is turned off
                       dispatch(setSelectedCountries([]));
-                      if (buttonSettings.btn?.btndata) {
-                        const updatedBtnData = {
-                          ...buttonSettings.btn,
-                          btndata: {
-                            ...buttonSettings.btn.btndata,
-                            selectedCountries: [],
-                          },
-                        };
-                        dispatch(setBtn(updatedBtnData));
-                      }
                     }
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - limitcountry value:", store.getState().buttons?.btn?.btndata?.limitcountry);
-                      console.log("Selected countries:", store.getState().buttons?.btn?.btndata?.selectedCountries);
-                    }, 100);
                   }}
                   onSelectedCountriesChange={(values) => {
-                    console.log("Parent: dispatching setSelectedCountries with values:", values);
-                    // Instead of extracting just country keys, now we'll store the full country objects
-                    // Transform any string values to full country objects
                     const fullCountryObjects = values.map((country) => {
                       if (typeof country === "string") {
-                        // Find the complete country object from available options
                         const countriesData = store.getState().buttons.countryList.data;
                         if (countriesData?.data?.data && Array.isArray(countriesData.data.data)) {
                           const countryObj = countriesData.data.data.find((c: any) => c.uniquekey === country);
                           if (countryObj) {
-                            // Return a properly formatted country object
                             return {
                               flag: countryObj.flag || `https://flagcdn.com/w40/${countryObj.alpha2code.toLowerCase()}.png`,
                               label: countryObj.country,
@@ -623,102 +665,35 @@ export default function EditButton() {
                             };
                           }
                         }
-                        return country; // Fallback to string if object not found
+                        return country;
                       }
-                      return country; // Already an object
+                      return country;
                     });
-
                     dispatch(setSelectedCountries(fullCountryObjects));
-
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log(
-                        "After dispatch - selectedCountries:",
-                        store.getState().buttons?.btn?.btndata?.selectedCountries
-                      );
-                    }, 100);
                   }}
+                  onAllowOverridePeriodChange={(checked) => dispatch(setAllowOverridePeriod(checked))}
                   onAllowSubmissionOverrideChange={(checked) => dispatch(setAllowOverridePeriod(checked))}
                   onAllowMissingStatementsChange={(checked) => dispatch(setAllowMissingStatement(checked))}
-                  onShowGoogleSearchChange={(checked) => {
-                    console.log("Parent: dispatching setShowGoogleSearch with value:", checked);
-                    dispatch(setShowGoogleSearch(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - showgoogle value:", store.getState().buttons?.btn?.btndata?.showgoogle);
-                    }, 100);
-                  }}
-                  onExpiryHoursChange={(value) => {
-                    console.log("Parent: dispatching setExpiry with value:", value);
-                    dispatch(setExpiry(value));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - expiry value:", store.getState().buttons?.btn?.btndata?.expiry);
-                    }, 100);
-                  }}
-                  resubmission={buttonSettings?.resubmission}
-                  onResubmissionChange={(checked) => {
-                    console.log("Parent: dispatching setResubmission with value:", checked);
-                    dispatch(setResubmission(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - resubmission value:", store.getState().buttons?.btn?.btndata?.resubmission);
-                    }, 100);
-                  }}
-                  livefeedback={buttonSettings?.livefeedbackMode}
-                  onLiveFeedbackChange={(checked) => {
-                    console.log("Parent: dispatching setLiveFeedback with value:", checked);
-                    dispatch(setLiveFeedback(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log(
-                        "After dispatch - livefeedback value:",
-                        store.getState().buttons?.btn?.btndata?.livefeedbackMode
-                      );
-                    }, 100);
-                  }}
-                  multidownload={buttonSettings?.multidownload}
+                  onShowGoogleSearchChange={(checked) => dispatch(setShowGoogleSearch(checked))}
+                  onExpiryHoursChange={(value) => dispatch(setExpiry(value))}
+                  onResubmissionChange={(checked) => dispatch(setResubmission(checked))}
+                  onLiveFeedbackChange={(checked) => dispatch(setLiveFeedback(checked))}
                   onMultiDownloadChange={(checked) => {
-                    console.log("Parent: dispatching setMultiDownload with value:", checked);
                     dispatch(setMultiDownload(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - multidownload value:", store.getState().buttons?.btn?.btndata?.multidownload);
-                    }, 100);
+                    if (checked && !buttonSettings?.livefeedbackMode) {
+                      dispatch(setLiveFeedback(true));
+                    }
                   }}
-                  imageUpload={buttonSettings?.imageUpload}
-                  onImageUploadChange={(checked) => {
-                    console.log("Parent: dispatching setImageUpload with value:", checked);
-                    dispatch(setImageUpload(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log("After dispatch - imageUpload value:", store.getState().buttons?.btn?.btndata?.imageUpload);
-                    }, 100);
-                  }}
-                  extractAllTransaction={buttonSettings?.extractAllTransaction}
-                  onExtractAllTransactionChange={(checked) => {
-                    console.log("Parent: dispatching setExtractAllTransaction with value:", checked);
-                    dispatch(setExtractAllTransaction(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log(
-                        "After dispatch - extractAllTransaction value:",
-                        store.getState().buttons?.btn?.btndata?.extractAllTransaction
-                      );
-                    }, 100);
-                  }}
-                  calculateBalanceAsOnDate={buttonSettings?.calculateBalanceAsOnDate}
-                  onCalculateBalanceAsOnDateChange={(checked) => {
-                    console.log("Parent: dispatching setCalculateBalanceAsOnDate with value:", checked);
-                    dispatch(setCalculateBalanceAsOnDate(checked));
-                    // Log the updated state after dispatch
-                    setTimeout(() => {
-                      console.log(
-                        "After dispatch - calculateBalanceAsOnDate value:",
-                        store.getState().buttons?.btn?.btndata?.calculateBalanceAsOnDate
-                      );
-                    }, 100);
-                  }}
+                  onImageUploadChange={(checked) => dispatch(setImageUpload(checked))}
+                  onExtractAllTransactionChange={(checked) => dispatch(setExtractAllTransaction(checked))}
+                  onCalculateBalanceAsOnDateChange={(checked) => dispatch(setCalculateBalanceAsOnDate(checked))}
+                  onAllowNonContinuousStatementChange={(checked) => dispatch(setAllowNonContinuousStatement(checked))}
+                  onMaxNumberOfFilesChange={(value) => dispatch(setMaxNumberOfFiles(value))}
+                  onAllowOutsidePeriodFileChange={(checked) => dispatch(setAllowOutsidePeriodFile(checked))}
+                  onFetchCountryLinks={handleFetchCountryLinks}
+                  onLiveFeedbackInstructionChange={(value) => dispatch(setLiveFeedbackInstruction(value))}
+                  onExpectedDaysChange={(value) => dispatch(setExpectedDays(value))}
+                  onValidDateRangeChange={(value) => dispatch(setValidDateRange(value))}
                 />
               )}
               {activeTab === 1 && <IntegrationTab verificationMethod={buttonSettings.mode.type} />}
@@ -742,7 +717,56 @@ export default function EditButton() {
                   />
                 </div>
               )}
-              {activeTab === 3 && <div className="lg:col-span-3">{renderEmailReminderContent()}</div>}
+              {activeTab === 3 && (
+                <div className="lg:col-span-3">
+                  <TriggersEmailTab
+                    emailToOrganization={buttonSettings?.replytoemail || ""}
+                    includePdfInEmail={buttonSettings?.include_pdf || false}
+                    submissionNotifyEmail={buttonSettings?.submissionNotifyEmail || false}
+                    emailReminderData={store.getState().buttons.emailreminderdata || []}
+                    emailToOrganizationEnabled={buttonSettings?.emailToOrganizationEnabled || false}
+                    enableEngagementCallback={buttonSettings?.engagement_callback || false}
+                    autoJson={buttonSettings?.autojson || false}
+                    callbackUrl={buttonSettings?.callbackurl || ""}
+                    addGoogleSheetUrl={buttonSettings?.googleSheet || false}
+                    googleSheetUrl={buttonSettings?.googlesheeturl || ""}
+                    enableSalesforce={buttonSettings?.enableSalesforce || false}
+                    salesforceConfig={buttonSettings?.salesforce || {}}
+                    smtpConfig={buttonSettings?.smtp || []}
+                    includeOriginalFilename={buttonSettings?.includeOriginalFilename || false}
+                    enableCustomTemplate={buttonSettings?.enableCustomTemplate || false}
+                    emailTemplate={buttonSettings?.emailnotetemplate}
+                    emailReminder={emailReminder}
+                    emailReminderLoading={emailReminderLoading}
+                    emailReminderError={emailReminderError}
+                    diroCertificate={buttonSettings?.diro_certificate || false}
+                    originalDoc={buttonSettings?.original_doc || false}
+                    shareOnlyJson={buttonSettings?.shareonlyjson || false}
+                    redirecturl={buttonSettings?.redirecturl || ""}
+                    redirectmessage={buttonSettings?.redirectmessage || ""}
+                    onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
+                    onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
+                    onSubmissionNotificationViaEmailChange={(checked) => dispatch(setSubmissionNotificationViaEmail(checked))}
+                    onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
+                    onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
+                    onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
+                    onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
+                    onAddGoogleSheetChange={(checked) => dispatch(setGooglesheet(checked))}
+                    onGoogleSheetUrlChange={(value) => dispatch(setGooglesheeturl(value))}
+                    onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
+                    onSalesforceConfigChange={(config) => dispatch(setSalesforceConfig(config))}
+                    onSmtpConfigChange={(config) => dispatch(setSmtpConfig(config))}
+                    onDiroCertificateChange={(checked) => dispatch(setDiroCertificate(checked))}
+                    onOriginalDocChange={(checked) => dispatch(setOriginalDoc(checked))}
+                    onIncludeOriginalFilenameChange={(checked) => dispatch(setIncludeOriginalFilename(checked))}
+                    onEnableCustomTemplateChange={(checked) => dispatch(setEnableCustomTemplate(checked))}
+                    onEmailTemplateChange={(value) => dispatch(setEmailTemplate(value))}
+                    onRedirectUrlChange={(value) => dispatch(setRedirectUrl(value))}
+                    onRedirectMessageChange={(value) => dispatch(setRedirectMessage(value))}
+                    verificationMethod={buttonSettings?.mode?.type}
+                  />
+                </div>
+              )}
               {activeTab === 4 && (
                 <DisplayTab
                   startWithFullScreen={buttonSettings?.fullscreenmode}
@@ -787,11 +811,11 @@ export default function EditButton() {
                   onFailureMessageChange={(value) => dispatch(setDisplayExitItems({ failuremessage: value }))}
                   onOrganizationNameChange={(value) => dispatch(setDisplaySettings({ overrideorgname: value }))}
                   onOrganizationLogoChange={(logo) => dispatch(setDisplaySettings({ organizationLogo: logo }))}
-                  // Add heading props and change handlers with null checks
                   noPasswordHeading={buttonSettings?.privacytext?.nopassword_heading || ""}
                   strongPrivacyHeading={buttonSettings?.privacytext?.strongtext_heading || ""}
                   secureTextHeading={buttonSettings?.privacytext?.securetext_heading || ""}
                   dataPurgeHeading={buttonSettings?.privacytext?.datapurge_heading || ""}
+                  verificationMethod={buttonSettings?.mode?.type}
                 />
               )}
               {activeTab === 5 && (
@@ -975,10 +999,10 @@ export default function EditButton() {
                 })
               );
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
               console.error("Error fetching country links:", error);
               // Handle error by dispatching to Redux
-              dispatch(errCountryLinks(error.message || "Failed to fetch country links"));
+              dispatch(errCountryLinks(error instanceof Error ? error.message : "Failed to fetch country links"));
             });
         }
       } else {
@@ -1062,55 +1086,33 @@ export default function EditButton() {
         shareOnlyJson={buttonSettings?.shareonlyjson || false}
         redirecturl={buttonSettings?.redirecturl || ""}
         redirectmessage={buttonSettings?.redirectmessage || ""}
-        onEmailToOrganizationChange={(value: string) => dispatch(setEmailToOrganization(value))}
-        onIncludePdfInEmailChange={(checked: boolean) => dispatch(setIncludePdfInEmail(checked))}
-        onSubmissionNotificationViaEmailChange={(checked: boolean) => dispatch(setSubmissionNotificationViaEmail(checked))}
-        onEmailToOrganizationEnabledChange={(checked: boolean) => dispatch(setEmailToOrganizationEnabled(checked))}
-        onEnableEngagementCallbackChange={(checked: boolean) => dispatch(setEnableEngagementCallback(checked))}
-        onAutoJsonChange={(checked: boolean) => dispatch(setAutoJson(checked))}
-        onCallbackUrlChange={(value: string) => dispatch(setCallbackUrl(value))}
-        onAddGoogleSheetChange={(checked: boolean) => dispatch(setGooglesheet(checked))}
-        onGoogleSheetUrlChange={(value: string) => dispatch(setGooglesheeturl(value))}
-        onEnableSalesforceChange={(checked: boolean) => dispatch(setEnableSalesforce(checked))}
-        onSalesforceConfigChange={(config: Record<string, string>) => {
-          const updatedBtnData = {
-            ...buttonSettings,
-            salesforce: {
-              ...buttonSettings?.salesforce,
-              ...config,
-            },
-          };
-          dispatch(setBtn({ btndata: updatedBtnData }));
-        }}
-        onSmtpConfigChange={(
-          config: Array<{
-            server: string;
-            password: string;
-            security: boolean;
-            port: string;
-            username: string;
-          }>
-        ) => {
-          // Update the SMTP config using the setBtn action
-          const updatedBtnData = {
-            ...buttonSettings,
-            smtp: config,
-          };
-          dispatch(setBtn({ btndata: updatedBtnData }));
-        }}
-        onDiroCertificateChange={(checked: boolean) => dispatch(setDiroCertificate(checked))}
-        onOriginalDocChange={(checked: boolean) => dispatch(setOriginalDoc(checked))}
-        onIncludeOriginalFilenameChange={(checked: boolean) => dispatch(setIncludeOriginalFilename(checked))}
-        onEnableCustomTemplateChange={(checked: boolean) => dispatch(setEnableCustomTemplate(checked))}
-        onEmailTemplateChange={(value: string) => dispatch(setEmailTemplate(value))}
-        onRedirectUrlChange={handleRedirectUrlChange}
-        onRedirectMessageChange={handleRedirectMessageChange}
+        onEmailToOrganizationChange={(value) => dispatch(setEmailToOrganization(value))}
+        onIncludePdfInEmailChange={(checked) => dispatch(setIncludePdfInEmail(checked))}
+        onSubmissionNotificationViaEmailChange={(checked) => dispatch(setSubmissionNotificationViaEmail(checked))}
+        onEmailToOrganizationEnabledChange={(checked) => dispatch(setEmailToOrganizationEnabled(checked))}
+        onEnableEngagementCallbackChange={(checked) => dispatch(setEnableEngagementCallback(checked))}
+        onAutoJsonChange={(checked) => dispatch(setAutoJson(checked))}
+        onCallbackUrlChange={(value) => dispatch(setCallbackUrl(value))}
+        onAddGoogleSheetChange={(checked) => dispatch(setGooglesheet(checked))}
+        onGoogleSheetUrlChange={(value) => dispatch(setGooglesheeturl(value))}
+        onEnableSalesforceChange={(checked) => dispatch(setEnableSalesforce(checked))}
+        onSalesforceConfigChange={(config) => dispatch(setSalesforceConfig(config))}
+        onSmtpConfigChange={(config) => dispatch(setSmtpConfig(config))}
+        onDiroCertificateChange={(checked) => dispatch(setDiroCertificate(checked))}
+        onOriginalDocChange={(checked) => dispatch(setOriginalDoc(checked))}
+        onIncludeOriginalFilenameChange={(checked) => dispatch(setIncludeOriginalFilename(checked))}
+        onEnableCustomTemplateChange={(checked) => dispatch(setEnableCustomTemplate(checked))}
+        onEmailTemplateChange={(value) => dispatch(setEmailTemplate(value))}
+        onRedirectUrlChange={(value) => dispatch(setRedirectUrl(value))}
+        onRedirectMessageChange={(value) => dispatch(setRedirectMessage(value))}
+        verificationMethod={buttonSettings?.mode?.type}
       />
     );
   };
 
   return (
     <>
+      <ReduxDebug />
       {isErrorModalOpen ? (
         // When error modal is visible, only show the modal with a clean background
         <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">

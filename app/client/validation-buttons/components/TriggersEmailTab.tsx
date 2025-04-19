@@ -44,6 +44,7 @@ import { CustomizeTemplateModal } from "./CustomizeTemplateModal";
 import { store } from "@/app/store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { updateButton } from "@/app/store/features/buttonSlice";
+import { FancySwitchToggle } from "@/components/ui/fancy-switch-toggle";
 
 // Utility functions for formatting days and hours
 const formatDays = (days: string): string => {
@@ -99,6 +100,7 @@ interface TriggersEmailTabProps {
   }>;
   redirecturl?: string;
   redirectmessage?: string;
+  verificationMethod?: string;
   onEmailToOrganizationChange: (value: string) => void;
   onIncludePdfInEmailChange: (checked: boolean) => void;
   onSubmissionNotificationViaEmailChange: (checked: boolean) => void;
@@ -261,6 +263,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
   smtpConfig = [],
   redirecturl = "",
   redirectmessage = "",
+  verificationMethod = "download",
   onEmailToOrganizationChange,
   onIncludePdfInEmailChange,
   onSubmissionNotificationViaEmailChange,
@@ -495,18 +498,21 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
     handleCallbackClose();
   };
 
+  // Helper for download/screenshot mode
+  const isDownloadOrScreenshot = verificationMethod === "download" || verificationMethod === "screenshot";
+
   return (
     <div className="lg:col-span-3 w-full">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left sidebar navigation */}
         <div className="lg:col-span-1/2">
-          <div className="sticky top-4 space-y-3 space-x-2">
+          <div className="sticky top-4 space-y-3">
             <Button
               variant={activeSection === "Triggers" ? "default" : "ghost"}
-              className="w-full justify-start text-left"
+              className="w-full justify-start text-left "
               onClick={() => setActiveSection("Triggers")}
             >
-              <Bell className="h-4 w-4 mr-2" />
+              <Bell className="h-4 w-4 mr-2 ml-1" />
               <span> Triggers</span>
             </Button>
 
@@ -610,7 +616,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                       <p className="text-sm text-muted-foreground">Use a custom email template for organization emails</p>
                     </div>
 
-                    <Switch checked={enableCustomTemplate} onCheckedChange={onEnableCustomTemplateChange} />
+                    <FancySwitchToggle checked={enableCustomTemplate} onCheckedChange={onEnableCustomTemplateChange} />
                   </div>
 
                   {enableCustomTemplate && (
@@ -649,7 +655,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                     <p className="text-sm text-muted-foreground">Include original filename in the generated PDF name</p>
                   </div>
 
-                  <Switch checked={includeOriginalFilename} onCheckedChange={onIncludeOriginalFilenameChange} />
+                  <FancySwitchToggle checked={includeOriginalFilename} onCheckedChange={onIncludeOriginalFilenameChange} />
                 </div>
 
                 <div className="flex items-center space-x-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
@@ -662,7 +668,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                     <p className="text-sm text-muted-foreground">Notify when verification is completed</p>
                   </div>
 
-                  <Switch checked={submissionNotifyEmail} onCheckedChange={onSubmissionNotificationViaEmailChange} />
+                  <FancySwitchToggle checked={submissionNotifyEmail} onCheckedChange={onSubmissionNotificationViaEmailChange} />
                 </div>
 
                 <div className="flex items-center space-x-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
@@ -678,7 +684,11 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                     </p>
                   </div>
 
-                  <Switch disabled={shareOnlyJson} checked={shareOnlyJson ? true : autoJson} onCheckedChange={onAutoJsonChange} />
+                  <FancySwitchToggle
+                    disabled={shareOnlyJson}
+                    checked={shareOnlyJson ? true : autoJson}
+                    onCheckedChange={onAutoJsonChange}
+                  />
                 </div>
 
                 <div className="rounded-lg border bg-slate-50 dark:bg-slate-900">
@@ -692,7 +702,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                       <p className="text-sm text-muted-foreground">Attach PDF documents to email notifications</p>
                     </div>
 
-                    <Switch checked={includePdfInEmail} onCheckedChange={onIncludePdfInEmailChange} />
+                    <FancySwitchToggle checked={includePdfInEmail} onCheckedChange={onIncludePdfInEmailChange} />
                   </div>
 
                   {includePdfInEmail && (
@@ -760,7 +770,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                     <p className="text-sm text-muted-foreground">Send engagement data to your callback URL</p>
                   </div>
 
-                  <Switch checked={enableEngagementCallback} onCheckedChange={onEnableEngagementCallbackChange} />
+                  <FancySwitchToggle checked={enableEngagementCallback} onCheckedChange={onEnableEngagementCallbackChange} />
                 </div>
 
                 <div className="space-y-4">
@@ -838,7 +848,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                         <p className="font-medium">Google Sheets</p>
                         <p className="text-sm text-muted-foreground">Push data to Google Sheets</p>
                       </div>
-                      <Switch checked={addGoogleSheetUrl} onCheckedChange={onAddGoogleSheetChange} />
+                      <FancySwitchToggle checked={addGoogleSheetUrl} onCheckedChange={onAddGoogleSheetChange} />
                     </div>
 
                     {addGoogleSheetUrl && (
@@ -904,7 +914,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                         <p className="font-medium">Salesforce</p>
                         <p className="text-sm text-muted-foreground">Integrate with Salesforce CRM</p>
                       </div>
-                      <Switch checked={enableSalesforce} onCheckedChange={onEnableSalesforceChange} />
+                      <FancySwitchToggle checked={enableSalesforce} onCheckedChange={onEnableSalesforceChange} />
                     </div>
 
                     {enableSalesforce && (
@@ -1109,7 +1119,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
 
                   <div className="mt-4 flex items-center space-x-2">
                     <div className="flex items-center space-x-2">
-                      <Switch
+                      <FancySwitchToggle
                         id="smtp-security"
                         checked={smtpConfig[0]?.security || false}
                         onCheckedChange={(checked) => {
@@ -1139,7 +1149,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
           )}
 
           {/* Customer Reminders Section */}
-          {activeSection === "Customer Reminders" && (
+          {isDownloadOrScreenshot && activeSection === "Customer Reminders" && (
             <Card className="shadow-sm border-slate-200 dark:border-slate-800">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 pb-5">
                 <div className="flex items-center justify-between">
@@ -1275,17 +1285,24 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                     <span className={`${statusBg} px-2.5 py-1 rounded-full text-xs font-medium hidden md:flex`}>
                                       {row.activate ? "Active" : "Inactive"}
                                     </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-500"
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-500 flex items-center justify-center cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         updateReminder(index, { activate: false });
                                       }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          updateReminder(index, { activate: false });
+                                        }
+                                      }}
                                     >
                                       <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </AccordionTrigger>
@@ -1376,7 +1393,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
 
                                       <div className="flex items-center space-x-2">
                                         <Label className="text-sm">Activate reminder</Label>
-                                        <Switch
+                                        <FancySwitchToggle
                                           checked={row.activate}
                                           onCheckedChange={(checked) =>
                                             handleToggleChange(row.id, "activate", checked as boolean)
@@ -1404,7 +1421,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                                 <p className="text-xs text-slate-500">End user verification</p>
                                               </div>
                                             </div>
-                                            <Switch
+                                            <FancySwitchToggle
                                               checked={row.customerCheck}
                                               onCheckedChange={(checked) =>
                                                 handleToggleChange(row.id, "customerCheck", checked as boolean)
@@ -1422,7 +1439,7 @@ export const TriggersEmailTab: React.FC<TriggersEmailTabProps> = ({
                                                 <p className="text-xs text-slate-500">Admin account</p>
                                               </div>
                                             </div>
-                                            <Switch
+                                            <FancySwitchToggle
                                               checked={row.organizationCheck}
                                               onCheckedChange={(checked) =>
                                                 handleToggleChange(row.id, "organizationCheck", checked as boolean)

@@ -27,15 +27,15 @@ export function CreateButton({ onClick, disabled, authMode, adminAccess }: Creat
       )}
       <Tooltip>
         <TooltipTrigger asChild>
-          <div style={{ cursor: isDisabled ? "not-allowed" : "pointer" }}>
+          <div className={isDisabled ? "cursor-not-allowed" : "cursor-pointer"}>
             <Button
-              className={`${
+              className={
                 isDisabled
-                  ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700"
+                  ? "opacity-50 pointer-events-none bg-gray-400 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700"
                   : "bg-foreground text-background hover:bg-foreground/90"
-              }`}
+              }
               onClick={onClick}
-              disabled={isDisabled}
+              disabled={isDisabled || false}
             >
               <Plus className="mr-2 h-4 w-4" /> Create Button
             </Button>

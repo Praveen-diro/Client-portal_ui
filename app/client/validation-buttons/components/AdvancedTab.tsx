@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { buttonService } from "@/app/services/button.service";
 import { toast } from "@/components/ui/use-toast";
+import { FancySwitchToggle } from "@/components/ui/fancy-switch-toggle";
 
 interface AdvancedTabProps {
   proxyLocation: string;
@@ -134,7 +135,7 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                   <Label>Allow switching between capture/download methods</Label>
                   <p className="text-sm text-muted-foreground">Enable users to switch verification methods</p>
                 </div>
-                <Switch
+                <FancySwitchToggle
                   id="allow-method-switching"
                   checked={allowMethodSwitching}
                   onCheckedChange={onAllowMethodSwitchingChange}
@@ -153,7 +154,7 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                     <p className="text-sm text-red-500">Auto navigation is not available for this verification type</p>
                   )}
                 </div>
-                <Switch
+                <FancySwitchToggle
                   id="auto-navigation"
                   checked={autoNavigation}
                   onCheckedChange={onAutoNavigationChange}

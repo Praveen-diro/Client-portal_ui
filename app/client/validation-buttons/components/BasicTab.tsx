@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Settings,
   Link,
@@ -26,6 +27,11 @@ import { MultiSelectDropdown, OptionType } from "@/components/ui/multi-select-dr
 import { useSelector } from "react-redux";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Constants
+const LIVE_FEEDBACK_MAX_LENGTH = 100;
 
 // Data models
 interface BasicTabState {
@@ -47,10 +53,11 @@ interface BasicTabState {
   expiryHours?: string;
 
   // Submission settings
-  allowSubmissionOverride: boolean;
+  allowOverridePeriod: boolean;
   allowMissingStatements: boolean;
   showGoogleSearch: boolean;
   resubmission: boolean;
+  allowNonContinuousStatement: boolean;
 
   // Feature toggles
   livefeedback: boolean;
@@ -68,6 +75,17 @@ interface BasicTabState {
 
   // URL
   direct_link?: string;
+
+  // New prop
+  maxNumberOfFiles?: string;
+
+  // New prop
+  allowOutsidePeriodFile?: boolean;
+
+  // New prop
+  liveFeedbackInstruction: string;
+  expectedDays: string;
+  validDateRange: string;
 }
 
 // All handler types defined together
@@ -93,6 +111,13 @@ interface BasicTabHandlers {
   onImageUploadChange: (checked: boolean) => void;
   onExtractAllTransactionChange: (checked: boolean) => void;
   onCalculateBalanceAsOnDateChange: (checked: boolean) => void;
+  onAllowNonContinuousStatementChange: (checked: boolean) => void;
+  onAllowOverridePeriodChange: (checked: boolean) => void;
+  onMaxNumberOfFilesChange?: (value: string) => void;
+  onAllowOutsidePeriodFileChange?: (checked: boolean) => void;
+  onLiveFeedbackInstructionChange: (value: string) => void;
+  onExpectedDaysChange: (value: string) => void;
+  onValidDateRangeChange: (value: string) => void;
 }
 
 // Combined props
@@ -183,11 +208,12 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     selectedCountry,
     limitCountryEnabled,
     selectedCountries = [],
-    allowSubmissionOverride,
+    allowOverridePeriod = false,
     allowMissingStatements,
     showGoogleSearch = false,
     resubmission = false,
     expiryHours = "", // Default to 30 days (720 hours)
+    allowNonContinuousStatement = false,
     params,
     searchResults = [],
     searchLoading = false,
@@ -197,6 +223,11 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     imageUpload = false,
     extractAllTransaction = false,
     calculateBalanceAsOnDate = false,
+    maxNumberOfFiles = "1",
+    allowOutsidePeriodFile = false,
+    liveFeedbackInstruction,
+    expectedDays,
+    validDateRange,
   } = props;
 
   // Extract all handler props
@@ -221,79 +252,30 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     onImageUploadChange,
     onExtractAllTransactionChange,
     onCalculateBalanceAsOnDateChange,
+    onAllowNonContinuousStatementChange,
+    onAllowOverridePeriodChange,
+    onMaxNumberOfFilesChange,
+    onAllowOutsidePeriodFileChange,
+    onLiveFeedbackInstructionChange,
+    onExpectedDaysChange,
+    onValidDateRangeChange,
   } = props;
 
   // Debug the Google search props
   console.log("BasicTab - showGoogleSearch prop:", showGoogleSearch);
   console.log("BasicTab - onShowGoogleSearchChange handler exists:", !!onShowGoogleSearchChange);
 
-  // Local state for all UI controls
+  // Local state for UI interactions only
   const [inputValue, setInputValue] = useState(name || "");
-  const [localShowGoogleSearch, setLocalShowGoogleSearch] = useState(showGoogleSearch);
-  const [localLimitCountryEnabled, setLocalLimitCountryEnabled] = useState(limitCountryEnabled);
-  const [localExpiryHours, setLocalExpiryHours] = useState(expiryHours);
-  const [localResubmission, setLocalResubmission] = useState(resubmission);
-  const [localLiveFeedback, setLocalLiveFeedback] = useState(livefeedback);
-  const [localMultiDownload, setLocalMultiDownload] = useState(multidownload);
-  // New local state for additional toggles
-  const [localImageUpload, setLocalImageUpload] = useState(imageUpload);
-  const [localExtractAllTransaction, setLocalExtractAllTransaction] = useState(extractAllTransaction);
-  const [localCalculateBalanceAsOnDate, setLocalCalculateBalanceAsOnDate] = useState(calculateBalanceAsOnDate);
-
-  console.log("verificaton sub category", verificationCategory);
-
-  // Sync local state with prop changes
-  useEffect(() => {
-    setInputValue(name || "");
-  }, [name]);
-
-  useEffect(() => {
-    setLocalShowGoogleSearch(showGoogleSearch);
-  }, [showGoogleSearch]);
-
-  useEffect(() => {
-    setLocalLimitCountryEnabled(limitCountryEnabled);
-  }, [limitCountryEnabled]);
-
-  useEffect(() => {
-    setLocalExpiryHours(expiryHours);
-  }, [expiryHours]);
-
-  useEffect(() => {
-    setLocalResubmission(resubmission);
-  }, [resubmission]);
-
-  // New effects to sync local state with props
-  useEffect(() => {
-    setLocalLiveFeedback(livefeedback);
-  }, [livefeedback]);
-
-  useEffect(() => {
-    setLocalMultiDownload(multidownload);
-  }, [multidownload]);
-
-  // New effects to sync local state with props for additional toggles
-  useEffect(() => {
-    setLocalImageUpload(imageUpload);
-  }, [imageUpload]);
-
-  useEffect(() => {
-    setLocalExtractAllTransaction(extractAllTransaction);
-  }, [extractAllTransaction]);
-
-  useEffect(() => {
-    setLocalCalculateBalanceAsOnDate(calculateBalanceAsOnDate);
-  }, [calculateBalanceAsOnDate]);
-
-  // Effect to force livefeedback ON when multidownload is ON
-  useEffect(() => {
-    if (multidownload && !livefeedback) {
-      // If multidownload is turned ON but livefeedback is OFF, turn livefeedback ON
-      console.log("Forcing livefeedback ON because multidownload is ON");
-      onLiveFeedbackChange?.(true);
-      setLocalLiveFeedback(true);
-    }
-  }, [multidownload, livefeedback, onLiveFeedbackChange]);
+  const [customUrl, setCustomUrl] = useState<string>(direct_link || "");
+  const [showCustomUrlModal, setShowCustomUrlModal] = useState<boolean>(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [showLiveFeedbackModal, setShowLiveFeedbackModal] = useState<boolean>(false);
+  const [linkResetNotice, setLinkResetNotice] = useState(false);
+  const [isCustomUrlSelected, setIsCustomUrlSelected] = useState<boolean>(
+    direct_link ? !searchResults.some((result) => result.url === direct_link) : false
+  );
+  const [selectedLink, setSelectedLink] = useState<string>(direct_link || "");
 
   const dispatch = useAppDispatch();
 
@@ -308,31 +290,51 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
   // Format countries for dropdown
   const [countryOptions, setCountryOptions] = useState<OptionType[]>([]);
 
-  // Process country data when it changes
-  useEffect(() => {
-    console.log("Countries from Redux:", countries);
+  // Use a ref to track the previous link value to prevent unnecessary updates
+  const prevLinkRef = React.useRef(selectedLink);
 
-    // Process the deeply nested data structure which seems to be working
+  // Memoize the country options processing
+  const processCountryData = useCallback((countries: any) => {
     if (countries?.data?.data && Array.isArray(countries.data.data) && countries.data.data.length > 0) {
-      const formattedCountries = countries.data.data.map((country: any) => ({
+      return countries.data.data.map((country: any) => ({
         value: country.uniquekey,
         label: country.country,
         flag: country.flag || `https://flagcdn.com/w40/${country.alpha2code.toLowerCase()}.png`,
         alpha2code: country.alpha2code,
         uniquekey: country.uniquekey,
       }));
-      setCountryOptions(formattedCountries);
-      console.log("Formatted country options:", formattedCountries);
-    } else {
-      console.log("No valid country data found in:", countries);
     }
-  }, [countries]);
+    return [];
+  }, []);
 
-  console.log("Country options:1", countryOptions);
+  // Process country data when it changes
+  useEffect(() => {
+    const formattedCountries = processCountryData(countries);
+    setCountryOptions(formattedCountries);
+  }, [countries, processCountryData]);
+
+  // Memoize the country selection handler
+  const handleCountryChange = useCallback(
+    (value: string) => {
+      if (selectedLink || isCustomUrlSelected) {
+        setLinkResetNotice(true);
+      }
+      setSelectedLink("");
+      setIsCustomUrlSelected(false);
+      if (customUrl) {
+        setCustomUrl("");
+      }
+      if (onUrlChange) {
+        onUrlChange("");
+      }
+      onSelectedCountryChange(value);
+    },
+    [selectedLink, isCustomUrlSelected, customUrl, onUrlChange, onSelectedCountryChange]
+  );
+
   // Debounced function to update the Redux store
   const debouncedNameChange = useCallback(
     (value: string) => {
-      // Only dispatch once to prevent duplicate calls to the reducer
       dispatch(setName(value));
       onNameChange(value);
     },
@@ -341,15 +343,10 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
 
   // Effect to handle the debouncing
   useEffect(() => {
-    // Skip initial render
     if (inputValue === name) return;
-
-    // Set up the timer
     const timer = setTimeout(() => {
       debouncedNameChange(inputValue);
-    }, 1000); // 1 second delay
-
-    // Cleanup the timer if the component unmounts or the value changes again
+    }, 1000);
     return () => clearTimeout(timer);
   }, [inputValue, debouncedNameChange, name]);
 
@@ -366,31 +363,22 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
   useEffect(() => {
     if (verificationCategory) {
       updateSubCategoryOptions(verificationCategory);
-
-      // Log that we're responding to a category change
       console.log(`Category changed to ${verificationCategory}, updating available subcategories`);
     } else {
-      // Clear options if no category is selected
       setSubCategoryOptions([]);
       setDocumentCheckOptions([]);
     }
   }, [verificationCategory]);
 
   // Reset the selected subcategories when category changes
-  // This is in addition to the action dispatch in the parent component
   useEffect(() => {
-    // Only track changes after initial render
     if (verificationCategory) {
       console.log(`BasicTab: Category changed to ${verificationCategory}, notifying parent to reset subcategories`);
-
-      // Ensure any local state is also reset
       if (verificationSubCategory && verificationSubCategory.length > 0) {
         onVerificationSubCategoryChange([]);
       }
     }
-  }, [verificationCategory]); // eslint-disable-line react-hooks/exhaustive-deps
-  // We intentionally exclude onVerificationSubCategoryChange and verificationSubCategory
-  // from the dependencies to prevent circular updates
+  }, [verificationCategory]);
 
   // Function to update subcategory options based on selected category
   const updateSubCategoryOptions = (category: string) => {
@@ -489,21 +477,56 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     }
   };
 
-  // Add state for selected link
-  const [selectedLink, setSelectedLink] = useState<string>(direct_link || "");
-  const [customUrl, setCustomUrl] = useState<string>(direct_link || "");
-  const [showCustomUrlModal, setShowCustomUrlModal] = useState<boolean>(false);
-  const [isCustomUrlSelected, setIsCustomUrlSelected] = useState<boolean>(
-    direct_link ? !searchResults.some((result) => result.url === direct_link) : false
-  );
-  const [urlError, setUrlError] = useState<string | null>(null);
-
-  // Handle URL changes
-  useEffect(() => {
-    if (selectedLink && onUrlChange && selectedLink !== "add_custom_url") {
-      onUrlChange(selectedLink);
+  // Handle saving custom URL from the modal
+  const handleSaveCustomUrl = useCallback(() => {
+    if (customUrl) {
+      if (validateUrl(customUrl)) {
+        setUrlError(null);
+        setIsCustomUrlSelected(true);
+        if (onUrlChange) {
+          onUrlChange(customUrl);
+        }
+        setShowCustomUrlModal(false);
+      } else {
+        setUrlError("Please enter a valid URL including http:// or https://");
+      }
     }
-  }, [selectedLink, onUrlChange]);
+  }, [customUrl, onUrlChange]);
+
+  // Update customUrl if it's a custom URL
+  useEffect(() => {
+    if (direct_link) {
+      const isCustom = !searchResults.some((result) => result.url === direct_link);
+      if (isCustom) {
+        setCustomUrl(direct_link);
+        setIsCustomUrlSelected(true);
+      } else {
+        setSelectedLink(direct_link);
+        setIsCustomUrlSelected(false);
+      }
+    }
+  }, [direct_link, searchResults]);
+
+  // Memoize the Select value change handler
+  const handleSelectValueChange = useCallback(
+    (value: string) => {
+      if (value === "add_custom_url") {
+        setShowCustomUrlModal(true);
+        return;
+      } else if (value === "custom_url_selected") {
+        return;
+      } else {
+        if (value !== selectedLink) {
+          setSelectedLink(value);
+          setIsCustomUrlSelected(false);
+          if (onUrlChange) {
+            onUrlChange(value);
+          }
+        }
+      }
+    },
+    [selectedLink, onUrlChange]
+  );
 
   // Log the countryLinks data when it changes
   useEffect(() => {
@@ -511,18 +534,6 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
       console.log("CountryLinks data updated:", countryLinksData.data);
     }
   }, [countryLinksData]);
-
-  // Update customUrl if it's a custom URL
-  useEffect(() => {
-    if (direct_link && !searchResults.some((result) => result.url === direct_link)) {
-      setCustomUrl(direct_link);
-      setIsCustomUrlSelected(true);
-      // Don't set selectedLink to "add_custom_url" to avoid showing the modal automatically
-    } else if (direct_link) {
-      setSelectedLink(direct_link);
-      setIsCustomUrlSelected(false);
-    }
-  }, [direct_link, searchResults]);
 
   // Validate URL
   const validateUrl = (url: string): boolean => {
@@ -534,38 +545,15 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     }
   };
 
-  // Handle saving custom URL from the modal
-  const handleSaveCustomUrl = () => {
-    if (customUrl) {
-      if (validateUrl(customUrl)) {
-        setUrlError(null);
-        if (onUrlChange) {
-          onUrlChange(customUrl);
-          setIsCustomUrlSelected(true);
-          // We don't need to clear selectedLink anymore as the custom URL
-          // will be shown based on isCustomUrlSelected being true
-        }
-        setShowCustomUrlModal(false);
-      } else {
-        setUrlError("Please enter a valid URL including http:// or https://");
-      }
-    }
-  };
-
-  // Update useEffect for country selection to fetch links if verification category exists
+  // Show a temporary notification when link is reset due to country change
   useEffect(() => {
-    if (selectedCountry && verificationCategory && onFetchCountryLinks) {
-      // Only fetch if we have both a selected country and category
-      console.log(`Fetching links for country ${selectedCountry} and category ${verificationCategory}`);
-      onFetchCountryLinks(selectedCountry, verificationCategory)
-        .then((response) => {
-          console.log("Country links loaded:", response);
-        })
-        .catch((error) => {
-          console.error("Error fetching country links:", error);
-        });
+    if (linkResetNotice) {
+      const timer = setTimeout(() => {
+        setLinkResetNotice(false);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [selectedCountry, verificationCategory, onFetchCountryLinks]);
+  }, [linkResetNotice]);
 
   // Add a render function for the select trigger content
   const renderSelectTriggerContent = () => {
@@ -603,19 +591,72 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     return <SelectValue placeholder="Select Link" />;
   };
 
-  // Add a state for link reset notification
-  const [linkResetNotice, setLinkResetNotice] = useState<boolean>(false);
+  // Update useEffect for country selection to fetch links if verification category exists
+  const lastFetchRef = React.useRef<{ country?: string; category?: string }>({});
 
-  // Show a temporary notification when link is reset due to country change
   useEffect(() => {
-    if (linkResetNotice) {
-      const timer = setTimeout(() => {
-        setLinkResetNotice(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (
+      selectedCountry &&
+      verificationCategory &&
+      onFetchCountryLinks &&
+      (lastFetchRef.current.country !== selectedCountry || lastFetchRef.current.category !== verificationCategory)
+    ) {
+      lastFetchRef.current = { country: selectedCountry, category: verificationCategory };
+      onFetchCountryLinks(selectedCountry, verificationCategory)
+        .then((response) => {
+          console.log("Country links loaded:", response);
+        })
+        .catch((error) => {
+          console.error("Error fetching country links:", error);
+        });
     }
-  }, [linkResetNotice]);
+  }, [selectedCountry, verificationCategory, onFetchCountryLinks]);
 
+  // Add local state for expectedDays, validDateRange, and liveFeedbackInstruction
+  const [localExpectedDays, setLocalExpectedDays] = useState(expectedDays);
+  const [localValidDateRange, setLocalValidDateRange] = useState(validDateRange);
+  const [localLiveFeedbackInstruction, setLocalLiveFeedbackInstruction] = useState(liveFeedbackInstruction);
+
+  // Sync local state with Redux when Redux value changes (e.g., on initial load or external update)
+  useEffect(() => {
+    setLocalExpectedDays(expectedDays);
+  }, [expectedDays]);
+  useEffect(() => {
+    setLocalValidDateRange(validDateRange);
+  }, [validDateRange]);
+  useEffect(() => {
+    setLocalLiveFeedbackInstruction(liveFeedbackInstruction);
+  }, [liveFeedbackInstruction]);
+
+  // Debug initial props and state changes
+  useEffect(() => {
+    console.log("BasicTab - Initial Props:", {
+      showGoogleSearch,
+      livefeedback,
+      multidownload,
+      allowNonContinuousStatement,
+      allowOutsidePeriodFile,
+      maxNumberOfFiles,
+    });
+  }, []);
+
+  // Debug prop changes
+  useEffect(() => {
+    console.log("BasicTab - Props Updated:", {
+      showGoogleSearch,
+      livefeedback,
+      multidownload,
+      allowNonContinuousStatement,
+      allowOutsidePeriodFile,
+      maxNumberOfFiles,
+    });
+  }, [showGoogleSearch, livefeedback, multidownload, allowNonContinuousStatement, allowOutsidePeriodFile, maxNumberOfFiles]);
+
+  // Add helper for download/screenshot mode
+  const isDownloadOrScreenshot = verificationMethod === "download" || verificationMethod === "screenshot";
+  const isUpload = verificationMethod === "upload";
+
+  // Ensure the component returns JSX
   return (
     <>
       <div className="lg:col-span-2 space-y-6">
@@ -669,14 +710,11 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                       <Select
                         value={verificationCategory}
                         onValueChange={(value) => {
-                          // Immediately reset subcategories when category changes
                           if (value !== verificationCategory) {
                             console.log(
                               `BasicTab UI: Category changing from ${verificationCategory} to ${value}, resetting subcategories`
                             );
-                            // First reset subcategories to provide immediate UI feedback
                             onVerificationSubCategoryChange([]);
-                            // Then update the category
                             onVerificationCategoryChange(value);
                           } else {
                             onVerificationCategoryChange(value);
@@ -769,57 +807,45 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-4">
-                  <div className="grid grid-cols-1 gap-6">
-                    {/* Search Integration and Invite Link Expiry in one row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Google Search Toggle */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Google Search Toggle (download/screenshot only) */}
+                    {isDownloadOrScreenshot && (
                       <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg flex flex-col">
-                        <div className="space-y-2 ">
-                          <div className="font-medium">Search Integration</div>
-                          <p className="text-sm text-muted-foreground">Enable Google search for user assistance</p>
-                        </div>
                         <div className="flex items-center justify-between mt-4">
                           <div className="space-y-0.5">
                             <Label>Show Google search</Label>
                             <p className="text-xs text-muted-foreground">Allows users to search for help during verification</p>
                           </div>
-                          <FancySwitchToggle
-                            checked={localShowGoogleSearch}
-                            onCheckedChange={(isChecked) => {
-                              console.log("GoogleSearch toggle clicked:", isChecked);
-                              onShowGoogleSearchChange?.(isChecked);
-                              setLocalShowGoogleSearch(isChecked);
-                            }}
-                          />
+                          <FancySwitchToggle checked={showGoogleSearch} onCheckedChange={onShowGoogleSearchChange} />
                         </div>
                       </div>
+                    )}
 
-                      {/* Expiry Setting */}
-                      <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
-                        <div className="space-y-1.5 mb-3">
-                          <div className="font-medium">Invite Link Expiry</div>
-                          <p className="text-sm text-muted-foreground">Default is 90 days (2160 hours)</p>
-                        </div>
-                        <div className="flex flex-row items-center gap-2">
-                          <Input
-                            type="number"
-                            className="transition-all focus:ring-2 focus:ring-primary/20"
-                            placeholder="Enter hours"
-                            value={localExpiryHours}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              console.log("Expiry hours changed to:", value);
-                              setLocalExpiryHours(value);
-                              if (onExpiryHoursChange) {
-                                onExpiryHoursChange(value);
-                              }
-                            }}
-                          />
-                          <Badge className="whitespace-nowrap">hours</Badge>
-                        </div>
+                    {/* Expiry Setting (always visible) */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
+                      <div className="space-y-1.5 mb-3">
+                        <div className="font-medium">Invite Link Expiry</div>
+                        <p className="text-sm text-muted-foreground">Default is 90 days (2160 hours)</p>
                       </div>
+                      <div className="flex flex-row items-center gap-2">
+                        <Input
+                          type="number"
+                          className="transition-all focus:ring-2 focus:ring-primary/20"
+                          placeholder="Enter hours"
+                          value={expiryHours}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (onExpiryHoursChange) {
+                              onExpiryHoursChange(value);
+                            }
+                          }}
+                        />
+                        <Badge className="whitespace-nowrap">hours</Badge>
+                      </div>
+                    </div>
 
-                      {/* Direct URL Section */}
+                    {/* Direct URL Section (download/screenshot only) */}
+                    {isDownloadOrScreenshot && (
                       <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col gap-1">
@@ -830,34 +856,12 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                           </div>
                           <FancySwitchToggle checked={directUrlEnabled} onCheckedChange={onDirectUrlChange} />
                         </div>
-
                         {directUrlEnabled && (
                           <div className="space-y-4 mt-4">
                             <div>
                               <Label htmlFor="country">Country</Label>
                               <div className="relative mt-1.5">
-                                <Select
-                                  value={selectedCountry}
-                                  onValueChange={(value) => {
-                                    if (selectedLink || isCustomUrlSelected) {
-                                      // Show reset notification only if there was a selected link
-                                      setLinkResetNotice(true);
-                                    }
-                                    // Clear the selected link when country changes
-                                    setSelectedLink("");
-                                    setIsCustomUrlSelected(false);
-                                    if (customUrl) {
-                                      // Also clear any custom URL if it was set
-                                      setCustomUrl("");
-                                    }
-                                    // Notify parent of cleared URL
-                                    if (onUrlChange) {
-                                      onUrlChange("");
-                                    }
-                                    // Then call the parent handler
-                                    onSelectedCountryChange(value);
-                                  }}
-                                >
+                                <Select value={selectedCountry} onValueChange={handleCountryChange}>
                                   <SelectTrigger id="country" className="w-full flex items-center">
                                     {selectedCountry && countryOptions.length > 0 ? (
                                       <div className="flex items-center space-x-2">
@@ -865,6 +869,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                                           src={countryOptions.find((c) => c.value === selectedCountry)?.flag || ""}
                                           alt="Country flag"
                                           className="h-4 w-6"
+                                          loading="lazy"
                                         />
                                         <span>{countryOptions.find((c) => c.value === selectedCountry)?.label || ""}</span>
                                       </div>
@@ -873,16 +878,18 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                                     )}
                                   </SelectTrigger>
                                   <SelectContent className="max-h-[400px]">
-                                    {countryOptions
-                                      .filter((country) => country.value && country.value.trim() !== "") // Filter out empty values
-                                      .map((country) => (
-                                        <SelectItem key={country.value} value={country.value} className="py-2">
-                                          <div className="flex items-center space-x-2">
-                                            <img src={country.flag} alt={country.label} className="h-4 w-6" />
-                                            <span>{country.label}</span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
+                                    <div className="max-h-[300px] overflow-y-auto">
+                                      {countryOptions
+                                        .filter((country) => country.value && country.value.trim() !== "")
+                                        .map((country) => (
+                                          <SelectItem key={country.value} value={country.value} className="py-2">
+                                            <div className="flex items-center space-x-2">
+                                              <img src={country.flag} alt={country.label} className="h-4 w-6" loading="lazy" />
+                                              <span>{country.label}</span>
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                    </div>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -904,17 +911,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                                   <div className="relative mt-1.5">
                                     <Select
                                       value={isCustomUrlSelected ? "custom_url_selected" : selectedLink || ""}
-                                      onValueChange={(value) => {
-                                        if (value === "add_custom_url") {
-                                          // When "Add custom URL" is clicked, show the modal
-                                          setShowCustomUrlModal(true);
-                                          // Don't change the current selection value
-                                          return;
-                                        } else {
-                                          setSelectedLink(value);
-                                          setIsCustomUrlSelected(false);
-                                        }
-                                      }}
+                                      onValueChange={handleSelectValueChange}
                                     >
                                       <SelectTrigger id="link-selection" className="w-full">
                                         {renderSelectTriggerContent()}
@@ -1044,7 +1041,6 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                                                 onChange={(e) => {
                                                   const value = e.target.value;
                                                   setCustomUrl(value);
-                                                  // Clear error when typing
                                                   if (urlError) setUrlError(null);
                                                 }}
                                                 className={`w-full ${urlError ? "border-red-500 focus:ring-red-500/20" : ""}`}
@@ -1077,33 +1073,24 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                           </div>
                         )}
                       </div>
+                    )}
 
-                      {/* Country Limitation */}
+                    {/* Country Limitation (download/screenshot only) */}
+                    {isDownloadOrScreenshot && (
                       <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col gap-1">
                             <span className="font-medium">Region Limitation</span>
                             <span className="text-sm text-muted-foreground">Restrict access to specific countries</span>
                           </div>
-                          <FancySwitchToggle
-                            checked={localLimitCountryEnabled}
-                            onCheckedChange={(isChecked) => {
-                              console.log("LimitCountry toggle clicked:", isChecked);
-                              onLimitCountryEnabledChange?.(isChecked);
-                              setLocalLimitCountryEnabled(isChecked);
-                            }}
-                          />
+                          <FancySwitchToggle checked={limitCountryEnabled} onCheckedChange={onLimitCountryEnabledChange} />
                         </div>
-
-                        {localLimitCountryEnabled && (
+                        {limitCountryEnabled && (
                           <div className="space-y-3 mt-2 pl-1">
-                     
-
                             <MultiSelectDropdown
                               options={countryOptions}
                               selected={selectedCountries}
                               onChange={(values) => {
-                                // Convert selected values to full country objects
                                 const fullCountries = values.map((value) => {
                                   const countryObj = countryOptions.find((c) => c.value === value);
                                   return countryObj || value;
@@ -1117,7 +1104,7 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                           </div>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -1125,8 +1112,8 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
           </CardContent>
         </Card>
 
-        {/* Multi-download & Live feedback configuration - Now as a separate card */}
-        {(multidownload || livefeedback) && (
+        {/* Multi-download & Live feedback configuration (download/screenshot only) */}
+        {isDownloadOrScreenshot && (multidownload || livefeedback) && (
           <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 mt-6">
             <CardContent className="p-6">
               <Accordion type="single" collapsible className="w-full">
@@ -1139,72 +1126,236 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
                   </AccordionTrigger>
                   <AccordionContent className="pt-4">
                     <div className="space-y-6">
+                      {/* Live Feedback Message Section - Only show when both multidownload and livefeedback are ON */}
+                      {multidownload && livefeedback && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="live-feedback-message">Live feedback message during multi-download</Label>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setShowLiveFeedbackModal(true)}
+                            >
+                              <AlertCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <Textarea
+                              id="live-feedback-message"
+                              className={`w-[55%] h-[100px] transition-all focus:ring-2 focus:ring-primary/20 ${
+                                localLiveFeedbackInstruction.length >= LIVE_FEEDBACK_MAX_LENGTH ? "border-red-500" : ""
+                              }`}
+                              placeholder="Please download bank document as required for verification."
+                              value={localLiveFeedbackInstruction}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.length <= LIVE_FEEDBACK_MAX_LENGTH) {
+                                  setLocalLiveFeedbackInstruction(value);
+                                  onLiveFeedbackInstructionChange(value);
+                                }
+                              }}
+                              maxLength={LIVE_FEEDBACK_MAX_LENGTH}
+                            />
+                            <p className="text-sm text-muted-foreground">
+                              {localLiveFeedbackInstruction.length} / {LIVE_FEEDBACK_MAX_LENGTH}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Submission override settings - Only show when livefeedback is ON */}
                       {livefeedback && (
-                        <>
-                          <div className="space-y-4">
-                            <h3 className="text-base font-medium text-muted-foreground">Submission Settings</h3>
+                        <div className="space-y-4">
+                          <h3 className="text-base font-medium text-muted-foreground">Submission Settings</h3>
 
+                          <div className="space-y-4">
                             <div className="flex items-center gap-2 p-2 rounded-md">
-                              <FancySwitchToggle
-                                checked={allowSubmissionOverride}
-                                onCheckedChange={onAllowSubmissionOverrideChange}
-                              />
+                              <FancySwitchToggle checked={allowOverridePeriod} onCheckedChange={onAllowOverridePeriodChange} />
                               <div className="space-y-0.5">
-                                <Label>Allow submission override period</Label>
+                                <Label>Allow submission by overriding below conditions</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Allows users to submit documents outside the defined verification period
                                 </p>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 p-2 rounded-md">
-                              <FancySwitchToggle
-                                checked={allowMissingStatements}
-                                onCheckedChange={onAllowMissingStatementsChange}
-                              />
-                              <div className="space-y-0.5">
-                                <Label>Allow missing statements within the expected period</Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Accepts incomplete document sets with gaps in the date range
-                                </p>
+                            {multidownload ? (
+                              <div className="space-y-4 ml-8 pl-4 border-l-2 border-muted">
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 p-2 rounded-md">
+                                    <FancySwitchToggle
+                                      checked={allowMissingStatements}
+                                      onCheckedChange={onAllowMissingStatementsChange}
+                                    />
+                                    <div className="space-y-0.5">
+                                      <Label>Allow missing statements within the expected period</Label>
+                                      <p className="text-xs text-muted-foreground">
+                                        Accepts incomplete document sets with gaps in the date range
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Date range settings as child of missing statements */}
+                                  <div className="space-y-4 ml-8 pl-4 border-l-2 border-muted">
+                                    <div>
+                                      <Label className="block mb-2">Expected number of days within the valid date range</Label>
+                                      <Input
+                                        type="number"
+                                        className="w-[50%] transition-all focus:ring-2 focus:ring-primary/20"
+                                        placeholder="Enter number of days"
+                                        value={localExpectedDays}
+                                        onChange={(e) => setLocalExpectedDays(e.target.value)}
+                                        onBlur={() => onExpectedDaysChange(localExpectedDays)}
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="mb-2">
+                                        <Label className="block">Valid date range (in days)</Label>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          (Requested period: 8 Mar 2025 - 7 Apr 2025 i.e. approx 1.0 months )
+                                        </p>
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        className="w-[50%] transition-all focus:ring-2 focus:ring-primary/20"
+                                        placeholder="Enter date range"
+                                        value={localValidDateRange}
+                                        onChange={(e) => setLocalValidDateRange(e.target.value)}
+                                        onBlur={() => onValidDateRangeChange(localValidDateRange)}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Non-continuous periods toggle */}
+                                <div className="flex items-center gap-2 p-2 rounded-md">
+                                  <FancySwitchToggle
+                                    checked={allowNonContinuousStatement}
+                                    onCheckedChange={onAllowNonContinuousStatementChange}
+                                    disabled={verificationCategory !== "bank" && verificationCategory !== "address"}
+                                  />
+                                  <div className="space-y-0.5">
+                                    <Label className="flex items-center gap-2">
+                                      {allowOverridePeriod
+                                        ? "Skip warning of non-continuous periods across documents"
+                                        : "Allow non-continuous periods across documents"}
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <AlertCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-[400px] text-sm">
+                                            When disabled, a flag appears in the final popup if gaps exist between downloaded
+                                            files (e.g., valid date range: Sep 1 to Dec 1, 2024; downloaded files: Sep 1 to 20 and
+                                            Nov 1 to 30, 2024. Therefore, a gap exists between Sep 21 to Oct 31).
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                      {verificationCategory !== "bank" && verificationCategory !== "address"
+                                        ? "Only available for bank and address verification"
+                                        : "Control how gaps between document periods are handled"}
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-2 p-2 rounded-md">
+                                  <FancySwitchToggle
+                                    checked={allowMissingStatements}
+                                    onCheckedChange={onAllowMissingStatementsChange}
+                                  />
+                                  <div className="space-y-0.5">
+                                    <Label>Allow missing statements within the expected period</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                      Accepts incomplete document sets with gaps in the date range
+                                    </p>
+                                  </div>
+                                </div>
 
-                          {/* Date range settings - Only show when livefeedback is ON and multidownload is OFF */}
-                          {!multidownload && (
-                            <div className="space-y-4">
-                              <h3 className="text-base font-medium text-muted-foreground">Period Configuration</h3>
-
-                              <div>
-                                <div className="flex flex-col md:flex-row gap-4 mb-2">
-                                  <div className="flex-1">
+                                {/* Date range settings as child of missing statements */}
+                                <div className="space-y-4 ml-8 pl-4 border-l-2 border-muted">
+                                  <div>
                                     <Label className="block mb-2">Expected number of days within the valid date range</Label>
                                     <Input
                                       type="number"
-                                      className="w-full transition-all focus:ring-2 focus:ring-primary/20"
+                                      className="w-[50%] transition-all focus:ring-2 focus:ring-primary/20"
                                       placeholder="Enter number of days"
-                                      defaultValue="30"
+                                      value={localExpectedDays}
+                                      onChange={(e) => setLocalExpectedDays(e.target.value)}
+                                      onBlur={() => onExpectedDaysChange(localExpectedDays)}
                                     />
                                   </div>
-                                  <div className="flex-1">
-                                    <Label className="block mb-1">Valid date range (in days)</Label>
-                                    <p className="text-xs text-muted-foreground mb-1">
-                                      (Requested period: 8 Mar 2025 - 7 Apr 2025 i.e. approx 1.0 months )
-                                    </p>
+                                  <div>
+                                    <div className="mb-2">
+                                      <Label className="block">Valid date range (in days)</Label>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        (Requested period: 8 Mar 2025 - 7 Apr 2025 i.e. approx 1.0 months )
+                                      </p>
+                                    </div>
                                     <Input
                                       type="number"
-                                      className="w-full transition-all focus:ring-2 focus:ring-primary/20"
+                                      className="w-[50%] transition-all focus:ring-2 focus:ring-primary/20"
                                       placeholder="Enter date range"
-                                      defaultValue="30"
+                                      value={localValidDateRange}
+                                      onChange={(e) => setLocalValidDateRange(e.target.value)}
+                                      onBlur={() => onValidDateRangeChange(localValidDateRange)}
                                     />
                                   </div>
                                 </div>
                               </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Max Number of Files Selector */}
+                      {multidownload && (
+                        <div className="pl-6 space-y-4">
+                          {/* Outside Period Files Toggle */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FancySwitchToggle
+                                checked={allowOutsidePeriodFile}
+                                onCheckedChange={onAllowOutsidePeriodFileChange}
+                              />
+                              <div className="space-y-0.5">
+                                <Label>Include outside period and discarded files in zip</Label>
+                              </div>
                             </div>
-                          )}
-                        </>
+                          </div>
+
+                          {/* Max Files Selector */}
+                          <div className="space-y-2 w-[40%]">
+                            <Label htmlFor="max-files">Allow maximum files to download</Label>
+                            <div className="w-full ml-2">
+                              <Select
+                                value={maxNumberOfFiles}
+                                onValueChange={(value) => {
+                                  onMaxNumberOfFilesChange?.(value);
+                                }}
+                                disabled={verificationCategory !== "bank" && verificationCategory !== "address"}
+                              >
+                                <SelectTrigger id="max-files" className="w-full">
+                                  <SelectValue placeholder="Select maximum files" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 6 }, (_, i) => (
+                                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                      {i + 1} {i === 0 ? "file" : "files"}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {verificationCategory !== "bank" && verificationCategory !== "address" && (
+                              <p className="text-xs text-muted-foreground">Only available for bank and address verification</p>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </AccordionContent>
@@ -1220,111 +1371,105 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
         <Card>
           <CardContent className="pt-6">
             <h3 className="font-medium mb-4">Verification Settings</h3>
+            <Separator />
             <div className="space-y-4">
-              <div className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <Label>Allow Resubmission</Label>
-                  <p className="text-sm text-muted-foreground">Enable resubmission with same track ID</p>
-                </div>
-                <FancySwitchToggle
-                  checked={localResubmission}
-                  onCheckedChange={(isChecked) => {
-                    console.log("Resubmission toggle clicked:", isChecked);
-                    onResubmissionChange?.(isChecked);
-                    setLocalResubmission(isChecked);
-                  }}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <Label>Extract all transactions</Label>
-                  <p className="text-sm text-muted-foreground">Include all transaction data from documents</p>
-                </div>
-                <FancySwitchToggle
-                  checked={localExtractAllTransaction}
-                  onCheckedChange={(isChecked) => {
-                    console.log("ExtractAllTransaction toggle clicked:", isChecked);
-                    onExtractAllTransactionChange?.(isChecked);
-                    setLocalExtractAllTransaction(isChecked);
-                  }}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Label>Calculate balance as on date</Label>
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              {isDownloadOrScreenshot && (
+                <div className="flex items-center justify-between py-3">
+                  <div className="space-y-0.5">
+                    <Label>Allow Resubmission</Label>
+                    <p className="text-sm text-muted-foreground">Enable resubmission with same track ID</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">Calculate account balance based on submission date</p>
+                  <FancySwitchToggle checked={resubmission} onCheckedChange={onResubmissionChange} />
                 </div>
-                <FancySwitchToggle
-                  checked={localCalculateBalanceAsOnDate}
-                  onCheckedChange={(isChecked) => {
-                    console.log("CalculateBalanceAsOnDate toggle clicked:", isChecked);
-                    onCalculateBalanceAsOnDateChange?.(isChecked);
-                    setLocalCalculateBalanceAsOnDate(isChecked);
-                  }}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <Label>Image Upload</Label>
-                  <p className="text-sm text-muted-foreground">Allow image uploads during verification</p>
+              )}
+              {isDownloadOrScreenshot && <Separator />}
+              {isDownloadOrScreenshot && (
+                <div className="flex items-center justify-between py-3">
+                  <div className="space-y-0.5">
+                    <Label>Extract all transactions</Label>
+                    <p className="text-sm text-muted-foreground">Include all transaction data from documents</p>
+                  </div>
+                  <FancySwitchToggle checked={extractAllTransaction} onCheckedChange={onExtractAllTransactionChange} />
                 </div>
-                <FancySwitchToggle
-                  checked={localImageUpload}
-                  onCheckedChange={(isChecked) => {
-                    console.log("ImageUpload toggle clicked:", isChecked);
-                    onImageUploadChange?.(isChecked);
-                    setLocalImageUpload(isChecked);
-                  }}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <Label>Multi-download</Label>
-                  <p className="text-sm text-muted-foreground">Allow multiple documents download</p>
+              )}
+              {isDownloadOrScreenshot && <Separator />}
+              {isDownloadOrScreenshot && (
+                <div className="flex items-center justify-between py-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label>Calculate balance as on date</Label>
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Calculate account balance based on submission date</p>
+                  </div>
+                  <FancySwitchToggle checked={calculateBalanceAsOnDate} onCheckedChange={onCalculateBalanceAsOnDateChange} />
                 </div>
-                <FancySwitchToggle
-                  checked={localMultiDownload}
-                  onCheckedChange={(isChecked) => {
-                    console.log("MultiDownload toggle clicked:", isChecked);
-                    onMultiDownloadChange?.(isChecked);
-                    setLocalMultiDownload(isChecked);
-                  }}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between py-3 relative">
-                <div className="space-y-0.5">
-                  <Label>Live Feedback</Label>
-                  <p className="text-sm text-muted-foreground">Enable real-time verification feedback</p>
+              )}
+              {isDownloadOrScreenshot && <Separator />}
+              {isUpload && (
+                <>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="space-y-0.5">
+                      <Label>Image Upload</Label>
+                      <p className="text-sm text-muted-foreground">Allow image uploads during verification</p>
+                    </div>
+                    <FancySwitchToggle checked={imageUpload} onCheckedChange={onImageUploadChange} />
+                  </div>
+                </>
+              )}
+              {isDownloadOrScreenshot && (
+                <>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="space-y-0.5">
+                      <Label>Multi-download</Label>
+                      <p className="text-sm text-muted-foreground">Allow multiple documents download</p>
+                    </div>
+                    <FancySwitchToggle checked={multidownload} onCheckedChange={onMultiDownloadChange} />
+                  </div>
+                  <Separator />
+                </>
+              )}
+              {isDownloadOrScreenshot && (
+                <div className="flex items-center justify-between py-3 relative">
+                  <div className="space-y-0.5">
+                    <Label>Live Feedback</Label>
+                    <p className="text-sm text-muted-foreground">Enable real-time verification feedback</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {multidownload && (
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800">
+                        Required with multi-download
+                      </span>
+                    )}
+                    <FancySwitchToggle
+                      checked={livefeedback}
+                      onCheckedChange={onLiveFeedbackChange}
+                      disabled={multidownload} // Disable toggle when multidownload is ON
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {multidownload && (
-                    <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800">
-                      Required with multi-download
-                    </span>
-                  )}
-                  <FancySwitchToggle
-                    checked={localLiveFeedback}
-                    onCheckedChange={(isChecked) => {
-                      console.log("LiveFeedback toggle clicked:", isChecked);
-                      onLiveFeedbackChange?.(isChecked);
-                      setLocalLiveFeedback(isChecked);
-                    }}
-                    disabled={multidownload} // Disable toggle when multidownload is ON
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Live Feedback Instruction Modal */}
+      <Dialog open={showLiveFeedbackModal} onOpenChange={setShowLiveFeedbackModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Live feedback message (example)</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <img src="/images/live-feedback-instruction.png" alt="Live feedback example" className="w-full h-auto rounded-lg" />
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowLiveFeedbackModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

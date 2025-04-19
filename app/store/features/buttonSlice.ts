@@ -41,7 +41,7 @@ interface Button {
     allowMissingStatement?: boolean;
     allowNonContinuousStatement?: boolean;
     allowOverridePeriod?: boolean;
-    validDateRange?: any;
+    validDateRange?: string;
     includeQRCode?: boolean;
     maxNumberOfFiles?: string;
     expectedDays?: string;
@@ -513,14 +513,17 @@ const buttonSlice = createSlice({
       }
     },
     setShowGoogleSearch: (state, action: PayloadAction<boolean>) => {
-      state.btn.btndata.showgoogle = action.payload;
+      console.log("setShowGoogleSearch reducer called with:", action.payload);
+      if (state.btn?.btndata) {
+        state.btn.btndata.showgoogle = action.payload;
+        console.log("Updated showgoogle value:", state.btn.btndata.showgoogle);
+      }
     },
     setEmailToOrganization: (state, action: PayloadAction<string>) => {
       if (state.btn?.btndata) {
         state.btn.btndata.replytoemail = action.payload;
       }
     },
-
     setIncludeOriginalFilename: (state, action: PayloadAction<boolean>) => {
       if (state.btn?.btndata) {
         state.btn.btndata.includeOriginalFilename = action.payload;
@@ -641,7 +644,6 @@ const buttonSlice = createSlice({
         });
       }
     },
-
     setDisplayPrivacyItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
         // Initialize privacytext object if it doesn't exist
@@ -654,7 +656,6 @@ const buttonSlice = createSlice({
         });
       }
     },
-
     setDisplayExitItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
         // Initialize exitpage object if it doesn't exist
@@ -667,7 +668,6 @@ const buttonSlice = createSlice({
         });
       }
     },
-
     setDisplayGuideItems: (state, action: PayloadAction<Record<string, string>>) => {
       if (state.btn?.btndata) {
         // Initialize welcomePage object if it doesn't exist
@@ -680,7 +680,6 @@ const buttonSlice = createSlice({
         });
       }
     },
-
     setExpiry: (state, action: PayloadAction<string>) => {
       if (action.payload === "") {
         state.btn.btndata.expiry = null;
@@ -688,57 +687,91 @@ const buttonSlice = createSlice({
         state.btn.btndata.expiry = action.payload;
       }
     },
-
     setResubmission: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.resubmission = action.payload;
     },
-
     setLiveFeedback: (state, action: PayloadAction<boolean>) => {
-      state.btn.btndata.livefeedbackMode = action.payload;
+      console.log("setLiveFeedback reducer called with:", action.payload);
+      if (state.btn?.btndata) {
+        state.btn.btndata.livefeedbackMode = action.payload;
+        console.log("Updated livefeedbackMode value:", state.btn.btndata.livefeedbackMode);
+      }
     },
-
     setMultiDownload: (state, action: PayloadAction<boolean>) => {
-      state.btn.btndata.multidownload = action.payload;
+      console.log("setMultiDownload reducer called with:", action.payload);
+      if (state.btn?.btndata) {
+        state.btn.btndata.multidownload = action.payload;
+        console.log("Updated multidownload value:", state.btn.btndata.multidownload);
+      }
     },
-
     setAutoNavigation: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.autoNavigation = action.payload;
     },
-
     setImageUpload: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.imageUpload = action.payload;
     },
-
     setExtractAllTransaction: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.extractAllTransaction = action.payload;
     },
-
     setCalculateBalanceAsOnDate: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.calculateBalanceAsOnDate = action.payload;
     },
-
     setDiroCertificate: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.diro_certificate = action.payload;
     },
-
     setOriginalDoc: (state, action: PayloadAction<boolean>) => {
       state.btn.btndata.original_doc = action.payload;
     },
-
     setFullTextSearchData: (state, action: PayloadAction<any>) => {
       state.searchResults = action.payload;
     },
-
     setEmailTemplate: (state, action: PayloadAction<string>) => {
       state.btn.btndata.emailnotetemplate = action.payload;
     },
-
     setRedirectUrl: (state, action: PayloadAction<string>) => {
       state.btn.btndata.redirecturl = action.payload;
     },
-
     setRedirectMessage: (state, action: PayloadAction<string>) => {
       state.btn.btndata.redirectmessage = action.payload;
+    },
+    setAllowNonContinuousStatement: (state, action: PayloadAction<boolean>) => {
+      console.log("setAllowNonContinuousStatement reducer called with:", action.payload);
+      if (state.btn?.btndata) {
+        state.btn.btndata.allowNonContinuousStatement = action.payload;
+        console.log("Updated allowNonContinuousStatement value:", state.btn.btndata.allowNonContinuousStatement);
+      }
+    },
+    setMaxNumberOfFiles: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.maxNumberOfFiles = action.payload;
+      }
+    },
+    setAllowOutsidePeriodFile: (state, action: PayloadAction<boolean>) => {
+      console.log("setAllowOutsidePeriodFile reducer called with:", action.payload);
+      if (state.btn?.btndata) {
+        state.btn.btndata.allowOutsidePeriodFile = action.payload;
+        console.log("Updated allowOutsidePeriodFile value:", state.btn.btndata.allowOutsidePeriodFile);
+      }
+    },
+    setLiveFeedbackInstruction: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.liveFeedbackInstruction = action.payload;
+      }
+    },
+    setExpectedDays: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.expectedDays = action.payload;
+      }
+    },
+    setValidDateRange: (state, action: PayloadAction<string>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.validDateRange = action.payload;
+      }
+    },
+    setSmtpConfig: (state, action: PayloadAction<any[]>) => {
+      if (state.btn?.btndata) {
+        state.btn.btndata.smtp = action.payload;
+      }
     },
   },
 });
@@ -828,6 +861,13 @@ export const {
   setEmailTemplate,
   setRedirectUrl,
   setRedirectMessage,
+  setAllowNonContinuousStatement,
+  setMaxNumberOfFiles,
+  setAllowOutsidePeriodFile,
+  setLiveFeedbackInstruction,
+  setExpectedDays,
+  setValidDateRange,
+  setSmtpConfig,
 } = buttonSlice.actions;
 
 export default buttonSlice.reducer;

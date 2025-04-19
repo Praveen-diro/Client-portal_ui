@@ -46,7 +46,7 @@ import Loader from "@/components/ui/loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AnimatePresence } from "framer-motion";
 import { CreateButton } from "./components/create-button";
-// import { getUserFromCookies } from "@/app/store/features/authSlice";
+import { getUserTime } from "@/app/utils/timeUtils";
 
 const statsCards = [
   {
@@ -269,21 +269,7 @@ export default function ValidationButtons() {
               // Calculate relative time for display
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -448,21 +434,7 @@ export default function ValidationButtons() {
               const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -544,21 +516,7 @@ export default function ValidationButtons() {
               const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -821,21 +779,7 @@ export default function ValidationButtons() {
           const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
           let lastModified = "Recently";
           if (button.btndata?.eptime) {
-            const buttonDate = new Date(timestamp);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays < 1) {
-              lastModified = "Today";
-            } else if (diffDays === 1) {
-              lastModified = "Yesterday";
-            } else if (diffDays < 7) {
-              lastModified = `${diffDays} Days ago`;
-            } else {
-              const diffWeeks = Math.floor(diffDays / 7);
-              lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-            }
+            lastModified = getUserTime(button.btndata.eptime);
           }
 
           return {
