@@ -931,7 +931,7 @@ export default function LoginPage() {
 
                   <div className="relative z-10">
                     <h1 className="text-2xl font-semibold text-slate-800 dark:text-white text-center mb-6">
-                      {activeTab === "login" ? "Welcome Back" : "Create Account"}
+                      {activeTab === "login" ? "Welcome back" : "Create account"}
                     </h1>
                     <Tabs
                       value={activeTab}
@@ -1069,7 +1069,7 @@ export default function LoginPage() {
                                     variant="link"
                                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-0"
                                   >
-                                    Forgot Password
+                                    Forgot password
                                   </Button>
                                 </Link>
                               </div>

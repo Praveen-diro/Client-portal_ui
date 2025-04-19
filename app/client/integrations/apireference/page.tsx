@@ -412,7 +412,7 @@ export default function ApiReferencePage() {
       <PageContainer sidebarExpanded={sidebarExpanded}>
         <div className="flex-1 relative overflow-auto">
           <PageHeader
-            title="API Reference"
+            title="API reference"
             description="Explore and test our API endpoints for seamless integration"
           />
 
@@ -422,7 +422,7 @@ export default function ApiReferencePage() {
               className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-8 
                        bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Integrations
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back to integrations
             </Link>
 
             {/* Base URL Banner */}
@@ -471,7 +471,7 @@ export default function ApiReferencePage() {
                           <ServerIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                         </div>
                         <Label htmlFor="select-button" className="font-medium text-sm whitespace-nowrap">
-                          Select API Environment
+                         Select button
                         </Label>
                         
                         {isLoadingButtons ? (
@@ -794,7 +794,7 @@ export default function ApiReferencePage() {
             {/* Add new full-width footer */}
             <div className="mt-12 -mx-6 px-6 py-8 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
               <div className="max-w-7xl mx-auto">
-                <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-6">API Reference Resources</h3>
+                <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-6">API reference resources</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <a 
                     href="https://diro.io/term-condition/" 

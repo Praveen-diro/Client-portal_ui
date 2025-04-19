@@ -35,7 +35,7 @@ export default function ApiDocsModal({
           isDark ? "bg-[#1A1F2C]" : "bg-white"
         )}>
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold mb-2">API Documentation</DialogTitle>
+            <DialogTitle className="text-2xl font-bold mb-2">API documentation</DialogTitle>
             <p className="text-gray-600 dark:text-gray-300 text-sm">
               Explore and test our API endpoints for seamless integration with your systems.
             </p>
@@ -57,11 +57,11 @@ export default function ApiDocsModal({
             <div className="flex items-start gap-6 flex-wrap">
               <div className="flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full">
                 <KeyIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">X-API-KEY Authentication</span>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">X-API-KEY authentication</span>
               </div>
               <div className="flex items-center px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-full">
                 <BookOpenIcon className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">OpenAPI 3.0 Spec</span>
+                <span className="text-sm font-medium text-green-700 dark:text-green-300">OpenAPI 3.0 spec</span>
               </div>
             </div>
           </div>

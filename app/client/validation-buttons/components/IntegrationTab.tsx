@@ -281,13 +281,13 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ verificationMeth
         {/* Integration Resources */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">Additional Resources</h3>
+            <h3 className="font-semibold text-lg mb-4">Additional resources</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Button variant="outline" className="justify-start h-auto p-4" onClick={() => window.open("#", "_blank")}>
                 <div className="flex items-start gap-3">
                   <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                   <div className="text-left">
-                    <div className="font-medium">API Reference</div>
+                    <div className="font-medium">API reference</div>
                     <div className="text-xs text-gray-600 dark:text-gray-300">Complete API documentation</div>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ verificationMeth
                 <div className="flex items-start gap-3">
                   <Globe className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
                   <div className="text-left">
-                    <div className="font-medium">Code Examples</div>
+                    <div className="font-medium">Code examples</div>
                     <div className="text-xs text-gray-600 dark:text-gray-300">Sample implementations</div>
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ verificationMeth
                 <div className="flex items-start gap-3">
                   <Bell className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5" />
                   <div className="text-left">
-                    <div className="font-medium">Webhooks Guide</div>
+                    <div className="font-medium">Webhooks guide</div>
                     <div className="text-xs text-gray-600 dark:text-gray-300">Event notifications setup</div>
                   </div>
                 </div>
