@@ -262,16 +262,16 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                     </motion.section>
                   </div>
                   
-                  <motion.div variants={contentItemVariants} className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-800/40">
+                  {/* <motion.div variants={contentItemVariants} className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-800/40"> */}
                     <Link 
                       href="/client/account/" 
-                      className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all"
+                      className="inline-flex items-center pt-4 mt-4 px-4 py-2 rounded-lg text-green-600 dark:text-green-400 bg-green-50 hover:bg-green-100 dark:hover:bg-green-800/60 transition-all"
                     >
                       <Users size={16} className="mr-2" />
                       <span>- Manage account ➜ User details</span>
                       <ChevronRight size={16} className="ml-1" />
                     </Link>
-                  </motion.div>
+                  {/* </motion.div> */}
                 </motion.div>
               </div>
             </div>

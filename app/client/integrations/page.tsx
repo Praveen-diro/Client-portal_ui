@@ -220,14 +220,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ scale: 0.9, opacity: 0.8 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 2 }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <PlayCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>Get started</span>
                       </h3>
                     </div>
@@ -303,14 +298,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ rotate: 0 }}
-                          animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <ZapIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>Trigger verification</span>
                       </h3>
                     </div>
@@ -370,14 +360,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ y: 0 }}
-                          animate={{ y: [-2, 2, -2] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>During verification</span>
                       </h3>
                     </div>
@@ -437,14 +422,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ scale: 1 }}
-                          animate={{ scale: [1, 1.1, 1] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>After verification</span>
                       </h3>
                     </div>
@@ -597,14 +577,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ rotate: 0 }}
-                          animate={{ rotate: [-10, 10, -10] }}
-                          transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <Trash2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>Deletion</span>
                       </h3>
                     </div>
@@ -653,14 +628,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10 cursor-pointer" onClick={() => setActiveModal("beforeLive")}>
-                        <motion.div 
-                          initial={{ y: 0 }}
-                          animate={{ y: -5 }}
-                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.2, ease: "easeOut" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>Before you go live</span>
                       </h3>
                     </div>
@@ -729,14 +699,9 @@ export default function IntegrationsPage() {
                     <div className="col-span-3 p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-3 relative z-10">
-                        <motion.div 
-                          initial={{ opacity: 0.7 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.5, ease: "easeInOut" }}
-                          className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40"
-                        >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40">
                           <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </motion.div>
+                        </div>
                         <span>Documents</span>
                       </h3>
                     </div>
