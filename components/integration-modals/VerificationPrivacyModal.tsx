@@ -193,9 +193,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                     >
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 0 ? 'from-blue-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(0)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-blue-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <motion.div 
                           variants={contentItemVariants}
@@ -233,9 +231,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                       
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 1 ? 'from-indigo-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(1)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-indigo-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
@@ -286,9 +282,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                       
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 2 ? 'from-amber-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(2)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-amber-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
@@ -413,9 +407,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                       
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 3 ? 'from-cyan-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(3)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-cyan-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
@@ -502,9 +494,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                       
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 4 ? 'from-red-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(4)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-red-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
@@ -538,9 +528,7 @@ export default function VerificationPrivacyModal({ isOpen, onClose }: Verificati
                       
                       <motion.section 
                         variants={contentItemVariants}
-                        className={`bg-gradient-to-r ${activeSection === 5 ? 'from-purple-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                        onMouseEnter={() => handleSectionHover(5)}
-                        onMouseLeave={() => handleSectionHover(null)}
+                        className="bg-gradient-to-r from-purple-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
                       >
                         <div className="flex items-start">
                           <div className="flex-shrink-0">

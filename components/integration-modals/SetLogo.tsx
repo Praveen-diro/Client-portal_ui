@@ -155,9 +155,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                   <div className="space-y-6 mt-6">
                     <motion.section 
                       variants={contentItemVariants} 
-                      className={`bg-gradient-to-r ${activeSection === 0 ? 'from-indigo-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                      onMouseEnter={() => handleSectionHover(0)}
-                      onMouseLeave={() => handleSectionHover(null)}
+                      className="bg-gradient-to-r from-indigo-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
@@ -183,9 +181,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                     
                     <motion.section 
                       variants={contentItemVariants} 
-                      className={`bg-gradient-to-r ${activeSection === 1 ? 'from-purple-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                      onMouseEnter={() => handleSectionHover(1)}
-                      onMouseLeave={() => handleSectionHover(null)}
+                      className="bg-gradient-to-r from-purple-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
@@ -211,9 +207,7 @@ const SetLogo: React.FC<SetLogoProps> = ({ isOpen, onClose }) => {
                     
                     <motion.section 
                       variants={contentItemVariants} 
-                      className={`bg-gradient-to-r ${activeSection === 2 ? 'from-green-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                      onMouseEnter={() => handleSectionHover(2)}
-                      onMouseLeave={() => handleSectionHover(null)}
+                      className="bg-gradient-to-r from-green-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
                       <div className="flex items-start">
                         <div className="flex-shrink-0">

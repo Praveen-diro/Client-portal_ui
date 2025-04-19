@@ -16,7 +16,6 @@ interface SetupVerificationButtonProps {
 
 export default function SetupVerificationButton({ isOpen, onClose }: SetupVerificationButtonProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<number | null>(null);
 
   useEffect(() => {
     // Handle escape key to close modal
@@ -81,10 +80,6 @@ export default function SetupVerificationButton({ isOpen, onClose }: SetupVerifi
       y: 0, 
       transition: { duration: 0.4, ease: "easeOut" } 
     }
-  };
-
-  const handleSectionHover = (index: number | null) => {
-    setActiveSection(index);
   };
 
   return (
@@ -155,9 +150,7 @@ export default function SetupVerificationButton({ isOpen, onClose }: SetupVerifi
                   <motion.div variants={contentVariants} className="space-y-6 mt-2">
                     <motion.section 
                       variants={contentItemVariants} 
-                      className={`bg-gradient-to-r ${activeSection === 0 ? 'from-amber-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                      onMouseEnter={() => handleSectionHover(0)}
-                      onMouseLeave={() => handleSectionHover(null)}
+                      className="bg-gradient-to-r from-amber-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                     >
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
@@ -202,9 +195,7 @@ export default function SetupVerificationButton({ isOpen, onClose }: SetupVerifi
                     
                     <motion.section 
                       variants={contentItemVariants} 
-                      className={`bg-gradient-to-r ${activeSection === 1 ? 'from-cyan-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
-                      onMouseEnter={() => handleSectionHover(1)}
-                      onMouseLeave={() => handleSectionHover(null)}
+                      className="bg-gradient-to-r from-cyan-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                       id="use-default-button"
                     >
                       <div className="flex items-start">

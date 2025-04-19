@@ -156,7 +156,7 @@ export default function SetupOrganization({ isOpen, onClose }: SetupOrganization
                   <div className="space-y-6 mt-6">
                     <motion.section 
                       variants={contentItemVariants}
-                      className={`bg-gradient-to-r ${activeSection === 0 ? 'from-blue-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      className="bg-gradient-to-r from-blue-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                       onMouseEnter={() => handleSectionHover(0)}
                       onMouseLeave={() => handleSectionHover(null)}
                     >
@@ -183,7 +183,7 @@ export default function SetupOrganization({ isOpen, onClose }: SetupOrganization
                     
                     <motion.section 
                       variants={contentItemVariants}
-                      className={`bg-gradient-to-r ${activeSection === 1 ? 'from-purple-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      className="bg-gradient-to-r from-purple-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                       onMouseEnter={() => handleSectionHover(1)}
                       onMouseLeave={() => handleSectionHover(null)}
                     >
@@ -209,7 +209,7 @@ export default function SetupOrganization({ isOpen, onClose }: SetupOrganization
                     
                     <motion.section 
                       variants={contentItemVariants}
-                      className={`bg-gradient-to-r ${activeSection === 2 ? 'from-green-50 to-white' : 'from-white to-white'} dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300`}
+                      className="bg-gradient-to-r from-green-50 to-white dark:from-gray-800/60 dark:to-gray-800/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                       onMouseEnter={() => handleSectionHover(2)}
                       onMouseLeave={() => handleSectionHover(null)}
                     >
