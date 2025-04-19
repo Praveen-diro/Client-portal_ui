@@ -748,7 +748,11 @@ export default function ApiReferencePage() {
             <div className="bg-card rounded-lg border shadow-lg dark:shadow-gray-900/30 overflow-hidden mb-10">
               <div className="p-0">
                 {hasButtonData ? (
-                  <SwaggerUI endpoint="verification" token={token} />
+                  <SwaggerUI 
+                    endpoint="verification" 
+                    token={token} 
+                    buttonId={currentButtonId} 
+                  />
                 ) : (
                   <div className="p-8 text-center">
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-12 max-w-2xl mx-auto">

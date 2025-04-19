@@ -379,6 +379,7 @@ const API_PATH_CONFIG = {
 interface SwaggerUIProps {
   endpoint?: string;
   token?: string;
+  buttonId?: string;
 }
 
 // Add this new function to get cookie value
@@ -487,12 +488,61 @@ const updateUserEmail = async (newEmail: string) => {
   }
 };
 
-export default function SwaggerUI({ endpoint = "verification", token = "" }: SwaggerUIProps) {
+export default function SwaggerUI({ endpoint = "verification", token = "", buttonId = "" }: SwaggerUIProps) {
   const [unifiedSpec, setUnifiedSpec] = useState<any>(null);
   const [failedSpecs, setFailedSpecs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string>("");
   
+  // Add this new effect specifically for updating the schema when buttonId changes
+  useEffect(() => {
+    if (!unifiedSpec) return;
+    
+    console.log("ButtonId change detected:", buttonId);
+    
+    const updateSpec = (spec: any) => {
+      const newSpec = JSON.parse(JSON.stringify(spec)); // Deep clone the spec
+      
+      try {
+        // Update schema example
+        if (newSpec.components?.schemas?.GetVerificationLinkRequest?.properties?.buttonid) {
+          newSpec.components.schemas.GetVerificationLinkRequest.properties.buttonid.example = buttonId;
+          console.log("Updated schema buttonId to:", buttonId);
+        }
+
+        // Update request body examples
+        const requestBody = newSpec.paths?.["/get-verification-link"]?.post?.requestBody;
+        if (requestBody?.content?.["application/json"]) {
+          const content = requestBody.content["application/json"];
+          
+          // Update schema example
+          if (content.schema?.example) {
+            content.schema.example.buttonid = buttonId;
+          }
+          
+          // Update all examples
+          if (content.examples) {
+            Object.keys(content.examples).forEach(key => {
+              if (content.examples[key].value) {
+                content.examples[key].value.buttonid = buttonId;
+              }
+            });
+          }
+        }
+        
+        return newSpec;
+      } catch (error) {
+        console.error("Error updating spec with new buttonId:", error);
+        return spec;
+      }
+    };
+
+    const updatedSpec = updateSpec(unifiedSpec);
+    setUnifiedSpec(updatedSpec);
+    
+  }, [buttonId]); // Only depend on buttonId
+
+  // Original fetch effect - keep this separate
   useEffect(() => {
     // Alert to confirm token is received
     // if (token) {
@@ -623,7 +673,7 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
     };
     
     fetchAndCombineSpecs();
-  }, [token]);
+  }, []); // Only run once on mount
 
   // Helper function to normalize path with appropriate prefix
   const normalizePath = (path: string): string => {
@@ -853,6 +903,70 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
     
     console.log("Conversion complete. OpenAPI 3.0 spec created.");
     return openapi3Spec;
+  };
+
+  // Request interceptor
+  const requestInterceptorWithLogs = (req: any) => {
+    req.showRequestUrl = true;
+    req.curlOptions = { formatted: true };
+    
+    // Ensure the server URL is used instead of localhost
+    if (req.url.startsWith('http://localhost')) {
+      const path = new URL(req.url).pathname;
+      req.url = `https://api.dirolabs.com${path}`;
+    }
+    
+    // Get secrettoken from cookie
+    const secretToken = getCookie("secrettoken");
+    
+    if (token) {
+      if (token.trim().startsWith("Bearer")) {
+        req.headers["Authorization"] = token.trim();
+      } else {
+        req.headers["Authorization"] = `Bearer ${token.trim()}`;
+      }
+    }
+
+    // Add x-api-key for smart endpoints
+    if (
+      req.url.includes("/betav3/smartFeedback") ||
+      req.url.includes("/betav3/smartUpload")
+    ) {
+      const apiKeyFromCookie = getCookie("apikey");
+      if (apiKeyFromCookie) {
+        req.headers["x-api-key"] = apiKeyFromCookie;
+      }
+
+      if (secretToken) {
+        if (secretToken.trim().startsWith("Bearer")) {
+          req.headers.Authorization = secretToken.trim();
+        } else {
+          req.headers.Authorization = `Bearer ${secretToken.trim()}`;
+        }
+      }
+    }
+
+    // Add buttonId to get-verification-link requests
+    if (req.url.includes("/get-verification-link")) {
+      console.log("Request Interceptor - Current buttonId:", buttonId);
+      try {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        body.buttonid = buttonId;
+        req.body = JSON.stringify(body);
+        console.log("Updated request body:", JSON.parse(req.body));
+      } catch (error) {
+        console.error("Error in request interceptor:", error);
+      }
+    }
+    
+    return req;
+  };
+
+  const responseInterceptor = (res: any) => {
+    if (res.headers) {
+      res.showHeaders = true;
+    }
+    return res;
   };
 
   if (isLoading) {
@@ -1257,61 +1371,10 @@ export default function SwaggerUI({ endpoint = "verification", token = "" }: Swa
             activated: true,
             theme: "agate"
           }}
-          requestInterceptor={(req: any) => {
-            req.showRequestUrl = true;
-            req.curlOptions = { formatted: true };
-            
-            // Ensure the server URL is used instead of localhost
-            if (req.url.startsWith('http://localhost')) {
-              // Extract the path portion
-              const path = new URL(req.url).pathname;
-              // Replace with the server URL from the spec
-              req.url = `https://api.dirolabs.com${path}`;
-            }
-            
-            // Get secrettoken from cookie
-            const secretToken = getCookie("secrettoken");
-            
-            if (token) {
-              // Make sure there's no extra space
-              // If token already includes "Bearer", use it as is
-              if (token.trim().startsWith("Bearer")) {
-                req.headers["Authorization"] = token.trim();
-              } else {
-                // Otherwise, add the Bearer prefix with exactly one space
-                req.headers["Authorization"] = `Bearer ${token.trim()}`;
-              }
-            }
-          
-            // Add x-api-key only for smart endpoints
-            if (
-              req.url.includes("/betav3/smartFeedback") ||
-              req.url.includes("/betav3/smartUpload")
-            ) {
-              const apiKeyFromCookie = getCookie("apikey");
-              if (apiKeyFromCookie) {
-                req.headers["x-api-key"] = apiKeyFromCookie;
-              }
-          
-              // Override Authorization for these specific endpoints
-              if (secretToken) {
-                // Make sure there's no extra space in the secretToken
-                if (secretToken.trim().startsWith("Bearer")) {
-                  req.headers.Authorization = secretToken.trim();
-                } else {
-                  req.headers.Authorization = `Bearer ${secretToken.trim()}`;
-                }
-              }
-            }
-            
-            return req;
-          }}
-          responseInterceptor={(res: any) => {
-            if (res.headers) {
-              res.showHeaders = true;
-            }
-            return res;
-          }}
+          requestInterceptor={requestInterceptorWithLogs}
+          responseInterceptor={responseInterceptor}
+          // Force re-render when buttonId changes by adding it as a key
+          key={`swagger-ui-${buttonId}`}
         />
       </div>
     </div>
