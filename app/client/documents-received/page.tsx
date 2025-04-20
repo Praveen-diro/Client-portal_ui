@@ -146,7 +146,7 @@ export default function DocumentsReceived() {
       </div>
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex-1">
-          <PageHeader title="Documents Received" description="View and manage received documents for verification" />
+          <PageHeader title="Documents received" description="View and manage received documents for verification" />
           <div className="container mx-auto px-8 py-8">
             <div className="grid gap-4 md:grid-cols-3">
               {/* Use memoized animations for cards to reduce JS calculations */}
@@ -163,7 +163,7 @@ export default function DocumentsReceived() {
                   <Card className="relative overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                       <CardTitle className="text-sm font-medium">
-                        {index === 0 ? "Pending Review" : index === 1 ? "Approved" : "Rejected"}
+                        {index === 0 ? "Pending review" : index === 1 ? "Approved" : "Rejected"}
                       </CardTitle>
                       {index === 0 ? (
                         <Clock className="h-4 w-4 text-yellow-500" />

@@ -49,25 +49,25 @@ import { AnimatePresence } from "framer-motion";
 
 const statsCards = [
   {
-    title: "Buttons Overview",
+    title: "Buttons overview",
     mainValue: "7",
     subValue: "7 Active",
-    description: "Total Buttons",
+    description: "Total buttons",
     icon: LayoutGrid,
     color: "blue",
     subValueColor: "text-green-500",
   },
   {
-    title: "Documents Received",
+    title: "Documents received",
     mainValue: "235",
-    subValue: "33.57 Avg. per Button",
-    description: "Total Documents",
+    subValue: "33.57 avg. per button",
+    description: "Total documents",
     icon: FileText,
     color: "teal",
     subValueColor: "text-teal-500",
   },
   {
-    title: "Category Breakdown",
+    title: "Category breakdown",
     mainValue: "3",
     secondaryValue: "4",
     description: "Address",
@@ -892,7 +892,7 @@ export default function ValidationButtons() {
       <PageContainer sidebarExpanded={sidebarExpanded}>
         <TooltipProvider>
           <div className="flex-1 relative">
-            <PageHeader title="Verification Buttons" description="Manage and monitor your verification button performance" />
+            <PageHeader title="Verification buttons" description="Manage and monitor your verification button performance" />
             <div className="container mx-auto px-8 py-8">
               <motion.div
                 className="flex justify-end mb-6"
@@ -2277,7 +2277,7 @@ export default function ValidationButtons() {
                         >
                           <TableHead>Name</TableHead>
                           <TableHead className="text-center">Category</TableHead>
-                          <TableHead className="text-center">Document Type</TableHead>
+                          <TableHead className="text-center">Document type</TableHead>
                           <TableHead className="text-center">Invites waiting</TableHead>
                           <TableHead className="text-center">Documents received</TableHead>
                           <TableHead className="text-center">Last modified</TableHead>

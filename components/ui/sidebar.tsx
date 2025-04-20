@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { env } from "@/app/config/environment";
 import {
   FileText,
   LayoutGrid,
@@ -206,7 +207,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       id: "See coverage",
       icon: Earth,
       label: "Coverage", 
-      href: "https://diro.live/see-coverage/",
+      href: env.seeCoverage,
       target: "_blank",
       rel: "noopener noreferrer"
     },

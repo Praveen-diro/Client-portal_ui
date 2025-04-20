@@ -570,7 +570,7 @@ export function UsersSection() {
         >
           <h2 className="text-2xl font-semibold tracking-tight">User management</h2>
           <Button onClick={handleAddToggle}>
-            <Plus className="mr-2 h-4 w-4" /> Add User
+            <Plus className="mr-2 h-4 w-4" /> Add user
           </Button>
         </motion.div>
 
@@ -831,7 +831,7 @@ export function UsersSection() {
                 <Button type="button" variant="outline" onClick={handleAddToggle}>
                   Cancel
                 </Button>
-                <Button type="submit">{isEditMode ? "Update User" : "Add User"}</Button>
+                <Button type="submit">{isEditMode ? "Update user" : "Add user"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -841,10 +841,10 @@ export function UsersSection() {
           isOpen={deleteModal}
           onClose={cancelDelete}
           onConfirm={handleDelete}
-          title="Delete User?"
+          title="Delete user?"
           description="This action will permanently remove the user's account and all associated data. This cannot be undone."
-          cancelText="Keep User"
-          confirmText="Delete User"
+          cancelText="Keep user"
+          confirmText="Delete user"
           variant="delete"
           isLoading={false}
           itemDetail={{

@@ -638,7 +638,7 @@ export function OrganizationSection() {
       setFormData({
         name: requestorg?.name || "",
         displayname: requestorg.displayname || "",
-        registrationnumber: requestorg.registrationnumber || "",
+        registrationnumber: requestorg.registrationNumber || "",
         organizationtype: requestorg.organizationtype || "",
         website: requestorg.website || "",
         country: requestorg.country || "",
@@ -1266,7 +1266,7 @@ export function OrganizationSection() {
             <div className="space-y-2">
               <div className="space-x-2">
                 <Button variant="outline" size="sm" onClick={() => setIsLogoEditorOpen(true)}>
-                  Change Logo
+                  Change logo
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
                   See how it looks
@@ -1519,38 +1519,60 @@ export function OrganizationSection() {
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 text-muted-foreground cursor-help ml-1" />
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-md p-0 border shadow-md" sideOffset={10}>
-                        <div className="bg-popover text-popover-foreground rounded-md px-4 py-3">
-                          <div className="space-y-3">
+                      <TooltipContent side="right" className="max-w-md p-0 border shadow-lg" sideOffset={10}>
+                        <div className="bg-popover text-popover-foreground rounded-lg px-5 py-4">
+                          <div className="space-y-4 text-sm">
+                            {/* Setup Section */}
                             <div>
-                              <h4 className="font-semibold text-sm">Setup and Verify HMAC Key</h4>
-                              <ol className="mt-1 ml-5 space-y-1 text-sm">
-                                <li><span className="font-semibold">Input Your Desired HMAC Key:</span> Ensure it is secure and compliant per security policies.</li>
-                                <li>Click the "Save Profile".</li>
+                              <h4 className="font-semibold flex items-center gap-2 text-primary">
+                                <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">1</span>
+                                Setup and Verify HMAC Key
+                              </h4>
+                              <ol className="mt-2 ml-7 space-y-2">
+                                <li>
+                                  <span className="font-medium text-foreground">1. Input Your Desired HMAC Key: Ensure it is secure and compliant per security policies.</span>
+                                </li>
+                                <li >2. Click the "Save Profile".</li>
                               </ol>
                             </div>
 
+                            {/* Verification Section */}
                             <div>
-                              <h4 className="font-semibold text-sm">Verification for Clients:</h4>
-                              <ol className="mt-1 ml-5 space-y-1 text-sm list-[lower-alpha]">
+                              <h4 className="font-semibold flex items-center gap-2 text-primary">
+                                <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">2</span>
+                                Verification for Clients
+                              </h4>
+                           <div className="ml-4">   
+                            <ol className="mt-2 ml-7 space-y-1.5 list-[lower-alpha] ">
                                 <li>Receive the MessageHash in the header.</li>
-                                <li>Use the same <span className="font-semibold">hmacsecretkey</span> to regenerate the HMAC signature.</li>
+                                <li>Use the same <span className="font-medium text-foreground">hmacsecretkey</span> to regenerate the HMAC signature.</li>
                                 <li>Compare the regenerated signature with MessageHash.</li>
                               </ol>
-                              <ul className="ml-8 mt-1 text-sm list-disc">
-                                <li>If they match, the data is authentic.</li>
-                                <li>If not, reject the data.</li>
-                              </ul>
+                              <div className="mt-2 ml-7 p-2 bg-muted/50 rounded-md">
+                                <ul className="space-y-1">
+                                  <li className="flex items-center gap-2">
+                                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                                    <span>If they match, the data is authentic.</span>
+                                  </li>
+                                  <li className="flex items-center gap-2">
+                                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                                    <span>If not, reject the data.</span>
+                                  </li>
+                                </ul>
+                              </div>
+
+
                             </div>
-                            
+                            </div>
+                            {/* Learn More Link */}
                             <a 
                               href={process.env.NEXT_PUBLIC_CLIENT_PORTAL_URL}
                               target="_blank" 
                               rel="noopener noreferrer" 
                               aria-label="Learn more about HMAC key setup and verification" 
-                              className="block text-primary hover:underline text-sm"
+                              className="block text-primary hover:underline mt-2 pt-2 border-t border-border"
                             >
-                              Learn More About HMAC Key Setup and Verification
+                              Learn More About HMAC Key Setup and Verification →
                             </a>
                           </div>
                         </div>

@@ -613,7 +613,7 @@ export default function TwoFactorPage() {
                       <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                           <Label htmlFor="otp" className="text-slate-700 dark:text-gray-300">
-                            Authentication Code
+                            Authentication code
                           </Label>
                           <div className="flex justify-center">
                             <InputOTP

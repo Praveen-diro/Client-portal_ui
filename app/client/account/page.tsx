@@ -106,7 +106,7 @@ export default function AccountPage() {
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <div className="flex flex-col h-full mb-4">
           <motion.div initial={initialAnimation} animate={animateIn} transition={{ ...transitionConfig, delay: 0.2 }}>
-            <PageHeader title="Manage Account" description="Manage your account settings and preferences" />
+            <PageHeader title="Manage account" description="Manage your account settings and preferences" />
           </motion.div>
 
           <div className="flex-1 overflow-y-auto">
