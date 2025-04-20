@@ -185,8 +185,7 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [copiedSessionId, setCopiedSessionId] = useState(false);
   const [copiedSessionIdText, setCopiedSessionIdText] = useState("");
   const [showCopyNotification, setShowCopyNotification] = useState(false);
@@ -221,38 +220,40 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
   // Fetch data when main filter state changes
   useEffect(() => {
     if (isActive) {
-      fetchPendingDocuments(currentPage);
+      if (searchQuery.trim().length >= 3) {
+        handleSearch(currentPage);
+      } else {
+        fetchPendingDocuments(currentPage);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, currentPage, selectedCountries, dateFilter, customRange]);
-
-  // Fetch pending documents
-  useEffect(() => {
-    if (isActive) {
-      fetchPendingDocuments(currentPage);
-    }
   }, [isActive, currentPage]);
 
-  // Effect for search query
   useEffect(() => {
     if (isActive && searchQuery.trim().length >= 3) {
       const timer = setTimeout(() => {
-        handleSearch();
+        handleSearch(1);
       }, 800);
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isActive]);
 
-  const fetchPendingDocuments = async (page: number) => {
+  const totalDocuments = useSelector((state: any) => state.table.totalDocuments);
+  const totalCount = totalDocuments?.pendingCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+
+  const fetchPendingDocuments = async (page = 1) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const offset = (page - 1) * itemsPerPage;
+      const offset = page - 1;
+      const limit = offset;
       const params: any = {
         offset,
-        limit: itemsPerPage,
+        limit,
         status: "pending",
       };
       if (dateFilter && dateFilter !== "Date") {
@@ -283,8 +284,10 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
             total = response.data.data.length;
           }
         }
-
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+        if (!total && Array.isArray(response.data)) {
+          total = response.data.length;
+        }
+        setCurrentPage(page);
       } else {
         throw new Error(response.error || "Failed to fetch pending documents");
       }
@@ -296,16 +299,18 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (page = 1) => {
     if (searchQuery.trim().length < 3) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
+      const offset = page - 1;
+      const limit = offset;
       const searchResponse = await viewDocService.searchTable(
         searchQuery,
-        itemsPerPage,
+        limit,
         user?.email || cookies.get("email") || "",
         user?.role || cookies.get("roles") || "",
         "pending"
@@ -328,8 +333,10 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
           total = searchResponse.data.data.length;
         }
       }
-
-      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+      if (!total && Array.isArray(searchResponse.data)) {
+        total = searchResponse.data.length;
+      }
+      setCurrentPage(page);
     } catch (err) {
       console.error("Error searching documents:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -455,40 +462,33 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     setCurrentSessionId(sessionId);
     setCurrentDoc(doc);
 
-    // Open the modal immediately with loading state
     setJsonLoading(true);
     setJsonModalOpen(true);
 
-    // Dispatch loading state for PDF data in Redux
     dispatch(pdfLoader());
 
-    // Call both getPdfToJson and getExtractTransactionData methods simultaneously
     Promise.all([
       tableService.getPdfToJson(sessionId),
       tableService.getExtractTransactionData({ docid: "", sessionid: sessionId }),
     ])
       .then(([pdfToJsonResponse, extractTransactionResponse]) => {
-        // Handle PDF to JSON response
+        // Always use file.pdfdata_v3 for the viewer
+        const pdfdataV3 = doc?.file?.pdfdata_v3 ?? [];
+        setCurrentDoc({
+          ...doc,
+          extractedData: pdfdataV3,
+          transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
+        });
+
         if (pdfToJsonResponse.success) {
-          // Dispatch success action for PDF to JSON
           dispatch(pdfToJsonData(pdfToJsonResponse.data));
-
-          // Update the current document with JSON data
-          setCurrentDoc({
-            ...doc,
-            extractedData: pdfToJsonResponse.data,
-            transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
-          });
-
           toast({
             title: "Success",
             description: "JSON data loaded successfully",
             variant: "default",
           });
         } else {
-          // Dispatch error action for PDF to JSON
           dispatch(pdfToJsonError({ data: pdfToJsonResponse.error }));
-
           toast({
             title: "Error",
             description: pdfToJsonResponse.error || "Failed to load JSON data",
@@ -496,22 +496,16 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
           });
         }
 
-        // Handle transaction data response
         if (extractTransactionResponse.success) {
-          // Dispatch success action for transaction data
           dispatch(extractTransactionData(extractTransactionResponse.data));
         } else {
-          // Dispatch error action for transaction data
           dispatch(extractTransactionError(extractTransactionResponse.error));
         }
       })
       .catch((error) => {
         console.error("Error loading JSON data:", error);
-
-        // Dispatch error actions for both
         dispatch(pdfToJsonError({ data: error }));
         dispatch(extractTransactionError(error));
-
         toast({
           title: "Error",
           description: "An error occurred while loading JSON data",
@@ -519,7 +513,6 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
         });
       })
       .finally(() => {
-        // Clear loading state for JSON modal only
         setJsonLoading(false);
       });
   };

@@ -85,10 +85,10 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "invite",
-      offset: params.offset || 0,
+      offset: params.limit || 0,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
-      numberOfRecords: params.limit || 10,
+      numberOfRecords: 10,
     };
 
     console.log("Sending request to invite API with data:", {
@@ -119,11 +119,11 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "pending",
-      limit: params.offset || 0,
+      limit: params.limit || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
-      numberOfRecords: params.limit || 10,
+      numberOfRecords: 10,
     };
 
     return this.makeRequest(env.userlist, data, "getPending");
@@ -138,11 +138,11 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "approved",
-      limit: params.offset || 0,
+      limit: params.limit || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
-      numberOfRecords: params.limit || 10,
+      numberOfRecords: 10,
     };
 
     return this.makeRequest(env.userlist, data, "getApproved");
@@ -152,11 +152,11 @@ class TableService {
     const data = {
       apikey: this.getApiKey(),
       status: params.status || "rejected",
-      limit: params.offset || 0,
+      limit: params.limit || 0,
       orgid: cookies.get("orgid") as string,
       requesterEmail: cookies.get("email") as string,
       requesterRole: cookies.get("roles") as string,
-      numberOfRecords: params.limit || 10,
+      numberOfRecords: 10,
     };
 
     return this.makeRequest(env.userlist, data, "getRejected");

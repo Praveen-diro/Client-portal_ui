@@ -51,6 +51,8 @@ import countriesData from "@/app/data/countries.json";
 import { DateRangePicker } from "@heroui/date-picker";
 import { DateValue } from "@internationalized/date";
 
+const itemsPerPage = 10;
+
 // Helper function to format date
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
@@ -146,12 +148,13 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
   const approvedDocuments = useSelector((state: any) => state.table.approved);
   const user = useSelector((state: any) => state.auth.user);
   const table = useSelector((state: any) => state.table);
+  const totalDocuments = useSelector((state: any) => state.table.totalDocuments);
+  const totalCount = totalDocuments?.approvedCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
   const [copiedSessionId, setCopiedSessionId] = useState(false);
   const [copiedSessionIdText, setCopiedSessionIdText] = useState("");
   const [showCopyNotification, setShowCopyNotification] = useState(false);
@@ -183,39 +186,44 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
   // Fetch approved documents
   useEffect(() => {
     if (isActive) {
-      fetchApprovedDocuments(currentPage);
+      if (searchQuery.trim().length >= 3) {
+        handleSearch(currentPage);
+      } else {
+        fetchApprovedDocuments(currentPage);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, currentPage]);
 
   // Effect for search query
   useEffect(() => {
     if (isActive && searchQuery.trim().length >= 3) {
       const timer = setTimeout(() => {
-        handleSearch();
+        handleSearch(1);
       }, 800);
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isActive]);
 
-  const fetchApprovedDocuments = async (page: number) => {
+  const fetchApprovedDocuments = async (page = 1) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const offset = (page - 1) * itemsPerPage;
+      const offset = page - 1;
+      const limit = offset;
       const response = await tableService.getApproved({
         offset,
-        limit: itemsPerPage,
+        limit,
         status: "verified",
       });
-
       if (response.success) {
         dispatch(getApproves({ data: { data: response.data, limit: response.data?.length || 0 } }));
         if (response.data.totalCounts) {
           dispatch(getTotalDocuments({ data: { data: response.data.totalCounts } }));
         }
-
         // Update pagination
         let total = 0;
         if (typeof response.data === "object" && response.data !== null) {
@@ -227,8 +235,10 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
             total = response.data.data.length;
           }
         }
-
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+        if (!total && Array.isArray(response.data)) {
+          total = response.data.length;
+        }
+        setCurrentPage(page);
       } else {
         throw new Error(response.error || "Failed to fetch approved documents");
       }
@@ -240,21 +250,22 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (page = 1) => {
     if (searchQuery.trim().length < 3) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
+      const offset = page - 1;
+      const limit = offset;
       const response = await viewDocService.searchTable(
         searchQuery,
-        (currentPage - 1) * itemsPerPage,
+        limit,
         user?.email || cookies.get("email") || "",
         user?.role || cookies.get("roles") || "",
         "approved"
       );
-
       if (!response.success) {
         throw new Error(response.error || "Search failed");
       }
@@ -272,8 +283,10 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
           total = response.data.data.length;
         }
       }
-
-      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+      if (!total && Array.isArray(response.data)) {
+        total = response.data.length;
+      }
+      setCurrentPage(page);
     } catch (err) {
       console.error("Error searching documents:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -396,43 +409,34 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
 
   // JSON modal
   const openPdftojsonModal = (sessionId: string, doc: any) => {
-    setCurrentSessionId(sessionId);
-    setCurrentDoc(doc);
-
-    // Open the modal immediately with loading state
     setJsonLoading(true);
     setJsonModalOpen(true);
+    setCurrentSessionId(sessionId);
 
-    // Dispatch loading state for PDF data in Redux
     dispatch(pdfLoader());
 
-    // Call both getPdfToJson and getExtractTransactionData methods simultaneously
     Promise.all([
       tableService.getPdfToJson(sessionId),
       tableService.getExtractTransactionData({ docid: "", sessionid: sessionId }),
     ])
       .then(([pdfToJsonResponse, extractTransactionResponse]) => {
-        // Handle PDF to JSON response
+        // Always use file.pdfdata_v3 for the viewer
+        const pdfdataV3 = doc?.file?.pdfdata_v3 ?? [];
+        setCurrentDoc({
+          ...doc,
+          extractedData: pdfdataV3,
+          transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
+        });
+
         if (pdfToJsonResponse.success) {
-          // Dispatch success action for PDF to JSON
           dispatch(pdfToJsonData(pdfToJsonResponse.data));
-
-          // Update the current document with JSON data
-          setCurrentDoc({
-            ...doc,
-            extractedData: pdfToJsonResponse.data,
-            transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
-          });
-
           toast({
             title: "Success",
             description: "JSON data loaded successfully",
             variant: "default",
           });
         } else {
-          // Dispatch error action for PDF to JSON
           dispatch(pdfToJsonError({ data: pdfToJsonResponse.error }));
-
           toast({
             title: "Error",
             description: pdfToJsonResponse.error || "Failed to load JSON data",
@@ -440,22 +444,16 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
           });
         }
 
-        // Handle transaction data response
         if (extractTransactionResponse.success) {
-          // Dispatch success action for transaction data
           dispatch(extractTransactionData(extractTransactionResponse.data));
         } else {
-          // Dispatch error action for transaction data
           dispatch(extractTransactionError(extractTransactionResponse.error));
         }
       })
       .catch((error) => {
         console.error("Error loading JSON data:", error);
-
-        // Dispatch error actions for both
         dispatch(pdfToJsonError({ data: error }));
         dispatch(extractTransactionError(error));
-
         toast({
           title: "Error",
           description: "An error occurred while loading JSON data",
@@ -463,7 +461,6 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
         });
       })
       .finally(() => {
-        // Clear loading state for JSON modal only
         setJsonLoading(false);
       });
   };
@@ -702,7 +699,7 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
                   {doc?.file?.pdfdata_v3
                     ? doc.file.pdfdata_v3?.map((item: any, i: number) =>
                         item?.type === "name"
-                          ? item?.values?.map((value: any, idx: number) => (
+                          ? (item?.values as any[])?.map((value: any, idx: number) => (
                               <span key={`name-${i}-${idx}`} className="text-sm block">
                                 {value?.name}
                               </span>
@@ -710,23 +707,25 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
                           : null
                       )
                     : doc?.file?.combinedJSON
-                    ? doc.file.combinedJSON?.map((item, index) =>
-                        item?.accountdetails?.map((detail, i) => (
-                          <span
-                            key={i}
-                            style={{
-                              display: "flex ",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              fontSize: "13px",
-                              fontWeight: "400",
-                              lineHeight: "1",
-                              color: "black",
-                            }}
-                          >
-                            {detail?.name}
-                          </span>
-                        ))
+                    ? (doc.file.combinedJSON as any[]).map((item: any, index: number) =>
+                        Array.isArray(item?.accountdetails)
+                          ? (item.accountdetails as any[]).map((detail: any, i: number) => (
+                              <span
+                                key={i}
+                                style={{
+                                  display: "flex ",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  fontSize: "13px",
+                                  fontWeight: "400",
+                                  lineHeight: "1",
+                                  color: "black",
+                                }}
+                              >
+                                {detail?.name}
+                              </span>
+                            ))
+                          : null
                       )
                     : null}
                 </>
@@ -834,6 +833,9 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
       </TableRow>
     );
   };
+
+  // Before rendering JsonViewer
+  console.log("Rendering JsonViewer with currentDoc:", currentDoc);
 
   return (
     <>
@@ -1273,9 +1275,30 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
                           {doc?.file?.pdfdata_v3
                             ? doc.file.pdfdata_v3?.map((item: any, i: number) =>
                                 item?.type === "name"
-                                  ? item?.values?.map((value: any, idx: number) => (
+                                  ? (item?.values as any[])?.map((value: any, idx: number) => (
                                       <span key={`name-${i}-${idx}`} className="text-sm block">
                                         {value?.name}
+                                      </span>
+                                    ))
+                                  : null
+                              )
+                            : doc?.file?.combinedJSON
+                            ? (doc.file.combinedJSON as any[]).map((item: any, index: number) =>
+                                Array.isArray(item?.accountdetails)
+                                  ? (item.accountdetails as any[]).map((detail: any, i: number) => (
+                                      <span
+                                        key={i}
+                                        style={{
+                                          display: "flex ",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          fontSize: "13px",
+                                          fontWeight: "400",
+                                          lineHeight: "1",
+                                          color: "black",
+                                        }}
+                                      >
+                                        {detail?.name}
                                       </span>
                                     ))
                                   : null

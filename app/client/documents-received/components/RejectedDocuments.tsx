@@ -42,6 +42,8 @@ import countriesData from "@/app/data/countries.json";
 import { DateRangePicker } from "@heroui/date-picker";
 import { DateValue } from "@internationalized/date";
 
+const itemsPerPage = 10;
+
 // Helper function to format date
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
@@ -124,12 +126,13 @@ const pdfGenerated = (pdfdata: any) => {
 export default function RejectedDocuments({ isActive, searchQuery }: RejectedDocumentsProps) {
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const totalDocuments = useSelector((state: any) => state.table.totalDocuments);
+  const totalCount = totalDocuments?.rejectedCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const rejectedDocuments = useSelector((state: any) => state.table.rejects);
   const user = useSelector((state: any) => state.auth.user);
-  const itemsPerPage = 10; // Number of items per page
 
   // Country filter dropdown state (matching PendingDocuments/ApprovedDocuments)
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
@@ -211,40 +214,33 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
     setCurrentSessionId(sessionId);
     setCurrentDoc(doc);
 
-    // Open the modal immediately with loading state
     setJsonLoading(true);
     setJsonModalOpen(true);
 
-    // Dispatch loading state for PDF data in Redux
     dispatch(pdfLoader());
 
-    // Call both getPdfToJson and getExtractTransactionData methods simultaneously
     Promise.all([
       tableService.getPdfToJson(sessionId),
       tableService.getExtractTransactionData({ docid: "", sessionid: sessionId }),
     ])
       .then(([pdfToJsonResponse, extractTransactionResponse]) => {
-        // Handle PDF to JSON response
+        // Always use file.pdfdata_v3 for the viewer
+        const pdfdataV3 = doc?.file?.pdfdata_v3 ?? [];
+        setCurrentDoc({
+          ...doc,
+          extractedData: pdfdataV3,
+          transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
+        });
+
         if (pdfToJsonResponse.success) {
-          // Dispatch success action for PDF to JSON
           dispatch(pdfToJsonData(pdfToJsonResponse.data));
-
-          // Update the current document with JSON data
-          setCurrentDoc({
-            ...doc,
-            extractedData: pdfToJsonResponse.data,
-            transaction: extractTransactionResponse.success ? extractTransactionResponse.data : null,
-          });
-
           toast({
             title: "Success",
             description: "JSON data loaded successfully",
             variant: "default",
           });
         } else {
-          // Dispatch error action for PDF to JSON
           dispatch(pdfToJsonError({ data: pdfToJsonResponse.error }));
-
           toast({
             title: "Error",
             description: pdfToJsonResponse.error || "Failed to load JSON data",
@@ -252,22 +248,16 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
           });
         }
 
-        // Handle transaction data response
         if (extractTransactionResponse.success) {
-          // Dispatch success action for transaction data
           dispatch(extractTransactionData(extractTransactionResponse.data));
         } else {
-          // Dispatch error action for transaction data
           dispatch(extractTransactionError(extractTransactionResponse.error));
         }
       })
       .catch((error) => {
         console.error("Error loading JSON data:", error);
-
-        // Dispatch error actions for both
         dispatch(pdfToJsonError({ data: error }));
         dispatch(extractTransactionError(error));
-
         toast({
           title: "Error",
           description: "An error occurred while loading JSON data",
@@ -275,7 +265,6 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
         });
       })
       .finally(() => {
-        // Clear loading state for JSON modal only
         setJsonLoading(false);
       });
   };
@@ -314,22 +303,26 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   // Fetch rejected documents when component is active or page changes
   useEffect(() => {
     if (isActive) {
-      fetchRejectedDocuments();
+      if (searchQuery.trim().length >= 3) {
+        handleSearch(currentPage);
+      } else {
+        fetchRejectedDocuments(currentPage);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, currentPage]);
 
-  const fetchRejectedDocuments = async () => {
+  const fetchRejectedDocuments = async (page = 1) => {
     try {
       setIsLoading(true);
       setError("");
-
-      const offset = (currentPage - 1) * itemsPerPage;
+      const offset = page - 1;
+      const limit = offset;
       const response = await tableService.getRejected({
         offset,
-        limit: itemsPerPage,
+        limit,
         status: "rejected",
       });
-
       if (response.success) {
         dispatch(getRejects({ data: { data: response.data, limit: response.data?.length || 0 } }));
         if (response.data.totalCounts) {
@@ -346,8 +339,11 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
             total = response.data.data.length;
           }
         }
-
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+        // If total is 0, fallback to data length
+        if (!total && Array.isArray(response.data)) {
+          total = response.data.length;
+        }
+        setCurrentPage(page);
       } else {
         throw new Error(response.error || "Failed to fetch rejected documents");
       }
@@ -361,21 +357,22 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   };
 
   // Handle search functionality
-  const handleSearch = async () => {
+  const handleSearch = async (page = 1) => {
     if (searchQuery.trim().length < 3) return;
 
     setIsLoading(true);
     setError("");
 
     try {
+      const offset = page - 1;
+      const limit = offset;
       const response = await viewDocService.searchTable(
         searchQuery,
-        (currentPage - 1) * itemsPerPage,
+        limit,
         user?.email || cookies.get("email") || "",
         user?.role || cookies.get("roles") || "",
         "rejected"
       );
-
       if (!response.success) {
         throw new Error(response.error || "Search failed");
       }
@@ -393,8 +390,10 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
           total = response.data.data.length;
         }
       }
-
-      setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+      if (!total && Array.isArray(response.data)) {
+        total = response.data.length;
+      }
+      setCurrentPage(page);
     } catch (err) {
       console.error("Error searching documents:", err);
       setError("Failed to search documents");
@@ -407,11 +406,12 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   useEffect(() => {
     if (isActive && searchQuery.trim().length >= 3) {
       const timer = setTimeout(() => {
-        handleSearch();
+        handleSearch(1);
       }, 800);
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, isActive]);
 
   const handlePageChange = (newPage: number) => {
