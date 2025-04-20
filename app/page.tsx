@@ -707,7 +707,7 @@ export default function LoginPage() {
         if (response.data.twoFactorId) {
           cookies.set("isTwoFactor", "true");
           cookies.set("twoFactorId", response.data.twoFactorId);
-          cookies.set("authMode", response.data.sandbox === true ? "2" : "1");
+          cookies.set("authMode", response.data.sandbox === false ? "1" : "2");
 
           if (response.data.multiFactorEnabled) {
             cookies.set("multiFactorEnabled", "true");
@@ -716,8 +716,11 @@ export default function LoginPage() {
           }
         }
 
+        console.log("response.data.sandbox", response.data.sandbox);
+
         // Dispatch actions based on sandbox status
-        if (response.data.sandbox === false || response.data.sandbox === "1") {
+        if (response.data.sandbox === false || response.data.sandbox === "false") {
+          console.log("loginAuthenticated");
           dispatch(
             loginAuthenticated({
               headers: response.headers,

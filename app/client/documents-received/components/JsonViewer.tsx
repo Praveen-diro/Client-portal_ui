@@ -11,8 +11,8 @@ import dynamic from "next/dynamic";
 import Loader from "@/components/ui/loader";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Dynamically import ReactJson with SSR disabled to prevent 'document is not defined' error
-const ReactJson = dynamic(() => import("react-json-view"), {
+// Dynamically import JsonView with SSR disabled
+const JsonView = dynamic(() => import("react18-json-view").then((mod) => mod.default), {
   ssr: false,
   loading: () => <div className="p-4 text-gray-500">Loading JSON viewer...</div>,
 });
@@ -822,12 +822,10 @@ export function JsonViewer({
                             </span>
                           </div>
                         </div>
-                        <ReactJson
+                        <JsonView
                           src={filterJsonData(jsonData) || {}}
-                          theme={isDarkMode ? "monokai" : "rjv-default"}
+                          theme={isDarkMode ? "atom" : "default"}
                           collapsed={1}
-                          iconStyle="circle"
-                          displayDataTypes={false}
                           enableClipboard={false}
                           style={{
                             backgroundColor: "transparent",
@@ -842,12 +840,10 @@ export function JsonViewer({
                         />
                       </div>
                     ) : (
-                      <ReactJson
+                      <JsonView
                         src={jsonData || {}}
-                        theme={isDarkMode ? "monokai" : "rjv-default"}
+                        theme={isDarkMode ? "atom" : "default"}
                         collapsed={2}
-                        iconStyle="circle"
-                        displayDataTypes={false}
                         enableClipboard={false}
                         style={{
                           backgroundColor: "transparent",

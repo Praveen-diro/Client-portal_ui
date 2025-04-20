@@ -35,6 +35,9 @@ import {
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
 import { ReportIssueModal } from "@/components/ui/report-issue-modal";
+import VerificationCell from "./VerificationCell";
+import ConfirmationSingleButtonModal from "@/components/ui/confirmation-single-button-modal";
+import TypeCell from "./TypeCell";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -142,11 +145,10 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   // Add a new state for report modal
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
-  // Verification cell helper
-  const verificationCell = (doc: any) => {
-    const sourceText = doc?.website || (typeof doc.source === "string" ? doc.source : "diro.me");
-    return sourceText;
-  };
+  // Add a new state for null file alert
+  const [nullFileAlert, setNullFileAlert] = useState(false);
+  const [nullFileColumn, setNullFileColumn] = useState<string | null>(null);
+  const [nullFileRow, setNullFileRow] = useState<any>(null);
 
   // Placeholder functions - these will need to be implemented with the actual functionality
   const onSessionStatusCheck = () => {
@@ -250,7 +252,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   };
 
   const getUserTime = (timestamp: string | number) => {
-    if (!timestamp) return "Not available";
+    if (!timestamp) return "";
     try {
       const date = new Date(Number(timestamp));
       return date.toLocaleDateString() + " " + date.toLocaleTimeString();
@@ -422,6 +424,14 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
     setReportModalOpen(true);
   };
 
+  const handleNullFileClick = (e: React.MouseEvent, columnName: string, rowData: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setNullFileColumn(columnName);
+    setNullFileRow(rowData);
+    setNullFileAlert(true);
+  };
+
   return (
     <>
       <div className="rounded-md border overflow-hidden">
@@ -432,9 +442,11 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
               <TableHead className="font-medium text-sm">Type</TableHead>
               <TableHead className="font-medium text-sm">Verification source</TableHead>
               <TableHead className="font-medium text-sm">Session ID</TableHead>
+              <TableHead className="font-medium text-sm">Remarks</TableHead>
               <TableHead className="font-medium text-sm">Name</TableHead>
               <TableHead className="font-medium text-sm">Date</TableHead>
               <TableHead className="font-medium text-sm">Track ID</TableHead>
+
               <TableHead className="font-medium text-sm text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -483,10 +495,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                 const docType =
                   doc?.file?.category || (doc.button && doc.button.coverage ? doc.button.coverage.category : "Unknown");
 
-                // Extract verification source
-                const sourceText = doc?.website || (typeof doc.source === "string" ? doc.source : "diro.me");
-
-                // Session ID
+                // Define sessionIdText here for use below
                 const sessionIdText = doc?.file?.docid || sessionId || "Unknown";
 
                 // Track ID
@@ -553,15 +562,15 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                           className="cursor-pointer text-sm"
                           onClick={isDeleteStatus ? onSessionStatusCheck : () => onOpenDocView(doc)}
                         >
-                          {verificationCell(doc)}
+                          <VerificationCell doc={doc} />
                         </div>
                       ) : !isDeleteStatus ? (
                         <Link href={`/pdf/${makefileurl(sessionId)}`} className="text-sm">
-                          {verificationCell(doc)}
+                          <VerificationCell doc={doc} />
                         </Link>
                       ) : (
                         <div className="cursor-pointer text-sm" onClick={onSessionStatusCheck}>
-                          {verificationCell(doc)}
+                          <VerificationCell doc={doc} />
                         </div>
                       )}
                     </TableCell>
@@ -605,6 +614,62 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                       )}
                     </TableCell>
 
+                    {/* Remarks column */}
+                    <TableCell className="py-3">
+                      {(() => {
+                        // Show remarks with logic similar to your provided code
+                        if (
+                          doc?.button?.shareonlyjson &&
+                          pdfGenerated(doc?.file?.pdfdata) &&
+                          user?.email !== "dirolabs@gmail.com" &&
+                          doc?.file?.json_v3_status !== "final-pdftojson"
+                        ) {
+                          return (
+                            <div
+                              className="cursor-pointer"
+                              onClick={() => onOpenDocView(doc)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") onOpenDocView(doc);
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                                {doc?.file?.remarks || doc?.remarks}
+                                <br />
+                              </div>
+                            </div>
+                          );
+                        } else if (doc?.status !== "delete") {
+                          return (
+                            <Link href={`/pdf/${makefileurl(sessionId)}`} className="block">
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                                {doc?.file?.remarks || doc?.remarks}
+                                <br />
+                              </div>
+                            </Link>
+                          );
+                        } else {
+                          return (
+                            <span
+                              className="cursor-pointer flex justify-start"
+                              onClick={onSessionStatusCheck}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") onSessionStatusCheck();
+                              }}
+                              tabIndex={0}
+                              role="button"
+                            >
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                                {doc?.file?.remarks || doc?.remarks}
+                                <br />
+                              </div>
+                            </span>
+                          );
+                        }
+                      })()}
+                    </TableCell>
+
                     {/* Name column */}
                     <TableCell className="py-3">
                       {hasProcessingData && (
@@ -619,11 +684,11 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                                     ))
                                   : null
                               )
-                            : doc?.file?.combinedJSON ? (
-                              doc.file.combinedJSON?.map((item, index) =>
+                            : doc?.file?.combinedJSON
+                            ? doc.file.combinedJSON?.map((item, index) =>
                                 item?.accountdetails?.map((detail, i) => (
                                   <span
-                                    key={i} 
+                                    key={i}
                                     style={{
                                       display: "flex ",
                                       justifyContent: "space-between",
@@ -638,7 +703,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                                   </span>
                                 ))
                               )
-                            ) : null}
+                            : null}
                         </>
                       )}
                     </TableCell>
@@ -670,7 +735,13 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                     {/* Actions column */}
                     <TableCell className="text-right py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <JsonButton onClick={() => openPdftojsonModal(sessionId, doc)}>JSON</JsonButton>
+                        <JsonButton
+                          onClick={
+                            doc?.file ? () => openPdftojsonModal(sessionId, doc) : (e) => handleNullFileClick(e, "JSON", doc)
+                          }
+                        >
+                          JSON
+                        </JsonButton>
                         <DropdownMenu
                           open={openDropdownId === sessionId}
                           onOpenChange={(open) => (open ? setOpenDropdownId(sessionId) : setOpenDropdownId(null))}
@@ -805,10 +876,19 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
       />
 
       {/* Report Issue Modal */}
-      <ReportIssueModal
-        isOpen={reportModalOpen}
-        onClose={() => setReportModalOpen(false)}
-      />
+      <ReportIssueModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
+
+      {/* Confirmation Modal for null file */}
+      {nullFileAlert && (
+        <ConfirmationSingleButtonModal
+          isOpen={true}
+          onClose={() => setNullFileAlert(false)}
+          title="Document inaccessible"
+          description="Document inaccessible due to unverified URL submission."
+          buttonText="Close"
+          buttonVariant="error"
+        />
+      )}
 
       {/* Add this to your global CSS or add it inline */}
       <style jsx>{`

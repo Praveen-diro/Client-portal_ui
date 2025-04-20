@@ -94,8 +94,8 @@ export default function TwoFactorPage() {
 
   console.log("twoFactorId praveen", twoFactorId, methodId);
 
-  // Default to Email method if method is not specified but we have email
-  const effectiveMethod = method || (email ? "Email" : "");
+  // Update the effectiveMethod logic to be more explicit
+  const effectiveMethod = method || "";
 
   // Mark component as mounted to avoid hydration mismatch
   useEffect(() => {
@@ -525,7 +525,8 @@ export default function TwoFactorPage() {
                   Get instant original documents online
                 </h1>
                 <p className="text-slate-600 dark:text-white/80 text-xl leading-relaxed">
-                  Secure your account with two-factor authentication for enhanced protection.
+                  Fast track your business with 100% original documents. Eliminate the need for attestations, notary, apostle or
+                  even physical document verification.
                 </p>
               </motion.div>
 
@@ -653,6 +654,7 @@ export default function TwoFactorPage() {
                           </div>
                         </div>
 
+                        {/* Only show the Send Code button for Email method */}
                         {effectiveMethod === "Email" && (
                           <div className="flex justify-end mb-4">
                             <motion.div initial="initial" animate="animate" whileHover="hover" variants={buttonVariants}>

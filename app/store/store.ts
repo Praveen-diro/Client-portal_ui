@@ -1,30 +1,26 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
-import buttonSettingsReducer from "./features/buttonSettingsSlice";
 import authReducer from "./features/authSlice";
-import privacyReducer from "./features/privacySlice";
-import triggerReducer from "./features/triggerSlice";
 import tableReducer from "./features/tableSlice";
 import organizationReducer from "./features/organizationSlice";
 import billingReducer from "./features/billingSlice";
 import viewDocReducer from "./features/viewDocSlice";
 import buttonReducer from "./features/buttonSlice";
 import sourceReducer from "./features/sourceSlice";
+import logsReducer from "./features/logsSlice";
 import { combineReducers } from "@reduxjs/toolkit";
 
 // Create the root reducer separately so we can extract the RootState type
 const rootReducer = combineReducers({
   auth: authReducer,
   user: userReducer,
-  buttonSettings: buttonSettingsReducer,
-  privacy: privacyReducer,
-  trigger: triggerReducer,
   table: tableReducer,
   organization: organizationReducer,
   billing: billingReducer,
   viewDoc: viewDocReducer,
   buttons: buttonReducer,
   source: sourceReducer,
+  logs: logsReducer,
 });
 
 // Use a closure to maintain a single store instance across the application lifecycle
@@ -79,9 +75,6 @@ if (
     [
       "./features/authSlice",
       "./features/userSlice",
-      "./features/buttonSettingsSlice",
-      "./features/privacySlice",
-      "./features/triggerSlice",
       "./features/tableSlice",
       "./features/organizationSlice",
       "./features/billingSlice",

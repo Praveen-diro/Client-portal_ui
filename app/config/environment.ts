@@ -360,8 +360,8 @@ const stage2: Environment = {
   emailHost: "smtp-relay.sendinblue.com",
   upload_widget_CSS_CDN: "https://smartupload.diro.io/widgets-stage2/diro.css",
   upload_widget_JS_CDN: "https://smartupload.diro.io/widgets-stage2/diro.js",
-  capture_widget_CSS_CDN: "https://directlinkwidget-d0awedeyche6e7bu.z03.azurefd.net/directlink-staging/stylesSelectLink.css",
-  capture_widget_JS_CDN: "https://directlinkwidget-d0awedeyche6e7bu.z03.azurefd.net/directlink-staging/diroWidgetSelectLink.js",
+  capture_widget_CSS_CDN: "https://capturev2.diro.io/directlink-staging/stylesSelectLink.css",
+  capture_widget_JS_CDN: "https://capturev2.diro.io/directlink-staging/diroWidgetSelectLink.js",
   varificationSwaggerLink: "/betav3",
   varificationSwaggerLinkBeta: "/beta",
   uploadverification_link: "https://verify.diro.live/?buttonid=",
@@ -527,8 +527,8 @@ const stage1: Environment = {
   emailHost: "smtp-relay.sendinblue.com",
   upload_widget_CSS_CDN: "https://smartupload.diro.io/widgets-stage1/diro.css",
   upload_widget_JS_CDN: "https://smartupload.diro.io/widgets-stage1/diro.js",
-  capture_widget_CSS_CDN: "https://directlinkwidget-d0awedeyche6e7bu.z03.azurefd.net/directlink-staging/stylesSelectLink.css",
-  capture_widget_JS_CDN: "https://directlinkwidget-d0awedeyche6e7bu.z03.azurefd.net/directlink-staging/diroWidgetSelectLink.js",
+  capture_widget_CSS_CDN: "https://capturev2.diro.io/directlink-staging/stylesSelectLink.css",
+  capture_widget_JS_CDN: "https://capturev2.diro.io/directlink-staging/diroWidgetSelectLink.js",
   varificationSwaggerLink: "/betav3",
   varificationSwaggerLinkBeta: "/beta",
   extractTransaction: "https://api1.diro.live/textract/extractTransaction",
@@ -721,6 +721,6 @@ const prodeu: Environment = {
   emailReminderUrl: "https://api.diro.io/emailReminder",
 };
 
-export { stage1 };
+export { stage1 as env };
 export { prodeu };
-export { stage2  as env };
+export { stage2  };

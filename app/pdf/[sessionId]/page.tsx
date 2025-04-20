@@ -49,6 +49,7 @@ import { env } from "@/app/config/environment";
 import { useToast } from "@/components/ui/use-toast";
 import { setDocumentData, setDataPdf, setViewDocLoading } from "@/app/store/features/viewDocSlice";
 import { RootState } from "@/app/store/store";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 // Dynamically import react-pdf components with SSR disabled
 const PDFDocument = dynamic(() => import("react-pdf").then((mod) => mod.Document), { ssr: false });
@@ -252,6 +253,7 @@ export default function PdfViewer() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [customReason, setCustomReason] = useState("");
   const [showCustomReason, setShowCustomReason] = useState(false);
+  const [showInaccessibleModal, setShowInaccessibleModal] = useState(false);
 
   // Refs
   const isMounted = useRef(true);
@@ -407,6 +409,18 @@ export default function PdfViewer() {
         // Now fetch PDF document data (after metadata)
         const downloadResponse = await viewDocService.getDownloadDocument(sessionId as string);
         console.log("Download Response:", downloadResponse);
+
+        // Handle inaccessible document error
+        if (
+          downloadResponse &&
+          downloadResponse.error === true &&
+          downloadResponse.message === "The document does not exist!" &&
+          downloadResponse.data?.statusCode === 204
+        ) {
+          setShowInaccessibleModal(true);
+          setLoading(false);
+          return;
+        }
 
         if (!downloadResponse.success) {
           if (downloadResponse.message === "You are not allowed to see this document!") {
@@ -683,6 +697,22 @@ export default function PdfViewer() {
 
   // For development debugging - just to show something is loading
   console.log("PDF Viewer rendering. SessionId:", sessionId);
+
+  // Show inaccessible modal if needed
+  if (showInaccessibleModal) {
+    return (
+      <ConfirmationModal
+        isOpen={true}
+        onClose={() => (window.location.href = "/client/documents-received")}
+        onConfirm={() => (window.location.href = "/client/documents-received")}
+        title="Document inaccessible"
+        description="Document inaccessible due to unverified URL submission."
+        confirmText="Back to Documents"
+        cancelText="Close"
+        variant="error"
+      />
+    );
+  }
 
   // If the document is invalid
   if (docInvalid) {

@@ -17,12 +17,14 @@ import {
   UserCircle2,
   Gauge,
   LifeBuoy,
+  LogOut,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ModeToggle, ModeToggleRef } from "./mode-toggle";
 import { cookies } from "@/app/services/cookie.service";
 import { ReportIssueModal } from "./report-issue-modal";
+import { authService } from "@/app/services/auth.service";
 
 interface SidebarProps {
   onExpandedChange?: (expanded: boolean) => void;
@@ -203,6 +205,12 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       href: "/client/documents-received",
     },
     {
+      id: "logs",
+      icon: FileText,
+      label: "Callback Logs",
+      href: "/client/callback-logs",
+    },
+    {
       id: "See coverage",
       icon: Earth,
       label: "Coverage", 
@@ -239,6 +247,19 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
       onClick: () => {
         if (!mounted) return;
         setTheme(theme === "light" ? "dark" : "light");
+      },
+    },
+    {
+      id: "logout",
+      icon: LogOut,
+      label: "Logout",
+      onClick: async () => {
+        try {
+          await authService.logout();
+          router.push("/authentication/login");
+        } catch (error) {
+          console.error("Logout failed:", error);
+        }
       },
     },
   ];
@@ -486,7 +507,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                 "text-muted-foreground hover:text-foreground flex items-center",
                 "h-12 rounded-xl w-full transition-colors duration-200",
                 isExpanded && !isMobile
-                  ? "px-4 hover:bg-accent/30 bg-amber-50/80 dark:bg-blue-950/40 border border-amber-100 dark:border-blue-900/50"
+                  ? "px-4 hover:bg-accent/30 bg-indigo-50/80 dark:bg-blue-950/40 border border-indigo-100 dark:border-blue-900/50"
                   : "justify-center"
               )}
               whileHover={isExpanded && !isMobile ? { x: 2, scale: 1.02 } : { scale: 1.15 }}
@@ -502,7 +523,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
                 )}
               >
                 {mounted ? (
-                  <action.icon className={`h-[22px] w-[22px] ${theme === "dark" ? "text-amber-400" : "text-blue-500"}`} />
+                  <action.icon className={`h-[22px] w-[22px] ${theme === "dark" ? "text-blue-400" : "text-indigo-500"}`} />
                 ) : (
                   <div className="h-[22px] w-[22px]" />
                 )}

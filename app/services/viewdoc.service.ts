@@ -3,7 +3,7 @@ import ls from "localstorage-slim";
 import { env } from "../config/environment";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
-import { logService } from "./logs.service";
+import { logsService } from "./logs.service";
 import { cookies } from "./cookie.service";
 import { apiService, ApiResponse } from "./api.service";
 
@@ -64,7 +64,13 @@ class ViewDocService {
     return apiService.makeRequest<T>(url, requestData, retryKey, this.MAX_RETRY_COUNT, false, true);
   }
 
-  async searchTable(search: string,limit: number, requesterEmail: string, requesterRole: string, status: string): Promise<TableResponse<any>> {
+  async searchTable(
+    search: string,
+    limit: number,
+    requesterEmail: string,
+    requesterRole: string,
+    status: string
+  ): Promise<TableResponse<any>> {
     const data = {
       apikey: this.getApiKey(),
       search,
@@ -99,11 +105,11 @@ class ViewDocService {
         };
       }
 
-      await logService.sendLogs("getDownloadedDocument", "getDownloadedDocument success", "viewdoc.service.ts");
+      await logsService.sendLogs("getDownloadedDocument", "getDownloadedDocument success", "viewdoc.service.ts");
       this.notifySubscribers({ type: "GET_PDF_DATA", data: response.data });
       return response;
     } catch (error: any) {
-      await logService.sendLogs("getDownloadedDocument Failed", error.response, "viewdoc.service.ts");
+      await logsService.sendLogs("getDownloadedDocument Failed", error.response, "viewdoc.service.ts");
       return { success: false, error: error.response || error.message };
     }
   }

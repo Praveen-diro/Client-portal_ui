@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { stage2 as env } from '../../config/environment';
+import { env } from '../../config/environment';
 import { refreshToken as refreshAuth } from './authSlice';
 import { cookies } from '../../services/cookie.service';
 

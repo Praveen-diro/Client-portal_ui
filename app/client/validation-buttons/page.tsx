@@ -45,7 +45,8 @@ import { getButtons, addButton, getButton } from "@/app/store/features/buttonSli
 import Loader from "@/components/ui/loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AnimatePresence } from "framer-motion";
-// import { getUserFromCookies } from "@/app/store/features/authSlice";
+import { CreateButton } from "./components/create-button";
+import { getUserTime } from "@/app/utils/timeUtils";
 
 const statsCards = [
   {
@@ -89,6 +90,16 @@ interface FormattedButton {
   timestamp: number;
 }
 
+interface AuthUser {
+  apikey: string;
+  [key: string]: any;
+}
+
+interface AuthState {
+  user: AuthUser | null;
+  [key: string]: any;
+}
+
 export default function ValidationButtons() {
   const [buttons, setButtons] = useState<FormattedButton[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -122,12 +133,14 @@ export default function ValidationButtons() {
   const itemsPerPage = 10;
 
   // Add this to access Redux auth state for debugging
-  const auth = useSelector((state: RootState) => state.auth);
+  const auth = useSelector((state: RootState) => state.auth) as AuthState;
   const buttonsData = useSelector((state: RootState) => state.buttons.buttons);
   const userRoles = useSelector((state: RootState) => state.auth.roles);
-  const authMode = useSelector((state: RootState) => state.auth.authMode);
-  console.log("auth state mode", authMode);
-  console.log("authMode value", authMode);
+  const authMode = useSelector((state: RootState) => state.auth.authMode) as number;
+
+  useEffect(() => {
+    console.log("Current authMode:", authMode);
+  }, [authMode]);
 
   // Add state for button operations
   const [duplicateButtonModalOpen, setDuplicateButtonModalOpen] = useState(false);
@@ -256,21 +269,7 @@ export default function ValidationButtons() {
               // Calculate relative time for display
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -435,21 +434,7 @@ export default function ValidationButtons() {
               const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -531,21 +516,7 @@ export default function ValidationButtons() {
               const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
               let lastModified = "Recently";
               if (button.btndata?.eptime) {
-                const buttonDate = new Date(timestamp);
-                const now = new Date();
-                const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays < 1) {
-                  lastModified = "Today";
-                } else if (diffDays === 1) {
-                  lastModified = "Yesterday";
-                } else if (diffDays < 7) {
-                  lastModified = `${diffDays} Days ago`;
-                } else {
-                  const diffWeeks = Math.floor(diffDays / 7);
-                  lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-                }
+                lastModified = getUserTime(button.btndata.eptime);
               }
 
               return {
@@ -705,7 +676,8 @@ export default function ValidationButtons() {
   // Silent version that doesn't show any UI feedback
   const copyButtonToProductionSilently = async (buttonId: string, sheetUrl?: string) => {
     try {
-      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+      const apiKey = auth.user?.apikey || Cookies.get("apikey") || "";
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, apiKey);
 
       if (response.success) {
         // Just refresh button list silently
@@ -727,7 +699,8 @@ export default function ValidationButtons() {
   // Fix the missing copyButtonToProduction function
   const copyButtonToProduction = async (buttonId: string, sheetUrl?: string) => {
     try {
-      const response = await buttonService.copyToProduction(buttonId, sheetUrl, auth.user.apikey);
+      const apiKey = auth.user?.apikey;
+      const response = await buttonService.copyToProduction(buttonId, sheetUrl, apiKey);
       if (response.success) {
         refreshButtonsList();
       } else {
@@ -806,21 +779,7 @@ export default function ValidationButtons() {
           const timestamp = button.btndata?.eptime ? parseInt(button.btndata.eptime) : 0;
           let lastModified = "Recently";
           if (button.btndata?.eptime) {
-            const buttonDate = new Date(timestamp);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - buttonDate.getTime());
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays < 1) {
-              lastModified = "Today";
-            } else if (diffDays === 1) {
-              lastModified = "Yesterday";
-            } else if (diffDays < 7) {
-              lastModified = `${diffDays} Days ago`;
-            } else {
-              const diffWeeks = Math.floor(diffDays / 7);
-              lastModified = `${diffWeeks} Week${diffWeeks > 1 ? "s" : ""} ago`;
-            }
+            lastModified = getUserTime(button.btndata.eptime);
           }
 
           return {
@@ -892,47 +851,17 @@ export default function ValidationButtons() {
       <PageContainer sidebarExpanded={sidebarExpanded}>
         <TooltipProvider>
           <div className="flex-1 relative">
-            <PageHeader title="Verification Buttons" description="Manage and monitor your verification button performance" />
-            <div className="container mx-auto px-8 py-8">
-              <motion.div
-                className="flex justify-end mb-6"
-                initial={initialAnimation}
-                animate={{ opacity: 1, x: 0 }}
-                transition={headerTransitionConfig}
-              >
-                <div className="flex items-center">
-                  {!adminAccess && (
-                    <span className="text-red-500 mr-4 text-sm">Access denied. You don't have permission to create buttons.</span>
-                  )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div style={{ cursor: "pointer" }}>
-                        <Button
-                          className={`${
-                            authMode === 1
-                              ? "opacity-50 cursor-not-allowed pointer-events-none bg-gray-400 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700"
-                              : "bg-foreground text-background hover:bg-foreground/90"
-                          }`}
-                          onClick={handleCreateButton}
-                          disabled={authMode === 1}
-                          suppressHydrationWarning
-                        >
-                          <Plus className="mr-2 h-4 w-4" /> Create Button
-                        </Button>
-                      </div>
-                    </TooltipTrigger>
-                    {authMode === 1 && (
-                      <TooltipContent>
-                        <p>To create a button, please switch to test mode</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </div>
-              </motion.div>
-
+            <PageHeader
+              title="Verification Buttons"
+              description="Manage and monitor your verification button performance"
+              action={<CreateButton onClick={handleCreateButton} authMode={authMode} adminAccess={adminAccess} />}
+            />
+            <div className="container mx-auto px-8 py-0">
+              {/* Remove the old create button section */}
               {/* Create Button Confirmation Modal - Horizontal Layout */}
               <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Create Button</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1166,6 +1095,7 @@ export default function ValidationButtons() {
               {/* Success Modal with Rename Option - Horizontal Layout */}
               <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1441,6 +1371,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-2xl p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Duplicate Button</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1780,6 +1711,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Copy to Production Confirmation</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1900,6 +1832,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+                  <DialogTitle className="sr-only">Copy to Production Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2081,6 +2014,7 @@ export default function ValidationButtons() {
                 }}
               >
                 <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+                  <DialogTitle className="sr-only">Button Duplicated Success</DialogTitle>
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2168,7 +2102,7 @@ export default function ValidationButtons() {
                 </DialogContent>
               </Dialog>
 
-              <div className="grid grid-cols-3 gap-6">
+              {/* <div className="grid grid-cols-3 gap-6">
                 {statsCards.map((card, index) => (
                   <motion.div
                     key={card.title}
@@ -2228,7 +2162,7 @@ export default function ValidationButtons() {
                     </Card>
                   </motion.div>
                 ))}
-              </div>
+              </div> */}
 
               <motion.div
                 initial={initialAnimation}
@@ -2395,45 +2329,37 @@ export default function ValidationButtons() {
                 })()}
 
                 {buttons.length > itemsPerPage && (
-                  <div className="flex items-center justify-center px-4 py-6">
-                    <div className="flex items-center border rounded-full overflow-hidden bg-card shadow-md w-64">
-                      {(() => {
-                        const prevButtonClasses =
-                          currentPage === 1
-                            ? "text-muted cursor-not-allowed"
-                            : "text-foreground hover:bg-primary/10 hover:text-primary";
-
-                        const nextButtonClasses =
-                          currentPage === totalPages
-                            ? "text-muted cursor-not-allowed"
-                            : "text-foreground hover:bg-primary/10 hover:text-primary";
-
-                        return (
-                          <>
-                            <button
-                              onClick={handlePrevPage}
-                              disabled={currentPage === 1}
-                              className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${prevButtonClasses}`}
-                            >
-                              <ChevronLeft className="h-4 w-4 mr-1" />
-                              Previous
-                            </button>
-                            <div className="px-4 border-l border-r border-border font-semibold text-sm text-primary">
-                              {currentPage}
-                            </div>
-                            <button
-                              onClick={handleNextPage}
-                              disabled={currentPage === totalPages}
-                              className={`px-4 py-2 flex items-center text-sm font-medium transition-all ${nextButtonClasses}`}
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4 ml-1" />
-                            </button>
-                          </>
-                        );
-                      })()}
+                  <motion.div
+                    initial={initialAnimation}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      ...transitionConfig,
+                      delay: 0.6,
+                    }}
+                    className="flex items-center justify-center py-4"
+                  >
+                    <div className="inline-flex items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-full border px-3 py-1">
+                      <Button
+                        variant="ghost"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className="h-8 rounded-full flex items-center gap-2"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <span>Previous</span>
+                      </Button>
+                      <span className="text-sm font-medium">{currentPage}</span>
+                      <Button
+                        variant="ghost"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="h-8 rounded-full flex items-center gap-2"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </motion.div>
             </div>

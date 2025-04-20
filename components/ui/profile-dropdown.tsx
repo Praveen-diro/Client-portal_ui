@@ -14,9 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { store } from "@/app/store/store";
+
 
 export function ProfileDropdown() {
   const router = useRouter();
+  const alldatastate = store.getState().auth.alldata;
+  console.log("user data in profile dropdown", alldatastate);
 
   const dropdownItems = [
     {
@@ -57,8 +61,8 @@ export function ProfileDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex flex-col gap-1">
-          <span>change name</span>
-          <span className="font-normal text-xs text-muted-foreground">praveen@diro.io</span>
+          <p className="text-sm font-medium">{alldatastate?.name}</p>
+          <span className="font-normal text-xs text-muted-foreground">{alldatastate?.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {dropdownItems.map((item) => (

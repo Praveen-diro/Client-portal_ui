@@ -20,9 +20,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // Initialize store on first load
   useEffect(() => {
-    // Force an initial dispatch to ensure state is ready
-    store.dispatch({ type: "APP_INIT" });
-
     // Mark component as mounted
     setMounted(true);
 

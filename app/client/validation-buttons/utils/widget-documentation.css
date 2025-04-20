@@ -1,0 +1,189 @@
+/* ================ */
+.modal-header-custom {
+    background: hsl(var(--card) / 1);
+    display: flex;
+    align-items: center;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    padding: 1.25rem 1.5rem 1rem !important;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.modal-header-custom span {
+    color: hsl(var(--card-foreground));
+    font-weight: 600;
+}
+
+.modal-header-custom div[data-description] {
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+}
+
+/* Dark mode for header */
+@media (prefers-color-scheme: dark) {
+    .modal-header-custom {
+        background: hsl(var(--card) / 1);
+    }
+
+    .modal-header-custom span {
+        color: hsl(var(--card-foreground));
+    }
+
+    .modal-header-custom div[data-description] {
+        color: hsl(var(--muted-foreground));
+    }
+}
+
+.widget_ul {
+    margin-bottom: 0.75rem !important;
+    padding-left: 0;
+}
+
+.widget_ul>p {
+    font-size: 16px !important;
+    margin-bottom: 0.5rem;
+    position: relative;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+}
+
+.widget_ul>div {
+    margin-bottom: 0.75rem;
+    font-size: 14px;
+    line-height: 1.5;
+    color: hsl(var(--foreground) / 0.9);
+}
+
+.widget_ul>li {
+    list-style-type: disc;
+    margin-bottom: 0.5rem;
+    font-size: 14px;
+    margin-left: 1.5rem;
+    line-height: 1.5;
+    color: hsl(var(--foreground) / 0.9);
+}
+
+.widget_span {
+    margin-left: 1.2rem;
+    font-size: 15px;
+    font-weight: 500;
+    color: hsl(var(--foreground) / 0.8);
+}
+
+/* ==========added css for widget mode srcipt code ======== */
+.paracodeherence {
+    font-size: 14px;
+}
+
+.widgetcode_box {
+    /* background-color: hsl(var(--muted) / 0.3);
+     */
+    background-color: #e4e4e4;
+    border: 1px solid hsl(var(--border));
+    padding: 12px;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 6px;
+    font-family: 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+}
+
+.widgetcode {
+    margin-bottom: 0 !important;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    line-height: 1.5;
+    color: hsl(var(--foreground));
+}
+
+.widgetcode>.green_text {
+    color: hsl(142, 71%, 45%) !important;
+}
+
+.widgetcode>.blue_text {
+    color: hsl(230, 92%, 45%) !important;
+}
+
+.widget_li {
+    display: inline;
+    background: hsl(var(--muted) / 0.5);
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin-left: 3px;
+    font-family: 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: hsl(var(--foreground));
+}
+
+.widget_ul_li_tag {
+    list-style-type: circle;
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.widget_ul_li_tag>li {
+    font-size: 13px;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+    color: hsl(var(--foreground) / 0.9);
+}
+
+.url-style {
+    font-family: 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
+    background: hsl(var(--muted) / 0.4);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    word-break: break-all;
+    color: hsl(var(--foreground) / 0.95);
+}
+
+/* Widget customization option */
+#widget_customize_option {
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+    margin-left: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .widgetcode_box {
+        width: 100%;
+        padding: 8px;
+    }
+
+    .widget_ul>p {
+        font-size: 14px !important;
+    }
+
+    .widget_ul>li {
+        font-size: 13px;
+    }
+
+    .widgetcode {
+        font-size: 12px;
+    }
+}
+
+/* Improve scrollbars for code blocks */
+.widgetcode_box::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+
+.widgetcode_box::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 3px;
+}
+
+.widgetcode_box::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 3px;
+}
+
+.widgetcode_box::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+}
