@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FileText, Eye, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Eye, MoreVertical, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
 
@@ -38,6 +38,9 @@ import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 import VerificationCell from "./VerificationCell";
 import ConfirmationSingleButtonModal from "@/components/ui/confirmation-single-button-modal";
 import TypeCell from "./TypeCell";
+import countriesData from "@/app/data/countries.json";
+import { DateRangePicker } from "@heroui/date-picker";
+import { DateValue } from "@internationalized/date";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -128,6 +131,33 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   const user = useSelector((state: any) => state.auth.user);
   const itemsPerPage = 10; // Number of items per page
 
+  // Country filter dropdown state (matching PendingDocuments/ApprovedDocuments)
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [countrySearch, setCountrySearch] = useState("");
+  const countryInputRef = React.useRef<HTMLInputElement>(null);
+  const countryDropdownRef = React.useRef<HTMLDivElement>(null);
+  const countries = countriesData;
+  const countryOptions = countriesData.map((c) => ({ label: c.name, value: c.code }));
+  const filteredCountries = countryOptions.filter(
+    (c) => !selectedCountries.includes(c.value) && c.label.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  // Add effect for click outside to close dropdown (matching PendingDocuments/ApprovedDocuments)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setIsCountryDropdownOpen(false);
+      }
+    }
+    if (isCountryDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isCountryDropdownOpen]);
+
   // Add state for session ID copying
   const [copiedSessionId, setCopiedSessionId] = useState(false);
   const [copiedSessionIdText, setCopiedSessionIdText] = useState("");
@@ -149,6 +179,12 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   const [nullFileAlert, setNullFileAlert] = useState(false);
   const [nullFileColumn, setNullFileColumn] = useState<string | null>(null);
   const [nullFileRow, setNullFileRow] = useState<any>(null);
+
+  // Add missing state for date dropdown
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState("Date");
+  const [customRange, setCustomRange] = useState<{ start: DateValue | null; end: DateValue | null }>({ start: null, end: null });
+  const [isCustomCalendarOpen, setIsCustomCalendarOpen] = useState(false);
 
   // Placeholder functions - these will need to be implemented with the actual functionality
   const onSessionStatusCheck = () => {
@@ -440,11 +476,230 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
             <TableRow>
               <TableHead className="font-medium text-sm">Button</TableHead>
               <TableHead className="font-medium text-sm">Type</TableHead>
-              <TableHead className="font-medium text-sm">Verification source</TableHead>
+              <TableHead className="font-medium text-sm relative">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Verification source</span>
+                  <button
+                    type="button"
+                    className="text-lg text-muted-foreground hover:text-primary focus:outline-none"
+                    onClick={() => {
+                      setIsCountryDropdownOpen((open) => {
+                        if (!open) {
+                          setTimeout(() => countryInputRef.current?.focus(), 0);
+                        }
+                        return !open;
+                      });
+                    }}
+                    tabIndex={0}
+                    aria-label="Toggle country filter dropdown"
+                  >
+                    {isCountryDropdownOpen ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {selectedCountries.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-lg text-muted-foreground hover:text-red-500 focus:outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCountries([]);
+                      }}
+                      tabIndex={0}
+                      aria-label="Clear selected countries"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {isCountryDropdownOpen && (
+                  <>
+                    <div
+                      ref={countryDropdownRef}
+                      className="relative flex flex-wrap items-center border rounded-md px-2 py-1 bg-background min-h-8 gap-1 cursor-text mt-1"
+                      style={{ minWidth: 100, maxWidth: 180 }}
+                      tabIndex={0}
+                    >
+                      {selectedCountries.length > 0 &&
+                        selectedCountries.map((code) => {
+                          const country = countryOptions.find((c) => c.value === code);
+                          return (
+                            <span
+                              key={code}
+                              className="bg-muted px-1.5 py-0.5 rounded text-xs flex items-center gap-1"
+                              style={{ fontWeight: 500 }}
+                            >
+                              {country?.label || code}
+                              <button
+                                type="button"
+                                className="ml-0.5 text-xs text-gray-500 hover:text-red-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCountries((prev) => prev.filter((c) => c !== code));
+                                }}
+                                tabIndex={-1}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      <input
+                        ref={countryInputRef}
+                        className="flex-1 outline-none border-none bg-transparent text-xs px-1 min-w-[30px]"
+                        placeholder={selectedCountries.length === 0 && !countrySearch ? "Filter by countries..." : ""}
+                        value={countrySearch}
+                        onChange={(e) => {
+                          setCountrySearch(e.target.value);
+                        }}
+                        style={{ minWidth: 30, maxWidth: 80 }}
+                        autoFocus
+                      />
+                    </div>
+                    <div
+                      className="absolute left-4 top-full z-30 bg-background border rounded-md shadow w-full max-h-40 overflow-auto"
+                      style={{ minWidth: 100, maxWidth: 180 }}
+                    >
+                      {filteredCountries.length > 0 ? (
+                        filteredCountries.map((country) => (
+                          <div
+                            key={country.value}
+                            className="px-2 py-1 cursor-pointer hover:bg-muted rounded text-xs"
+                            onClick={(e) => {
+                              setSelectedCountries((prev) => [...prev, country.value]);
+                              setCountrySearch("");
+                              setTimeout(() => countryInputRef.current?.focus(), 0);
+                            }}
+                          >
+                            {country.label}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-muted-foreground text-xs">No countries found</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </TableHead>
               <TableHead className="font-medium text-sm">Session ID</TableHead>
               <TableHead className="font-medium text-sm">Remarks</TableHead>
               <TableHead className="font-medium text-sm">Name</TableHead>
-              <TableHead className="font-medium text-sm">Date</TableHead>
+              <TableHead className="font-medium text-sm relative" style={{ position: "relative" }}>
+                {dateFilter !== "Date" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-muted text-xs font-medium text-muted-foreground">
+                      {dateFilter === "Custom" && customRange && customRange.start && customRange.end ? (
+                        <>
+                          Custom {formatDate(customRange.start?.toString())} to {formatDate(customRange.end?.toString())}
+                          <button
+                            type="button"
+                            className="ml-1 text-muted-foreground hover:text-primary focus:outline-none"
+                            onClick={() => setIsCustomCalendarOpen(true)}
+                            tabIndex={0}
+                            aria-label="Open custom date picker"
+                          >
+                            <CalendarIcon className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : dateFilter === "Week" ? (
+                        "Last week"
+                      ) : dateFilter === "Month" ? (
+                        "Last month"
+                      ) : dateFilter === "Year" ? (
+                        "Last year"
+                      ) : (
+                        dateFilter
+                      )}
+                      <button
+                        type="button"
+                        className="ml-2 text-lg text-muted-foreground hover:text-red-500 focus:outline-none"
+                        onClick={() => {
+                          setDateFilter("Date");
+                          setCustomRange({ start: null, end: null });
+                          setIsCustomCalendarOpen(false);
+                        }}
+                        tabIndex={0}
+                        aria-label="Clear date filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                    {dateFilter === "Custom" && isCustomCalendarOpen && (
+                      <div className="flex flex-col gap-1">
+                        <DateRangePicker
+                          className="max-w-xs"
+                          value={
+                            customRange.start && customRange.end ? { start: customRange.start, end: customRange.end } : undefined
+                          }
+                          onChange={(range: { start?: DateValue; end?: DateValue } | null) => {
+                            setCustomRange({
+                              start: range?.start ?? null,
+                              end: range?.end ?? null,
+                            });
+                            if (range?.start && range?.end) setIsCustomCalendarOpen(false);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 relative">
+                    Date
+                    <button
+                      type="button"
+                      className="ml-1 p-1 rounded hover:bg-muted"
+                      onClick={() => setDateDropdownOpen((open) => !open)}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    {dateDropdownOpen && (
+                      <div className="absolute left-0 mt-2 z-30 bg-background border rounded shadow w-56 p-3">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            className="text-left px-2 py-1 rounded hover:bg-muted"
+                            onClick={() => {
+                              setDateFilter("Week");
+                              setDateDropdownOpen(false);
+                            }}
+                          >
+                            Last week
+                          </button>
+                          <button
+                            className="text-left px-2 py-1 rounded hover:bg-muted"
+                            onClick={() => {
+                              setDateFilter("Month");
+                              setDateDropdownOpen(false);
+                            }}
+                          >
+                            Last month
+                          </button>
+                          <button
+                            className="text-left px-2 py-1 rounded hover:bg-muted"
+                            onClick={() => {
+                              setDateFilter("Year");
+                              setDateDropdownOpen(false);
+                            }}
+                          >
+                            Last year
+                          </button>
+                          <button
+                            className="text-left px-2 py-1 rounded hover:bg-muted"
+                            onClick={() => {
+                              setDateFilter("Custom");
+                              setDateDropdownOpen(false);
+                              setIsCustomCalendarOpen(true);
+                            }}
+                          >
+                            Custom period
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </TableHead>
               <TableHead className="font-medium text-sm">Track ID</TableHead>
 
               <TableHead className="font-medium text-sm text-right">Actions</TableHead>
@@ -677,7 +932,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                           {doc?.file?.pdfdata_v3
                             ? doc.file.pdfdata_v3?.map((item: any, i: number) =>
                                 item?.type === "name"
-                                  ? item?.values?.map((value: any, idx: number) => (
+                                  ? (item?.values as any[])?.map((value: any, idx: number) => (
                                       <span key={`name-${i}-${idx}`} className="text-sm block">
                                         {value?.name}
                                       </span>
@@ -685,23 +940,25 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                                   : null
                               )
                             : doc?.file?.combinedJSON
-                            ? doc.file.combinedJSON?.map((item, index) =>
-                                item?.accountdetails?.map((detail, i) => (
-                                  <span
-                                    key={i}
-                                    style={{
-                                      display: "flex ",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      fontSize: "13px",
-                                      fontWeight: "400",
-                                      lineHeight: "1",
-                                      color: "black",
-                                    }}
-                                  >
-                                    {detail?.name}
-                                  </span>
-                                ))
+                            ? (doc.file.combinedJSON as any[]).map((item: any, index: number) =>
+                                Array.isArray(item?.accountdetails)
+                                  ? (item.accountdetails as any[]).map((detail: any, i: number) => (
+                                      <span
+                                        key={i}
+                                        style={{
+                                          display: "flex ",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          fontSize: "13px",
+                                          fontWeight: "400",
+                                          lineHeight: "1",
+                                          color: "black",
+                                        }}
+                                      >
+                                        {detail?.name}
+                                      </span>
+                                    ))
+                                  : null
                               )
                             : null}
                         </>
