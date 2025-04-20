@@ -54,6 +54,7 @@ import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import countriesData from "@/app/data/countries.json";
+import TypeCell from "./TypeCell";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -636,9 +637,14 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
 
             {/* Type column */}
             <TableCell className="py-3">
-              <Badge variant="outline" className="bg-background">
-                {firstLetterCap(docType)}
-              </Badge>
+              <TypeCell
+                doc={doc}
+                onOpenDocView={onOpenDocView}
+                makefileurl={makefileurl}
+                sessionId={sessionId}
+                isDeleteStatus={isDeleteStatus}
+                firstLetterCap={firstLetterCap}
+              />
             </TableCell>
 
             {/* Verification source column */}

@@ -1,7 +1,7 @@
 import React from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Download, Upload, Camera } from "lucide-react";
+import Link from "next/link";
 
 interface TypeCellProps {
   doc: any;
@@ -12,33 +12,22 @@ interface TypeCellProps {
   firstLetterCap: (str: string) => string;
 }
 
-const iconMap = {
-  capture: {
-    src: "/assets/images/capture.png",
-    alt: "capture",
-    tooltip: "Screenshot",
-  },
-  upload: {
-    src: "/assets/images/upoladIcon.png",
-    alt: "upload",
-    tooltip: "Upload",
-  },
-  download: {
-    src: "/assets/images/icon/download-icon-webhook-1330572128077478850_0.svg",
-    alt: "download",
-    tooltip: "Download",
-  },
-};
-
-const getTypeIcon = (doc: any) => {
-  if (doc.mhtmlVal === "png") return iconMap.capture;
-  if (doc.button?.mode?.type === "upload") return iconMap.upload;
-  return iconMap.download;
-};
-
 const TypeCell: React.FC<TypeCellProps> = ({ doc, onOpenDocView, makefileurl, sessionId, isDeleteStatus, firstLetterCap }) => {
-  const icon = getTypeIcon(doc);
   const category = firstLetterCap(doc?.file?.category);
+
+  // Determine which icon to show
+  let icon = null;
+  let tooltip = "";
+  if (doc.mhtmlVal === "png") {
+    icon = <Camera className="mr-2 type-icon" size={18} />;
+    tooltip = "Screenshot";
+  } else if (doc.button?.mode?.type === "upload") {
+    icon = <Upload className="mr-2 type-icon" size={18} />;
+    tooltip = "Upload";
+  } else {
+    icon = <Download className="mr-2 type-icon" size={18} />;
+    tooltip = "Download";
+  }
 
   // Logic for clickable/viewable cell
   const cellContent = (
@@ -46,11 +35,9 @@ const TypeCell: React.FC<TypeCellProps> = ({ doc, onOpenDocView, makefileurl, se
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="flex items-center">
-              <Image src={icon.src} alt={icon.alt} width={18} height={18} className="mr-2 type-icon" />
-            </span>
+            <span className="flex items-center">{icon}</span>
           </TooltipTrigger>
-          <TooltipContent>{icon.tooltip}</TooltipContent>
+          <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
       <span>{category}</span>

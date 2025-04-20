@@ -50,6 +50,7 @@ import { ReportIssueModal } from "@/components/ui/report-issue-modal";
 import countriesData from "@/app/data/countries.json";
 import { DateRangePicker } from "@heroui/date-picker";
 import { DateValue } from "@internationalized/date";
+import TypeCell from "./TypeCell";
 
 const itemsPerPage = 10;
 
@@ -604,7 +605,14 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
 
             {/* Type column */}
             <TableCell>
-              <Badge variant="outline">{firstLetterCap(docType)}</Badge>
+              <TypeCell
+                doc={doc}
+                onOpenDocView={onOpenDocView}
+                makefileurl={makefileurl}
+                sessionId={sessionId}
+                isDeleteStatus={isDeleteStatus}
+                firstLetterCap={firstLetterCap}
+              />
             </TableCell>
 
             {/* Verification source column */}
@@ -1175,9 +1183,14 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
 
                     {/* Type column */}
                     <TableCell className="py-3">
-                      <Badge variant="outline" className="bg-background">
-                        {firstLetterCap(docType)}
-                      </Badge>
+                      <TypeCell
+                        doc={doc}
+                        onOpenDocView={onOpenDocView}
+                        makefileurl={makefileurl}
+                        sessionId={sessionId}
+                        isDeleteStatus={isDeleteStatus}
+                        firstLetterCap={firstLetterCap}
+                      />
                     </TableCell>
 
                     {/* Verification source column */}

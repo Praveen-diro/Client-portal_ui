@@ -805,9 +805,14 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
 
                     {/* Type column */}
                     <TableCell className="py-3">
-                      <Badge variant="outline" className="bg-background">
-                        {firstLetterCap(docType)}
-                      </Badge>
+                      <TypeCell
+                        doc={doc}
+                        onOpenDocView={onOpenDocView}
+                        makefileurl={makefileurl}
+                        sessionId={sessionId}
+                        isDeleteStatus={isDeleteStatus}
+                        firstLetterCap={firstLetterCap}
+                      />
                     </TableCell>
 
                     {/* Verification source column */}
