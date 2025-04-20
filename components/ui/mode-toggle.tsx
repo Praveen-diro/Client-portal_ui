@@ -333,7 +333,7 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
   return (
     <div className={className}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Test Mode</span>
+        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Test mode</span>
         <FancyToggle checked={isTestMode} onChange={toggleModal} disabled={isLoading} className="relative z-10" />
       </div>
 

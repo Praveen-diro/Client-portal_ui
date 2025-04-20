@@ -236,7 +236,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "theme",
       icon: theme === "dark" ? Sun : Moon,
-      label: theme === "dark" ? "Light Mode" : "Dark Mode",
+      label: theme === "dark" ? "Light mode" : "Dark mode",
       onClick: () => {
         if (!mounted) return;
         setTheme(theme === "light" ? "dark" : "light");
@@ -404,7 +404,7 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
               }
             }}
             onMouseEnter={
-              !isExpanded ? (e) => showTooltip(isTestMode ? "Test Mode: Active" : "Test Mode: Inactive", e) : undefined
+              !isExpanded ? (e) => showTooltip(isTestMode ? "Test mode: Active" : "Test mode: Inactive", e) : undefined
             }
             onMouseLeave={!isExpanded ? hideTooltip : undefined}
           >
