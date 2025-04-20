@@ -214,18 +214,21 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [reloadCountdown, setReloadCountdown] = useState(0);
-  const AuthReducer = useAppSelector((state: RootState) => state.auth.user);
+  const AuthReducer = useAppSelector((state: RootState) => state.auth.login_user);
 
-  // Get current authMode from cookies
-  const getAuthMode = () => {
+  // Get current authMode from cookies as string ("1" or "2")
+  const getAuthMode = (): "1" | "2" => {
     try {
-      const testMode = cookies.get("authMode");
-      return testMode === "2";
+      const authMode = cookies.get("authMode");
+      return authMode === "2" ? "2" : "1";
     } catch (error) {
-      console.error("Error getting test mode from cookies:", error);
-      return false;
+      console.error("Error getting auth mode from cookies:", error);
+      return "1";
     }
   };
+
+  // Helper for UI
+  const isTestMode = getAuthMode() === "2";
 
   // Function to toggle the modal - can be called from parent
   const toggleModal = () => {
@@ -283,18 +286,16 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
     if (confirmed) {
       if (onToggleStart) onToggleStart();
       setIsLoading(true);
-      const currentAuthMode = getAuthMode();
-      const newMode = currentAuthMode ? "1" : "2";
+      const currentMode = getAuthMode();
+      // For API: sandbox reflects the current mode
+      const sandbox = currentMode === "2" ? "true" : "false";
+      // For toggling after success
+      const newMode = currentMode === "2" ? "1" : "2";
 
-      // Show success modal immediately with loading state
-      setSuccessMessage(`Switching to ${newMode ? "test" : "production"} mode...`);
+      setSuccessMessage(`Switching to ${newMode === "2" ? "test" : "production"} mode...`);
       try {
-        // Save mode to cookies
-        cookies.set("authMode", newMode ? "2" : "1");
-
         // Get email from cookies
         const email = cookies.get("email");
-
         if (!email) {
           setShowEmailError(true);
           setIsLoading(false);
@@ -302,38 +303,26 @@ export const ModeToggle = forwardRef<ModeToggleRef, ModeToggleProps>(({ classNam
           return;
         }
 
-        // Call switchModeServer to change the server mode with the current authMode
-        const response = await authService.switchModeServer({ email, sandbox: currentAuthMode ? "true" : "false" });
+        // Call switchModeServer with the current mode
+        await authService.switchModeServer({ email, sandbox, alldata: AuthReducer });
+
+        // Only update the cookie after successful API call
+        cookies.set("authMode", newMode);
+        setSuccessMessage(`Switched to ${newMode === "2" ? "test" : "production"} mode successfully!`);
         setShowSuccessModal(true);
-        console.log("response switchModeServer", response);
-        console.log(`Successfully switched to ${newMode ? "test" : "production"} mode on server`);
-
-        // Update success message with simpler text
-        setSuccessMessage(`Switched to ${newMode ? "test" : "production"} mode successfully!`);
-
-        // Start countdown for page reload
+        setIsLoading(false);
         setReloadCountdown(3);
-        // Force reload after a short delay to ensure new cookies are picked up
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
       } catch (error) {
         console.error("Error switching mode:", error);
         setSuccessMessage(`Failed to switch mode. Please try again.`);
-
-        // Close error modal after delay
+        setIsLoading(false);
         setTimeout(() => {
           setShowSuccessModal(false);
           if (onToggleEnd) onToggleEnd();
         }, 2000);
-      } finally {
-        setIsLoading(false);
       }
     }
   };
-
-  // Get current auth mode for rendering
-  const isTestMode = getAuthMode();
 
   return (
     <div className={className}>

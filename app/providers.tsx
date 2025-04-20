@@ -1,9 +1,10 @@
 "use client";
 
 import { Provider } from "react-redux";
-import { store } from "./store/store";
+import { store, persistor } from "./store/store";
 import { useEffect, useState, Suspense } from "react";
 import { usePathname } from "next/navigation";
+import { PersistGate } from "redux-persist/integration/react";
 
 // TypeScript declaration for Redux DevTools
 declare global {
@@ -76,12 +77,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // Wrap non-critical features in Suspense to avoid blocking the UI
   return (
     <Provider store={store}>
-      {children}
-      {mounted && (
-        <Suspense fallback={null}>
-          <GeoLocationLoader pathname={pathname} />
-        </Suspense>
-      )}
+      <PersistGate loading={null} persistor={persistor}>
+        {children}
+        {mounted && (
+          <Suspense fallback={null}>
+            <GeoLocationLoader pathname={pathname} />
+          </Suspense>
+        )}
+      </PersistGate>
     </Provider>
   );
 }

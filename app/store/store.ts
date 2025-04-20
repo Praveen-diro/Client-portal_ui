@@ -9,6 +9,7 @@ import buttonReducer from "./features/buttonSlice";
 import sourceReducer from "./features/sourceSlice";
 import logsReducer from "./features/logsSlice";
 import { combineReducers } from "@reduxjs/toolkit";
+import { persistStore } from "redux-persist";
 
 // Create the root reducer separately so we can extract the RootState type
 const rootReducer = combineReducers({
@@ -62,6 +63,7 @@ const createStore = () => {
 
 // Create the store instance
 export const store = createStore();
+export const persistor = persistStore(store);
 
 // Enable hot reloading in development
 if (

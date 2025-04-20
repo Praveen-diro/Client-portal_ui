@@ -36,7 +36,7 @@ class ViewDocService {
   // private setupCustomAxiosDefaults(): void {
   //   // Custom implementation for viewdoc service that handles test mode
   //   if (cookies.get("authMode") === "2") {
-  //     axios.defaults.headers.common["Authorization"] = cookies.get("tokenTest");
+  //     axios.defaults.headers.common["Authorization"] = cookies.get("sandboxaccesstoken");
   //   } else {
   //     axios.defaults.headers.common["Authorization"] = cookies.get("token");
   //   }

@@ -52,10 +52,10 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
   // Get current test mode status
   const getTestMode = useCallback(() => {
     try {
-      const testMode = cookies.get("testMode");
-      return testMode === "true";
+      const authMode = cookies.get("authMode");
+      return authMode === "2";
     } catch (error) {
-      console.error("Error getting test mode from cookies:", error);
+      console.error("Error getting auth mode from cookies:", error);
       return false;
     }
   }, []);
@@ -213,10 +213,10 @@ export function Sidebar({ onExpandedChange, className }: SidebarProps) {
     {
       id: "See coverage",
       icon: Earth,
-      label: "Coverage", 
+      label: "Coverage",
       href: "https://diro.live/see-coverage/",
       target: "_blank",
-      rel: "noopener noreferrer"
+      rel: "noopener noreferrer",
     },
     {
       id: "integrations",

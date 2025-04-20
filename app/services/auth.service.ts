@@ -2,8 +2,8 @@ import axios, { AxiosResponse, AxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../config/environment";
 import { cookies } from "./cookie.service";
-// Import Redux actions and store
-import { store } from "../store/store";
+import { dispatchAction } from "../store/hooks";
+import { apiService } from "./api.service";
 import {
   loginFail,
   loginAuthenticated,
@@ -28,8 +28,7 @@ import {
   getCountries,
   loginSandboxTwoFactor,
 } from "../store/features/authSlice";
-import { dispatchAction } from "../store/hooks";
-import { apiService } from "./api.service";
+import { store } from "../store/store";
 
 // Add a router reference that can be set from components
 let globalRouter: any = null;
@@ -454,9 +453,11 @@ class AuthService {
 
   /**
    * Switches the server mode (between live and sandbox)
-   * @param data Object containing email for the account
+   * @param data Object containing email for the account and alldata from Redux
    */
-  async switchModeServer(data: { email: string; sandbox: string }): Promise<void> {
+  async switchModeServer(data: { email: string; sandbox: string; alldata: any }): Promise<void> {
+
+    console.log('here is the data, ',data.alldata)
     const switchPayload = { emailId: data.email, sandbox: data.sandbox };
 
     try {
@@ -476,31 +477,29 @@ class AuthService {
 
       console.log("Mode Change:", response.data?.sandbox);
 
-      // Get the current user data from cookies
-      const userData = cookies.get("alldata");
-      const parsedUserData = userData ? JSON.parse(userData) : null;
+      const parsedUserData = data.alldata;
+      console.log("parsedUserData1111", parsedUserData);
+   
 
       // Determine the new mode
+      // console.log("here is the response data", response.data);
+      // alert(JSON.stringify(response.data));
       const newMode = response.data?.sandbox === true ? 2 : 1;
 
       // Update API key and token based on mode
       if (parsedUserData) {
         if (newMode === 2) {
-          console.log("Sandbox mode");
-          console.log("parsedUserData", parsedUserData);
-          // Sandbox mode
-          cookies.set("apikey", parsedUserData.sandbox?.apikey || "");
-          cookies.set("token", parsedUserData.sandbox?.accesstoken || "");
-          cookies.set("sandboxapi", parsedUserData.sandbox?.apikey || "");
-          cookies.set("tokenTest", parsedUserData.sandbox?.accesstoken || "");
+          cookies.set("apikey", parsedUserData?.sandbox?.apikey || "");
+          cookies.set("token", parsedUserData?.sandbox?.accesstoken || "");
+          cookies.set("sandboxapi", parsedUserData?.sandbox?.apikey || "");
+          cookies.set("sandboxaccesstoken", parsedUserData?.sandbox?.accesstoken || "");
         } else {
           // Live mode
-          cookies.set("apikey", parsedUserData.apikey || "");
-          cookies.set("token", parsedUserData.token || "");
-          cookies.set("liveapi", parsedUserData.apikey || "");
+          cookies.set("apikey", parsedUserData?.apikey || "");
+          cookies.set("token", parsedUserData?.token || "");
+          cookies.set("liveapi", parsedUserData?.apikey || "");
         }
       }
-
       // Dispatch the auth mode change based on response
       dispatchAction(setAuthMode(newMode));
     } catch (error) {
@@ -801,21 +800,14 @@ class AuthService {
    * @returns A promise that resolves when the two-factor login is completed
    */
   async twoFactorLogin(email: string, otp: string, twoFactorId: string, authStatus: boolean): Promise<any> {
-    // Clear cookies before login
-    console.log("Two-factor login attempt for:", email);
-
     // Add back the bypass email functionality
     let body;
     const bypassEmails = env.bypassEmails;
 
-    // Bypass email of deepak for testing
+    // Bypass email for testing
     if (bypassEmails.includes(email)) {
-      console.log("Calling the specified API for deepak@diro.io");
       try {
         const response = await axios.post(env.twofactorAutomatedOtp, { email });
-        console.log("API response for deepak@diro.io:", response.data);
-        console.log("otp", response.data.data.code);
-        console.log("body of the 2fa " + body);
         body = {
           email,
           fusionotp: response.data.data.code,
@@ -846,7 +838,6 @@ class AuthService {
     };
 
     try {
-      console.log("calling an api");
       const res = await axios.post(env.twoFactorLogin, requestBody, config);
 
       console.log("Full API response:", JSON.stringify(res.data));
@@ -913,45 +904,35 @@ class AuthService {
           cookies.remove("requiresTwoFactor");
           cookies.set("isAuthenticated", "true");
 
-          // Enhanced error logging and property checking
-          if (!res.data) {
-            console.error("Response data is missing entirely");
-          } else if (!res.data.doc) {
-            console.error("Missing doc property in response:", JSON.stringify(res.data));
-          } else if (!res.data.doc.token) {
-            console.error("Missing accesstoken property in doc:", JSON.stringify(res.data.doc));
-          }
-
           // Check if the expected properties exist before dispatching
-          if (!res.data.doc || !res.data.doc.token) {
-            console.log("Creating modified payload with default values");
-            // Create a modified payload with default values for missing properties
-            const modifiedPayload = {
-              ...res.data,
-              doc: {
-                ...(res.data.doc || {}),
-                accesstoken: res.headers.authorization || "",
-                // Add other potentially missing properties with sensible defaults
-                apikey: res.data.doc?.apikey || res.data.doc?.sandbox?.apikey || "",
-                refreshToken: res.data.doc?.refreshToken || "",
-                sandbox: {
-                  ...(res.data.doc?.sandbox || {}),
-                  apikey: res.data.doc?.sandbox?.apikey || res.data.doc?.apikey || "",
-                  accesstoken: res.data.doc?.sandbox?.accesstoken || res.headers.authorization || "",
-                },
-              },
-            };
-
-            console.log("Modified payload created:", JSON.stringify(modifiedPayload));
-            // Dispatch with the modified payload
-            dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: modifiedPayload }));
-          } else {
+          if (res.data.doc || res.data.doc.token) {
             // Dispatch with the original payload
+            // Add proper error handling with optional chaining and fallback values
+            // Set tokens with Bearer prefix - using nullish coalescing to handle missing properties
+            cookies.set("token", ensureTokenHasBearer(res.data.doc?.token || res.data.doc?.accesstoken || ""));
+            cookies.set("secrettoken", ensureTokenHasBearer(res.data.doc?.sandbox?.accesstoken || ""));
+            cookies.set("tempsecret", ensureTokenHasBearer(res.data.doc?.dirotoken || ""));
+            cookies.set("refreshToken", res.data.doc?.refreshToken || "");
+            // Set API keys with fallbacks
+            cookies.set("apikey", res.data.doc?.sandbox?.apikey || "");
+            cookies.set("liveapi", res.data.doc?.apikey || "");
+            cookies.set("sandboxapi", res.data.doc?.sandbox?.apikey || "");
+            cookies.set("sandboxaccesstoken", res.data.doc?.sandbox?.accesstoken || "");
+            const { email, apikey, roles, firstname, lastname, orgid, orgname, profileimage } = res.data.doc;
+            cookies.set("alldata", JSON.stringify({ email, apikey, roles, firstname, lastname, orgid, orgname, profileimage }));
+            cookies.set("alldataa", JSON.stringify(res.data.doc));
+            cookies.set("stripeid", res.data.doc?.stripeid || "");
+            cookies.set("planid", res.data.doc?.planid || "");
+            cookies.set("country", res.data.doc?.country || "USA");
+            if (res.data.doc?.roles?.length > 0) {
+              cookies.set("roles", res.data.doc.roles[0]);
+            }
             dispatchAction(loginSandboxTwoFactor({ headers: res.headers, payload: res.data }));
+            sendLogs("Sandbox Login", "Sandbox logged in successfully", "services/auth.service.ts");
+          } else {
+            console.error("no data found in response");
+            dispatchAction(loginFail({ payload: res.data }));
           }
-
-          sendLogs("Sandbox Login", "Sandbox logged in successfully", "services/auth.service.ts");
-
           // Redirect to dashboard if in browser - USE NAVIGATETO INSTEAD OF DIRECT WINDOW LOCATION
           if (typeof window !== "undefined") {
             console.log("Redirecting to validation buttons in sandbox mode");

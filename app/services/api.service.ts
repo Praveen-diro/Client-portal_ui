@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import { cookies } from "./cookie.service";
 import { axiosService } from "./axios.service";
 import { refreshAuthService } from "./refreshAuth.service";
-import { logService } from "./logs.service";
+import { logsService } from "./logs.service";
 import { env } from "../config/environment";
 
 // Declare the loadingSubscribers property on the Window interface
@@ -117,7 +117,7 @@ class ApiService {
 
       // Log the error if requested
       if (shouldLog) {
-        await logService.sendLogs(`API Request Failed: ${url}`, error.response || error.message, "api.service.ts");
+        await logsService.sendLogs(`API Request Failed: ${url}`, error.response || error.message, "api.service.ts");
       }
 
       return {
@@ -181,12 +181,12 @@ class ApiService {
    * @returns Promise with the new token or null on failure
    */
   async generateSecretToken(token: string, orgId: string, apikey: string): Promise<ApiResponse<string>> {
-    const sandbox = apikey.startsWith('d-');
-    
+    const sandbox = apikey.startsWith("d-");
+
     let cleanedToken: string;
     if (sandbox) {
       cleanedToken = token;
-    } else if (token.startsWith('Bearer ')) {
+    } else if (token.startsWith("Bearer ")) {
       cleanedToken = token.slice(7);
     } else {
       cleanedToken = token;
@@ -195,65 +195,61 @@ class ApiService {
     const json = {
       accesstoken: cleanedToken,
       orgid: orgId,
-      sandbox: sandbox
+      sandbox: sandbox,
     };
 
     console.log("Payload to generate secret token:", json);
 
     try {
       console.log("API call initiated");
-      
+
       // Set authorization header if needed
       // axios.defaults.headers.common["Authorization"] = token;
-      
+
       const response = await axios.post(env.generateSecretToken, json);
       console.log("API call completed with status:", response.status);
 
       if (response.status === 200) {
         console.log("Response from API:", response.data);
-        
+
         if (sandbox) {
           cookies.set("secrettoken", response.data);
-          cookies.set("tokenTest", response.data);
+          cookies.set("sandboxaccesstoken", response.data);
           console.log("Response sandbox", response.data);
         } else {
           cookies.set("secrettoken", "Bearer " + response.data);
           cookies.set("tempsecret", "Bearer " + response.data);
           console.log("Response out of sandbox", response.data);
         }
-        
+
         return {
           success: true,
-          data: response.data
+          data: response.data,
         };
       } else {
-        console.log('Something went wrong', response.status, response.data);
+        console.log("Something went wrong", response.status, response.data);
         return {
           success: false,
-          error: "Request failed with unexpected status: " + response.status
+          error: "Request failed with unexpected status: " + response.status,
         };
       }
     } catch (error: any) {
       console.log("Inside the error block");
       console.log("Error message:", error.message);
-      
+
       if (error.message === "Request failed with status code 401" || error.message === "Network Error") {
         // Handle token expiration
         console.log("Authentication error detected, refreshing token");
         try {
           // Use your refresh auth mechanism
-          await refreshAuthService.refreshAuth();
-          
+          await refreshAuthService.refreshAuth(async () => ({ success: true }), false);
+
           // Retry the request with fresh token
-          return this.generateSecretToken(
-            cookies.get("token") || "", 
-            orgId, 
-            apikey
-          );
+          return this.generateSecretToken(cookies.get("token") || "", orgId, apikey);
         } catch (refreshError) {
           return {
             success: false,
-            error: "Failed to refresh authentication"
+            error: "Failed to refresh authentication",
           };
         }
       } else if (error.response) {
@@ -261,13 +257,13 @@ class ApiService {
           console.log("Invalid token to generate new secret token:", error.response.data);
           return {
             success: false,
-            error: "Invalid token provided"
+            error: "Invalid token provided",
           };
         } else {
           console.log("Unexpected error occurred:", error.response.data);
           return {
             success: false,
-            error: error.response.data?.message || "Unexpected error"
+            error: error.response.data?.message || "Unexpected error",
           };
         }
       } else if (error.request) {
@@ -275,12 +271,12 @@ class ApiService {
         console.log("Error request:", error.request);
         return {
           success: false,
-          error: "No response received from server"
+          error: "No response received from server",
         };
       } else {
         return {
           success: false,
-          error: "Unknown error occurred"
+          error: "Unknown error occurred",
         };
       }
     }

@@ -715,9 +715,6 @@ export default function LoginPage() {
             cookies.set("multiFactorEnabled", "false");
           }
         }
-
-        console.log("response.data.sandbox", response.data.sandbox);
-
         // Dispatch actions based on sandbox status
         if (response.data.sandbox === false || response.data.sandbox === "false") {
           console.log("loginAuthenticated");

@@ -85,6 +85,7 @@
     "react18-json-view": "^0.2.9",
     "reactstrap": "^9.2.3",
     "recharts": "2.15.0",
+    "redux-persist": "^6.0.0",
     "sonner": "^1.7.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-parser": "^10.0.3",

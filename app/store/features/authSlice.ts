@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { cookies } from "../../services/cookie.service";
+import { persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage";
 
 // Cookie options for security
 const cookieOptions = {
@@ -19,7 +21,7 @@ interface AuthState {
   loading: boolean;
   isAuthenticated: boolean;
   token: string | null;
-  tokenTest: string;
+  sandboxaccesstoken: string;
   sandboxapi: string;
   liveapi: string;
   fileurl: string;
@@ -82,7 +84,7 @@ const initialState: AuthState = {
   loading: false,
   isAuthenticated: false,
   token: cookies.get("token") || null,
-  tokenTest: cookies.get("tokenTest") || "",
+  sandboxaccesstoken: cookies.get("sandboxaccesstoken") || "",
   sandboxapi: cookies.get("sandboxapi") || "",
   liveapi: cookies.get("liveapi") || "",
   fileurl: cookies.get("fileurl") || "",
@@ -159,7 +161,7 @@ const initialState: AuthState = {
 
 const clearCookies = () => {
   cookies.remove("token");
-  cookies.remove("tokenTest");
+  cookies.remove("sandboxaccesstoken");
   cookies.remove("sandboxapi");
   cookies.remove("liveapi");
   cookies.remove("fileurl");
@@ -216,10 +218,6 @@ const authSlice = createSlice({
       console.log("Updated state:", { countries: state.countries, user: state.user, loadingcountry: state.loadingcountry });
     },
     loginSandbox: (state, action: PayloadAction<any>) => {
-      console.log("loginSandbox reducer called with payload:", action.payload);
-      cookies.set("authMode", "2");
-      cookies.set("email", action.payload.email);
-      cookies.set("methodId", action.payload.payload.methodId);
       state.email = action.payload.email;
       state.isTwoFactor = true;
       state.isAuthenticated = false;
@@ -247,43 +245,7 @@ const authSlice = createSlice({
     },
     loginSandboxTwoFactor: (state, action: PayloadAction<any>) => {
       const { doc } = action.payload.payload;
-      const emptyString = "";
-      console.log("doc data in loginSandboxTwoFactor", doc);
-
-      // Add proper error handling with optional chaining and fallback values
-      // Set tokens with Bearer prefix - using nullish coalescing to handle missing properties
-      cookies.set("token", ensureTokenHasBearer(doc?.token || doc?.accesstoken || emptyString));
-      cookies.set("secrettoken", ensureTokenHasBearer(doc?.sandbox?.accesstoken || emptyString));
-      cookies.set("tempsecret", ensureTokenHasBearer(doc?.dirotoken || emptyString));
-      cookies.set("refreshToken", doc?.refreshToken || emptyString);
-
-      // Set API keys with fallbacks
-      cookies.set("apikey", doc?.sandbox?.apikey || emptyString);
-      cookies.set("liveapi", doc?.apikey || emptyString);
-      cookies.set("sandboxapi", doc?.sandbox?.apikey || emptyString);
-      cookies.set("tokenTest", doc?.sandbox?.accesstoken || emptyString);
-
-      // Set user data with null checks
-      try {
-        cookies.set("alldata", JSON.stringify(doc));
-        cookies.set("alldataa", JSON.stringify(doc));
-      } catch (error) {
-        console.error("Error setting alldata cookies:", error);
-      }
-      cookies.set("stripeid", doc?.stripeid || emptyString);
-      cookies.set("planid", doc?.planid || emptyString);
-      state.alldata = doc || "";
-
-      if (doc?.roles?.length > 0) {
-        cookies.set("roles", doc.roles[0]);
-      }
-
-      cookies.set("country", doc.country || "USA");
-      cookies.set("email", doc.email);
-      cookies.set("orgid", doc.data.orgid);
-      cookies.set("multiFactorEnabled", "true");
-      cookies.set("authMode", "2");
-
+      state.alldata = doc;
       // Update state
       state.isAuthenticated = true;
       state.loading = false;
@@ -311,7 +273,7 @@ const authSlice = createSlice({
       cookies.set("apikey", doc.apikey);
       cookies.set("liveapi", doc.apikey);
       cookies.set("sandboxapi", doc.sandbox.apikey);
-      cookies.set("tokenTest", doc.sandbox.accesstoken);
+      cookies.set("sandboxaccesstoken", doc.sandbox.accesstoken);
 
       // Set user data
       cookies.set("alldata", JSON.stringify(doc));
@@ -656,4 +618,13 @@ export const {
   setLoginError,
 } = authSlice.actions;
 
-export default authSlice.reducer;
+// Persist config for auth slice
+const authPersistConfig = {
+  key: "auth",
+  storage,
+  whitelist: ["user", "login_user", "authMode", "sandboxStatus"],
+};
+
+const persistedAuthReducer = persistReducer(authPersistConfig, authSlice.reducer);
+
+export default persistedAuthReducer;
