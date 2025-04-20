@@ -13,8 +13,20 @@ import {
   AlertTriangle,
   Check,
   ClipboardCheck,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
+  Camera,
+  AlertCircle,
+  HelpCircle,
+  BadgeCheck,
+  ShieldOff,
+  CheckCircle2,
+  XCircle,
+  X
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -37,6 +49,7 @@ import { cookies } from "@/app/services/cookie.service";
 import { toast } from "@/components/ui/use-toast";
 import { SessionDetailsModal } from "@/components/ui/session-details-modal";
 import { JsonViewer } from "./JsonViewer";
+import camerafraud_check from "@/public/assets/images/camerafraud_check.png";
 import {
   pdfLoader,
   pdfToJsonData,
@@ -484,17 +497,103 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
   // Verification cell renderer
   const verificationCell = (doc: any) => {
     return (
-      <div className="text-sm">
+      <div className="flex items-center gap-2">
+        {doc?.button?.mode && (
+          <TooltipProvider>
+            {doc.button.mode.type === "upload" && doc?.imageToPdfConverted ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Image
+                    src={camerafraud_check}
+                    alt="upload"
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Fraud check can't be done on images
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              doc.button.mode.type === "upload" ? (
+                doc.fraudCheck?.verifiedScore === 0 ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                        <XCircle className="h-4 w-4 text-red-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Tampered (score 0%)
+                    </TooltipContent>
+                  </Tooltip>
+                ) : doc.fraudCheck?.verifiedScore === 50 ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Suspicious (score 50%)
+                    </TooltipContent>
+                  </Tooltip>
+                ) : doc.fraudCheck?.verifiedScore === 75 ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <BadgeCheck className="h-4 w-4 text-green-400 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Likely pass (score 75%)
+                    </TooltipContent>
+                  </Tooltip>
+                ) : doc.fraudCheck?.verifiedScore === 100 ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Pass (score 100%)
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null
+              ) : (
+                doc?.file?.urlStatus?.urlMatch && doc.file?.urlStatus?.sslVerified ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="rounded-full bg-green-500 p-0.5 flex-shrink-0">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Source verified
+                    </TooltipContent>
+                  </Tooltip>
+                ) : !doc?.file?.urlStatus?.sslVerified ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Source not verified
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ShieldQuestion className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Verify again
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              )
+            )}
+          </TooltipProvider>
+        )}
 
-
-
-
-
-        {/* =========== */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex justify-left font-normal text-black text-sm m-[3px]">
+              <span className="text-sm text-black truncate max-w-[200px]">
                 {getHostnameFromRegex(doc?.file?.url)}
               </span>
             </TooltipTrigger>
@@ -512,8 +611,6 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     console.log("Rejecting document", doc);
     // Implement rejection functionality
   };
-
-
 
   const renderContent = () => {
     if (isLoading) {

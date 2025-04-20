@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FileText, Eye, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Eye, MoreVertical, ChevronLeft, ChevronRight, XCircle, HelpCircle, BadgeCheck, CheckCircle2, ShieldOff, ShieldQuestion, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/use-toast";
 
@@ -35,6 +35,9 @@ import {
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
 import { ReportIssueModal } from "@/components/ui/report-issue-modal";
+import Image from "next/image";
+import camerafraud_check from "@/public/assets/images/camerafraud_check.png";
+import { parseDomain } from "parse-domain";
 
 // Helper function to format date
 const formatDate = (dateString: string) => {
@@ -142,10 +145,168 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
   // Add a new state for report modal
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
+
+
+  // Helper to extract hostname from URL
+  const getFullUrl = (url: string | undefined): string | null => {
+    const matches = url?.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+    return matches ? matches[1] : null;
+  };
+
+
+  // Helper to extract domain from URL using regex and parse-domain
+  const getHostnameFromRegex = (url: string | undefined): string | null => {
+    const matches = url?.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+    
+    if (!matches?.[1]) return null;
+
+    const parseResult = parseDomain(matches[1]);
+
+    if (!parseResult || typeof parseResult === 'string') return matches[1];
+
+    const { domain, topLevelDomains } = parseResult.type === 'LISTED' ? parseResult : { domain: null, topLevelDomains: null };
+
+    if (!domain || !topLevelDomains) return matches[1];
+
+    return `${domain}.${topLevelDomains[0]}${
+      topLevelDomains[1] ? `.${topLevelDomains[1]}` : ''
+    }`;
+  };
   // Verification cell helper
   const verificationCell = (doc: any) => {
-    const sourceText = doc?.website || (typeof doc.source === "string" ? doc.source : "diro.me");
-    return sourceText;
+    // Get the most recent URL from urlChangeList if it exists
+    const getLatestUrl = (urlChangeList: any[]): string | undefined => {
+      if (Array.isArray(urlChangeList) && urlChangeList?.length > 0) {
+        return urlChangeList[0]?.url;
+      }
+      return undefined;
+    };
+
+    return (
+      <div className="flex items-center gap-2">
+        {/* Verification Icon */}
+        {doc?.button?.mode && (
+          <TooltipProvider>
+            {doc.button.mode.type === "upload" && doc?.imageToPdfConverted ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Image
+                    src={camerafraud_check}
+                    alt="upload"
+                    width={16}
+                    height={16}
+                    className="flex-shrink-0"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Fraud check can't be done on images
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              doc.button.mode.type === "upload" ? (
+                <>
+                  {doc.fraudCheck?.verifiedScore === 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Tampered (score 0%)
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {doc.fraudCheck?.verifiedScore === 50 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Suspicious (score 50%)
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {doc.fraudCheck?.verifiedScore === 75 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BadgeCheck className="h-4 w-4 text-green-400 flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Likely pass (score 75%)
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {doc.fraudCheck?.verifiedScore === 100 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Pass (score 100%)
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
+              ) : (
+                <>
+                  {doc?.file?.urlStatus?.urlMatch && doc.file?.urlStatus?.sslVerified ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="rounded-full bg-green-500 p-0.5 flex-shrink-0">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Source verified
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : !doc?.file?.urlStatus?.sslVerified ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Source not verified
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <ShieldQuestion className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Verify again
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
+              )
+            )}
+          </TooltipProvider>
+        )}
+
+        {/* URL Display and Tooltip */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <span className="text-sm text-black truncate max-w-[200px]">
+                  {doc?.file 
+                    ? getHostnameFromRegex(doc.file?.url)
+                    : getHostnameFromRegex(getLatestUrl(doc?.urlChangeList))
+                  }
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {doc?.file 
+                ? getFullUrl(doc.file?.url)
+                : getFullUrl(getLatestUrl(doc?.urlChangeList))
+              }
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
   };
 
   // Placeholder functions - these will need to be implemented with the actual functionality
@@ -484,7 +645,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                   doc?.file?.category || (doc.button && doc.button.coverage ? doc.button.coverage.category : "Unknown");
 
                 // Extract verification source
-                const sourceText = doc?.website || (typeof doc.source === "string" ? doc.source : "diro.me");
+                const sourceText = verificationCell(doc);
 
                 // Session ID
                 const sessionIdText = doc?.file?.docid || sessionId || "Unknown";
@@ -548,22 +709,22 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
 
                     {/* Verification source column */}
                     <TableCell className="py-3">
-                      {shouldOpenInDocView ? (
+                      {/* {shouldOpenInDocView ? (
                         <div
                           className="cursor-pointer text-sm"
                           onClick={isDeleteStatus ? onSessionStatusCheck : () => onOpenDocView(doc)}
                         >
-                          {verificationCell(doc)}
+                          {sourceText}
                         </div>
                       ) : !isDeleteStatus ? (
                         <Link href={`/pdf/${makefileurl(sessionId)}`} className="text-sm">
-                          {verificationCell(doc)}
+                          {sourceText}
                         </Link>
-                      ) : (
+                      ) : ( */}
                         <div className="cursor-pointer text-sm" onClick={onSessionStatusCheck}>
-                          {verificationCell(doc)}
+                          {sourceText}
                         </div>
-                      )}
+                      {/* )} */}
                     </TableCell>
 
                     {/* Session ID column */}
