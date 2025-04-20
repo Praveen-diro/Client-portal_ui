@@ -625,24 +625,26 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
                       : null
                   )}
                 </>
-              ) : doc?.file?.combinedJSON ? (
-                doc.file.combinedJSON?.map((item, index) =>
-                  item?.accountdetails?.map((detail, i) => (
-                    <span
-                      key={i} 
-                      style={{
-                        display: "flex ",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "13px",
-                        fontWeight: "400",
-                        lineHeight: "1",
-                        color: "black",
-                      }}
-                    >
-                      {detail?.name}
-                    </span>
-                  ))
+              ) : Array.isArray(doc?.file?.combinedJSON) ? (
+                doc.file.combinedJSON.map((item, index) =>
+                  Array.isArray(item?.accountdetails)
+                    ? item.accountdetails.map((detail, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            display: "flex ",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            fontSize: "13px",
+                            fontWeight: "400",
+                            lineHeight: "1",
+                            color: "black",
+                          }}
+                        >
+                          {detail?.name}
+                        </span>
+                      ))
+                    : null
                 )
               ) : null}
             </TableCell>
@@ -832,10 +834,7 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
         }}
       />
 
-      <ReportIssueModal
-        isOpen={reportModalOpen}
-        onClose={() => setReportModalOpen(false)}
-      />
+      <ReportIssueModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
 
       {/* Any style elements or closing JSX tags */}
       <style jsx>{`

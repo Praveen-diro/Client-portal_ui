@@ -10,12 +10,9 @@ import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import Loader from "@/components/ui/loader";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Dynamically import JsonView with SSR disabled
-const JsonView = dynamic(() => import("react18-json-view").then((mod) => mod.default), {
-  ssr: false,
-  loading: () => <div className="p-4 text-gray-500">Loading JSON viewer...</div>,
-});
+import ReactJsonView from "@uiw/react-json-view";
+import { lightTheme } from "@uiw/react-json-view/light";
+import { darkTheme } from "@uiw/react-json-view/dark";
 
 export interface JsonViewerProps {
   readonly isOpen: boolean;
@@ -822,37 +819,35 @@ export function JsonViewer({
                             </span>
                           </div>
                         </div>
-                        <JsonView
-                          src={filterJsonData(jsonData) || {}}
-                          theme={isDarkMode ? "atom" : "default"}
-                          collapsed={1}
-                          enableClipboard={false}
+                        <ReactJsonView
+                          value={filterJsonData(jsonData) || {}}
+                          collapsed={2}
+                          enableClipboard={true}
+                          displayObjectSize={true}
+                          displayDataTypes={false}
                           style={{
-                            backgroundColor: "transparent",
-                            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                            fontSize: "0.875rem",
-                            lineHeight: "1.5",
-                            borderRadius: "8px",
-                            padding: "12px",
-                            boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                            ...(isDarkMode ? darkTheme : lightTheme),
+                            fontSize: "0.95rem",
+                            borderRadius: 8,
+                            padding: 12,
+                            background: "transparent",
                             border: isDarkMode ? "1px solid rgba(75, 85, 99, 0.2)" : "1px solid rgba(229, 231, 235, 0.8)",
                           }}
                         />
                       </div>
                     ) : (
-                      <JsonView
-                        src={jsonData || {}}
-                        theme={isDarkMode ? "atom" : "default"}
+                      <ReactJsonView
+                        value={jsonData || {}}
                         collapsed={2}
-                        enableClipboard={false}
+                        enableClipboard={true}
+                        displayObjectSize={true}
+                        displayDataTypes={false}
                         style={{
-                          backgroundColor: "transparent",
-                          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                          fontSize: "0.875rem",
-                          lineHeight: "1.5",
-                          borderRadius: "8px",
-                          padding: "12px",
-                          boxShadow: isDarkMode ? "0 4px 6px -1px rgba(0, 0, 0, 0.2)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                          ...(isDarkMode ? darkTheme : lightTheme),
+                          fontSize: "0.95rem",
+                          borderRadius: 8,
+                          padding: 12,
+                          background: "transparent",
                           border: isDarkMode ? "1px solid rgba(75, 85, 99, 0.2)" : "1px solid rgba(229, 231, 235, 0.8)",
                         }}
                       />

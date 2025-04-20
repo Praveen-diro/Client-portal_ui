@@ -456,8 +456,7 @@ class AuthService {
    * @param data Object containing email for the account and alldata from Redux
    */
   async switchModeServer(data: { email: string; sandbox: string; alldata: any }): Promise<void> {
-
-    console.log('here is the data, ',data.alldata)
+    console.log("here is the data, ", data.alldata);
     const switchPayload = { emailId: data.email, sandbox: data.sandbox };
 
     try {
@@ -479,7 +478,6 @@ class AuthService {
 
       const parsedUserData = data.alldata;
       console.log("parsedUserData1111", parsedUserData);
-   
 
       // Determine the new mode
       // console.log("here is the response data", response.data);
