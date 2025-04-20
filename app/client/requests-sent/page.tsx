@@ -442,7 +442,7 @@ export default function RequestsSent() {
       <main className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${sidebarExpanded ? "ml-64" : "ml-16"}`}>
         <TooltipProvider>
           <div className="flex-1 relative">
-            <PageHeader title="Requests Sent" description="Manage and track your document verification requests" />
+            <PageHeader title="Requests sent" description="Manage and track your document verification requests" />
             <div className="container mx-auto px-8 py-8">
               {/* <div className="grid gap-4 md:grid-cols-3">
                 {stats.map((card, index) => (

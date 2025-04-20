@@ -45,7 +45,7 @@ import {
   extractTransactionError,
 } from "@/app/store/features/tableSlice";
 import { ReportIssueModal } from "@/components/ui/report-issue-modal";
-
+import { parseDomain } from "parse-domain";
 // Helper function to format date
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
@@ -453,21 +453,57 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     // Implement track toggle functionality
   };
 
-  // Verification cell
+  const getFullUrl = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    const matches = url.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+    return matches?.[1];
+  };
+
+  const getHostnameFromRegex = (url?: string) => {
+    console.log("URL:", url);
+    if (!url) return '';
+    
+    const matches = url.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+    if (!matches) return '';
+
+    console.log("INSIDE domainfilter");
+    const parseResult = parseDomain(matches[1]);
+
+    if (parseResult.type === 'LISTED') {
+      const { domain, topLevelDomains } = parseResult;
+      let ddomain;
+      if (domain && topLevelDomains) {
+        ddomain = `${domain}.${
+          topLevelDomains[0] ? topLevelDomains[0] : topLevelDomains
+        }${topLevelDomains[1] ? "." + topLevelDomains[1] : ""}`;
+      }
+      return ddomain;
+    }
+    return matches[1];
+  };
+  // Verification cell renderer
   const verificationCell = (doc: any) => {
     return (
-      <span
-        style={{
-          display: "flex",
-          justifyContent: "left",
-          alignItems: "center",
-          fontWeight: "400",
-          fontSize: "14px",
-          color: "black",
-        }}
-      >
-        {doc?.website || "diro.me"}
-      </span>
+      <div className="text-sm">
+
+
+
+
+
+        {/* =========== */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex justify-left font-normal text-black text-sm m-[3px]">
+                {getHostnameFromRegex(doc?.file?.url)}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {getFullUrl(doc?.file?.url)}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     );
   };
 
@@ -476,6 +512,8 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
     console.log("Rejecting document", doc);
     // Implement rejection functionality
   };
+
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -522,9 +560,6 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
 
         // Document type
         const docType = doc?.file?.category || (doc.button && doc.button.coverage ? doc.button.coverage.category : "Unknown");
-
-        // Extract verification source
-        const sourceText = doc?.website || (typeof doc.source === "string" ? doc.source : "diro.me");
 
         // Session ID
         const sessionIdText = doc?.file?.docid || sessionId || "Unknown";
@@ -573,7 +608,7 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
 
             {/* Verification source column */}
             <TableCell className="py-3">
-              <div className="text-sm">{sourceText}</div>
+              {verificationCell(doc)}
             </TableCell>
 
             {/* Session ID column */}
