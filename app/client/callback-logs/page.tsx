@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Copy, Check } from "lucide-react";
+import { RefreshCw, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/ui/sidebar";
 import { PageContainer } from "@/components/ui/page-container";
@@ -51,9 +51,23 @@ export default function CallbackLogsPage() {
   const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryLog, setRetryLog] = useState<CallbackLog | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Destructure with default values to handle undefined state
   const { callbackLogs = [], loading = false, error = null } = logsState || {};
+
+  // Calculate pagination
+  const totalLogs = callbackLogs.length;
+  const totalPages = Math.ceil(totalLogs / pageSize) || 1;
+  const paginatedLogs = callbackLogs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Reset to first page if logs change and current page is out of range
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   // Animation variants
   const containerVariants = {
@@ -278,8 +292,12 @@ export default function CallbackLogsPage() {
       );
     }
 
-    return callbackLogs.map((log, index) => (
-      <TableRow key={index} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleRowClick(log)}>
+    return paginatedLogs.map((log, index) => (
+      <TableRow
+        key={index + (currentPage - 1) * pageSize}
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => handleRowClick(log)}
+      >
         <TableCell className="font-medium">{log.request.name}</TableCell>
         <TableCell>{log.request.category}</TableCell>
         <TableCell className="font-mono text-sm">{log.request.docid}</TableCell>
@@ -299,6 +317,69 @@ export default function CallbackLogsPage() {
         </TableCell>
       </TableRow>
     ));
+  };
+
+  // Pagination controls
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-card rounded-b-lg">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {pageNumbers.map((num) => (
+            <Button
+              key={num}
+              variant={num === currentPage ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setCurrentPage(num)}
+              aria-current={num === currentPage ? "page" : undefined}
+              aria-label={`Page ${num}`}
+            >
+              {num}
+            </Button>
+          ))}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="page-size" className="text-sm text-muted-foreground">
+            Rows per page:
+          </label>
+          <select
+            id="page-size"
+            className="border rounded px-2 py-1 text-sm bg-background"
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            aria-label="Rows per page"
+          >
+            {[10, 20, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -332,6 +413,7 @@ export default function CallbackLogsPage() {
                 </TableHeader>
                 <TableBody>{renderTableContent()}</TableBody>
               </Table>
+              {renderPagination()}
             </motion.div>
           </motion.div>
         </div>

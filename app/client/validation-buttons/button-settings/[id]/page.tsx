@@ -163,14 +163,10 @@ const MultiSelect = ({
 
   const formatSelectedValue = (values: (string | { label: string; value: string })[]) => {
     if (values.length === 0) return placeholder;
-
     return values
       .map((v) => {
-        // Handle both string and object formats
         const valueStr = typeof v === "string" ? v : v.value;
         const label = typeof v === "string" ? v : v.label;
-
-        // Apply specific formatting for known values or use the label directly
         switch (valueStr) {
           case "loan-statements":
             return "Loan statements";
@@ -189,15 +185,11 @@ const MultiSelect = ({
 
   return (
     <Select
-      value={value.length > 0 ? "_multiple_values_" : "_empty_selection_"}
       onValueChange={(newValue) => {
-        // Check if the new value already exists in the array
         const valueExists = value.some((v) => (typeof v === "string" ? v === newValue : v.value === newValue));
-
         if (!valueExists) {
           onValueChange([...value, newValue]);
         } else {
-          // Remove the value if it exists
           onValueChange(value.filter((v) => (typeof v === "string" ? v !== newValue : v.value !== newValue)));
         }
         setTempValue("");
