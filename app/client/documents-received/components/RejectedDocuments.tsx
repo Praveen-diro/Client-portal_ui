@@ -894,7 +894,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                               role="button"
                               tabIndex={0}
                             >
-                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-foreground">
                                 {doc?.file?.remarks || doc?.remarks}
                                 <br />
                               </div>
@@ -903,7 +903,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                         } else if (doc?.status !== "delete") {
                           return (
                             <Link href={`/pdf/${makefileurl(sessionId)}`} className="block">
-                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-foreground">
                                 {doc?.file?.remarks || doc?.remarks}
                                 <br />
                               </div>
@@ -920,7 +920,7 @@ export default function RejectedDocuments({ isActive, searchQuery }: RejectedDoc
                               tabIndex={0}
                               role="button"
                             >
-                              <div className="text-left flex justify-start text-[11px] leading-[1] text-black">
+                              <div className="text-left flex justify-start text-[11px] leading-[1] text-foreground">
                                 {doc?.file?.remarks || doc?.remarks}
                                 <br />
                               </div>

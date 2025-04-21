@@ -474,20 +474,7 @@ export default function ApprovedDocuments({ isActive, searchQuery }: ApprovedDoc
 
   // Verification cell
   const verificationCell = (doc: any) => {
-    return (
-      <span
-        style={{
-          display: "flex",
-          justifyContent: "left",
-          alignItems: "center",
-          fontWeight: "400",
-          fontSize: "14px",
-          color: "black",
-        }}
-      >
-        {doc?.website || "diro.me"}
-      </span>
-    );
+    return <span className="text-foreground">{doc?.website || "diro.me"}</span>;
   };
 
   // Handle click outside to close dropdown

@@ -31,7 +31,7 @@ const TypeCell: React.FC<TypeCellProps> = ({ doc, onOpenDocView, makefileurl, se
 
   // Logic for clickable/viewable cell
   const cellContent = (
-    <div className="flex items-center font-normal text-[14px] text-black">
+    <div className="flex items-center font-normal text-[14px] text-foreground">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

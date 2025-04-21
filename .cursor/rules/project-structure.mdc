@@ -1,0 +1,22 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Structure Guide
+
+This project is a Next.js 15 (App Router) application with a modular, scalable structure. Key directories and files include:
+
+- [app/](mdc:app): Main application logic, including routing, components, services, store, types, and utilities.
+- [components/](mdc:components): Shared and UI components, including [ui/](mdc:components/ui) (shadcn/ui, Radix UI, Tailwind CSS), theme, and validation button components.
+- [hooks/](mdc:hooks): Custom React hooks.
+- [lib/](mdc:lib): Utility modules.
+- [public/](mdc:public): Static assets.
+- [styles/](mdc:styles): Global and modular styles.
+- [middleware.ts](mdc:middleware.ts): Next.js middleware for route protection and authentication.
+- [next.config.js](mdc:next.config.js): Next.js configuration.
+- [tailwind.config.ts](mdc:tailwind.config.ts): Tailwind CSS configuration.
+- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration.
+- [package.json](mdc:package.json): Project dependencies and scripts.
+
+See [README.md](mdc:README.md) for a detailed overview.

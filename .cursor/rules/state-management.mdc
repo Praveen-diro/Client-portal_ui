@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# State Management
+
+The application uses a hybrid state management approach:
+
+- **Redux Toolkit**: Global state is managed using Redux Toolkit in [app/store/](mdc:app/store) and feature slices in [app/store/features/](mdc:app/store/features).
+- **React Redux**: React bindings for Redux are used throughout the app.
+- **Local State**: Managed with React's useState and useReducer hooks in components.
+- **Form State**: Managed with React Hook Form.
+
+See [README.md](mdc:README.md) for more details.

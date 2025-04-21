@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Component Architecture
+
+The application uses a modular component architecture for maintainability and reusability:
+
+- **UI Components** ([components/ui/](mdc:components/ui)): Reusable, presentational components built with shadcn/ui, Radix UI, and Tailwind CSS.
+- **Shared Components** ([components/](mdc:components)): Theme and validation button components reused across the app.
+- **App-specific Components** ([app/components/](mdc:app/components)): Feature-specific components, not intended for reuse outside their context.
+- **Composition Pattern**: Components are composed from smaller, focused components. Props and context providers are used for configuration and data passing.
+
+See [README.md](mdc:README.md) for more details.

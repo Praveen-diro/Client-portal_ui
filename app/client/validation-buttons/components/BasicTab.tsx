@@ -498,13 +498,21 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
     if (direct_link) {
       const isCustom = !searchResults.some((result) => result.url === direct_link);
       if (isCustom) {
-        setCustomUrl(direct_link);
-        setIsCustomUrlSelected(true);
+        if (customUrl !== direct_link) setCustomUrl(direct_link);
+        if (!isCustomUrlSelected) setIsCustomUrlSelected(true);
+        if (selectedLink !== "") setSelectedLink("");
       } else {
-        setSelectedLink(direct_link);
-        setIsCustomUrlSelected(false);
+        if (selectedLink !== direct_link) setSelectedLink(direct_link);
+        if (isCustomUrlSelected) setIsCustomUrlSelected(false);
+        if (customUrl !== "") setCustomUrl("");
       }
+    } else if (customUrl || selectedLink || isCustomUrlSelected) {
+      // Only reset if any local state is not already empty/false
+      if (customUrl !== "") setCustomUrl("");
+      if (selectedLink !== "") setSelectedLink("");
+      if (isCustomUrlSelected) setIsCustomUrlSelected(false);
     }
+    // eslint-disable-next-line
   }, [direct_link, searchResults]);
 
   // Memoize the Select value change handler
@@ -513,19 +521,19 @@ export const BasicTab: React.FC<BasicTabProps> = (props) => {
       if (value === "add_custom_url") {
         setShowCustomUrlModal(true);
         return;
-      } else if (value === "custom_url_selected") {
+      }
+      if (value === "custom_url_selected") {
         return;
-      } else {
-        if (value !== selectedLink) {
-          setSelectedLink(value);
-          setIsCustomUrlSelected(false);
-          if (onUrlChange) {
-            onUrlChange(value);
-          }
+      }
+      if (value !== selectedLink) {
+        setSelectedLink(value);
+        setIsCustomUrlSelected(false);
+        if (onUrlChange && value !== direct_link) {
+          onUrlChange(value);
         }
       }
     },
-    [selectedLink, onUrlChange]
+    [selectedLink, onUrlChange, direct_link]
   );
 
   // Log the countryLinks data when it changes

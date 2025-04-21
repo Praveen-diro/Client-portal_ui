@@ -526,20 +526,7 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
 
   // Verification cell
   const verificationCell = (doc: any) => {
-    return (
-      <span
-        style={{
-          display: "flex",
-          justifyContent: "left",
-          alignItems: "center",
-          fontWeight: "400",
-          fontSize: "14px",
-          color: "black",
-        }}
-      >
-        {doc?.website || "diro.me"}
-      </span>
-    );
+    return <span className="text-foreground">{doc?.website || "diro.me"}</span>;
   };
 
   // Handle rejection
@@ -714,7 +701,6 @@ export default function PendingDocuments({ isActive, searchQuery }: PendingDocum
                             fontSize: "13px",
                             fontWeight: "400",
                             lineHeight: "1",
-                            color: "black",
                           }}
                         >
                           {detail?.name}

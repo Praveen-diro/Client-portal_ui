@@ -77,14 +77,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // Wrap non-critical features in Suspense to avoid blocking the UI
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        {children}
-        {mounted && (
+      {mounted ? (
+        <PersistGate loading={null} persistor={persistor}>
+          {children}
           <Suspense fallback={null}>
             <GeoLocationLoader pathname={pathname} />
           </Suspense>
-        )}
-      </PersistGate>
+        </PersistGate>
+      ) : null}
     </Provider>
   );
 }

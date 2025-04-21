@@ -77,7 +77,7 @@ export const VerificationCell: React.FC<VerificationCellProps> = ({ doc }) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="flex items-center gap-1 text-sm font-normal text-black cursor-default">
+          <span className="flex items-center gap-1 text-sm font-normal text-foreground cursor-default">
             {icon}
             <span className="truncate max-w-[160px]" title={hostname}>
               {hostname || "Not available"}

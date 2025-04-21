@@ -1013,8 +1013,9 @@ export default function EditButton() {
 
   // Add handleUrlChange function
   const handleUrlChange = (url: string) => {
-    // Update the button settings with the selected direct_link
-    dispatch(setFixedUrlAddress(url));
+    if (buttonSettings?.coverage?.direct_link !== url) {
+      dispatch(setFixedUrlAddress(url));
+    }
   };
 
   // Add this function before the return statement, after all other function definitions

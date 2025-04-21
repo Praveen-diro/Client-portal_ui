@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Authentication Flow
+
+Authentication is implemented using a secure, multi-factor system:
+
+- **Standard Login** and **Multi-Factor Authentication**: See [app/authentication/](mdc:app/authentication)
+- **Token-based Sessions**: JWT tokens managed via cookies
+- **Password Recovery**: Forgot password and reset flows in [app/authentication/forgotpassword/](mdc:app/authentication/forgotpassword) and [app/authentication/passwordreset/](mdc:app/authentication/passwordreset)
+- **Middleware Enforcement**: Route protection via [middleware.ts](mdc:middleware.ts)
+
+See [README.md](mdc:README.md) for a full overview.

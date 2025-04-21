@@ -19,20 +19,19 @@ const nextConfig = {
         serverActions: {
             bodySizeLimit: '2mb',
         },
-        // Enable turbopack for faster refresh
-        turbo: {
-            rules: {
-                // Avoid processing certain imports during development
-                // This will make HMR much faster
-                '*.svg': ['url'],
-                '*.png': ['url'],
-                '*.jpg': ['url'],
-                '*.jpeg': ['url'],
-                '*.gif': ['url'],
-                '*.webp': ['url'],
-            },
-        }
         // Removed unrecognized experimental features
+    },
+    turbopack: {
+        rules: {
+            // Avoid processing certain imports during development
+            // This will make HMR much faster
+            '*.svg': ['url'],
+            '*.png': ['url'],
+            '*.jpg': ['url'],
+            '*.jpeg': ['url'],
+            '*.gif': ['url'],
+            '*.webp': ['url'],
+        },
     },
     // Customize webpack config to optimize bundle size
     webpack: (config, { dev, isServer }) => {
